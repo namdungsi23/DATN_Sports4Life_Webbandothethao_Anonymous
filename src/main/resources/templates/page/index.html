@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main-content}">
+<body>
+
+<div layout:fragment="content">
+
+    <!-- HERO SECTION -->
+    <div class="text-center py-5 bg-light rounded mb-5">
+        <h1 class="fw-bold mb-3">👟 SHOE STORE</h1>
+        <p class="lead">
+            Chuyên cung cấp <strong>giày chính hãng</strong> – giá tốt – giao hàng nhanh
+        </p>
+        <a href="/product" class="btn btn-primary btn-lg mt-3">
+            Mua sắm ngay
+        </a>
+    </div>
+
+    <!-- FEATURES -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm text-center">
+                <div class="card-body">
+                    <h5 class="card-title">✔ Chính hãng</h5>
+                    <p class="card-text">
+                        Cam kết sản phẩm 100% chính hãng, hoàn tiền nếu phát hiện hàng giả.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm text-center">
+                <div class="card-body">
+                    <h5 class="card-title">🚚 Giao hàng nhanh</h5>
+                    <p class="card-text">
+                        Giao hàng toàn quốc, nhận hàng nhanh chóng và an toàn.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm text-center">
+                <div class="card-body">
+                    <h5 class="card-title">🔄 Đổi trả 7 ngày</h5>
+                    <p class="card-text">
+                        Hỗ trợ đổi trả trong vòng 7 ngày nếu sản phẩm không vừa hoặc lỗi.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CALL TO ACTION -->
+    <div class="alert alert-primary text-center">
+        🎯 Theo dõi Shoe Store để nhận nhiều ưu đãi hấp dẫn mỗi ngày!
+    </div>
+
+</div>
+
+</body>
+</html>

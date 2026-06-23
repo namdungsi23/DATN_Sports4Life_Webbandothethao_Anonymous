@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/Admin-content}">
+<head>
+    <meta charset="UTF-8">
+    <title>Quản lý người dùng</title>
+</head>
+
+<body>
+<div layout:fragment="main-content">
+    <div class="container-fluid">
+
+        <!-- TITLE -->
+        <h3 class="mb-4">👤 Quản lý người dùng</h3>
+
+        <!-- SEARCH -->
+        <form class="d-flex mb-4 p-3 bg-light rounded shadow-sm"
+              method="get"
+              th:action="@{/admin/user}">
+            <input type="text"
+                   name="keyword"
+                   class="form-control form-control-lg me-2 border-primary"
+                   placeholder="🔍 Tìm username hoặc họ tên"
+                   th:value="${keyword}">
+            <button class="btn btn-primary btn-lg px-4">Tìm kiếm</button>
+        </form>
+
+        <div class="row">
+
+            <!-- ================= FORM UPDATE ONLY ================= -->
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <strong>Tạo | Cập nhật người dùng</strong>
+                    </div>
+
+                    <div class="card-body">
+                        <form th:action="@{/admin/user/save}"
+                              th:object="${user}"
+                              method="post">
+
+                            <!-- USERNAME -->
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Tên đăng nhập</strong></label>
+                                <input type="text"
+                                       th:field="*{username}"
+                                       class="form-control"
+                                >
+                            </div>
+
+                            <!-- FULLNAME -->
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Họ tên</strong></label>
+                                <input type="text"
+                                       th:field="*{fullname}"
+                                       class="form-control">
+                            </div>
+
+                            <!-- EMAIL -->
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Email</strong></label>
+                                <input type="email"
+                                       th:field="*{email}"
+                                       class="form-control">
+                            </div>
+
+                            <!-- PHOTO -->
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Ảnh đại diện</strong></label>
+                                <input type="text"
+                                       th:field="*{photo}"
+                                       class="form-control">
+                            </div>
+
+                            <!-- ACTIVATED -->
+                            <div class="form-check mb-3">
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       th:field="*{activated}">
+                                <label class="form-check-label">
+                                    <strong>Kích hoạt tài khoản</strong>
+                                </label>
+                            </div>
+                            
+                            <!-- Authorization -->
+                            <label class="form-check-label mb-1">
+	                            	<strong>Quyền</strong>
+                           	</label>
+                            <div class="form-check mb-3">
+                                <!-- Roles -->
+                                <div th:each="authority : ${authorities}">
+							        <input class="form-check-input" 
+							               type="checkbox"
+							               th:id="${authority}" 
+							               name="authorities" 
+							               th:value="${authority}">
+							        <label th:text="${authority == 'ROLE_ADMIN' ? 'Quản lý' : 'Người dùng thường'}"
+							        	   th:for="${authority}">
+							        </label>
+								</div>
+                            </div>
+							
+                            <button class="btn btn-success w-100">
+                                💾 Tạo / Cập nhật
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= TABLE ================= -->
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-dark text-white">
+                        Danh sách người dùng
+                    </div>
+
+                    <div class="card-body table-responsive">
+                        <table class="table table-bordered table-hover align-middle">
+                            <thead class="table-light">
+                            <tr>
+                                <th>Username</th>
+                                <th>Họ tên</th>
+                                <th>Email</th>
+                                <th>Quyền</th>
+                                <th>Trạng thái</th>
+                                <th class="text-center">Hành động</th>
+                            </tr>
+                            </thead>
+
+                            <tbody>
+                            <tr th:each="u : ${users}">
+                                <td th:text="${u.username}"></td>
+                                <td th:text="${u.fullname}"></td>
+                                <td th:text="${u.email}"></td>
+
+                                <td>
+                                    <span th:if="${u.admin == true}"
+      									  class="badge bg-success">ADMIN
+      								</span>
+
+                                    <span th:if="${u.admin == false}"
+      									  class="badge bg-secondary">USER
+      								</span>
+
+                                </td>
+
+                                <td>
+                                    <span th:if="${u.activated}"
+                                          class="badge bg-primary">Hoạt động</span>
+                                    <span th:if="${!u.activated}"
+                                          class="badge bg-danger">Khóa</span>
+                                </td>
+
+                                <td class="text-center">
+                                    <!-- EDIT -->
+                                    <a th:href="@{/admin/user/edit/{u}(u=${u.username})}"
+                                       class="btn btn-sm btn-warning">
+                                        ✏️
+                                    </a>
+                                    
+									<!-- 
+                                     DELETE: chỉ admin & không xoá admin 
+                                    <a th:if="${session.user.admin == true 
+									          and session.user.username != u.username}"
+									   th:href="@{/admin/user/delete/{u}(u=${u.username})}"
+									   class="btn btn-sm btn-danger"
+									   onclick="return confirm('Bạn chắc chắn muốn xóa user này?')">
+									    🗑️
+									</a>
+									-->
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- PAGINATION -->
+                        <nav>
+                            <ul class="pagination justify-content-center">
+
+                                <li class="page-item"
+                                    th:classappend="${pages.first} ? 'disabled'">
+                                    <a class="page-link"
+                                       th:href="@{/admin/user(page=${pages.number - 1}, keyword=${keyword})}">
+                                        «
+                                    </a>
+                                </li>
+
+                                <li class="page-item"
+                                    th:each="i : ${#numbers.sequence(0, pages.totalPages - 1)}"
+                                    th:classappend="${i == pages.number} ? 'active'">
+                                    <a class="page-link"
+                                       th:text="${i + 1}"
+                                       th:href="@{/admin/user(page=${i}, keyword=${keyword})}">
+                                    </a>
+                                </li>
+
+                                <li class="page-item"
+                                    th:classappend="${pages.last} ? 'disabled'">
+                                    <a class="page-link"
+                                       th:href="@{/admin/user(page=${pages.number + 1}, keyword=${keyword})}">
+                                        »
+                                    </a>
+                                </li>
+
+                            </ul>
+                        </nav>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+</body>
+</html>

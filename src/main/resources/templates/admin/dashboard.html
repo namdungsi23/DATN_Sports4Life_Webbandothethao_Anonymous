@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layouts/Admin-content}">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard Admin</title>
+</head>
+
+<body>
+	<div layout:fragment="main-content">
+
+		<h3 class="mb-4">📊 Bảng điều khiển quản trị</h3>
+
+		<!-- ROW 1 -->
+		<div class="row g-3 mb-4">
+
+			<div class="col-md-3">
+				<div class="card bg-primary text-white shadow">
+					<div class="card-body">
+						<h6>Tổng người dùng</h6>
+						<h3 th:text="${totalUsers}">0</h3>
+					</div>
+				</div>
+			</div>
+
+			<div class="col-md-3">
+				<div class="card bg-success text-white shadow">
+					<div class="card-body">
+						<h6>Tổng sản phẩm</h6>
+						<h3 th:text="${totalProducts}">0</h3>
+					</div>
+				</div>
+			</div>
+
+			<div class="col-md-3">
+				<div class="card bg-warning text-dark shadow">
+					<div class="card-body">
+						<h6>Tổng đơn hàng</h6>
+						<h3 th:text="${totalOrders}">0</h3>
+					</div>
+				</div>
+			</div>
+
+			<div class="col-md-3">
+				<div class="card bg-danger text-white shadow">
+					<div class="card-body">
+						<h6>Đơn hàng hôm nay</h6>
+						<h3 th:text="${todayOrders}">0</h3>
+					</div>
+				</div>
+			</div>
+
+		</div>
+
+		<!-- ROW 2 -->
+		<div class="row g-3">
+
+			<div class="col-md-4">
+				<div class="card shadow">
+					<div class="card-body">
+						<h6>🆕 Sản phẩm mới (7 ngày)</h6>
+						<h3 th:text="${newProducts}">0</h3>
+					</div>
+				</div>
+			</div>
+
+			<div class="col-md-8">
+				<div class="card shadow">
+					<div class="card-header bg-dark text-white">⚡ Thao tác nhanh
+					</div>
+					<div class="card-body d-flex gap-3 flex-wrap">
+						<a th:href="@{/admin/user}" class="btn btn-outline-primary">👤
+							User</a> <a th:href="@{/admin/product}"
+							class="btn btn-outline-success">📦 Product</a> <a
+							th:href="@{/admin/category}" class="btn btn-outline-warning">📂
+							Category</a> <a th:href="@{/admin/order}"
+							class="btn btn-outline-danger">🧾 Order</a>
+					</div>
+				</div>
+			</div>
+
+		</div>
+
+	</div>
+</body>
+</html>

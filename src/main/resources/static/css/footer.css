@@ -1,0 +1,44 @@
+.shop-footer {
+    background-color: #607D8B;
+    color: #ccc;
+    padding: 40px 60px 20px;
+    font-size: 14px;
+}
+
+.shop-footer-top {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 30px;
+}
+
+.shop-footer h4 {
+    color: #fff;
+    margin-bottom: 12px;
+}
+
+.shop-footer a {
+    display: block;
+    color: #ccc;
+    text-decoration: none;
+    margin-bottom: 6px;
+}
+
+.shop-footer a:hover {
+    color: #fff;
+}
+
+.shop-social span {
+    font-size: 20px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.shop-footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    font-size: 13px;
+    color: #888;
+}
