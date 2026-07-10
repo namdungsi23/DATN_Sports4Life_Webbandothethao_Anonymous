@@ -11,8 +11,10 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Entity.Ranks;
 import poly.edu.ASSM.Entity.Users;
 import poly.edu.ASSM.Repository.AccountRepository;
+import poly.edu.ASSM.Repository.RankRepository;
 import poly.edu.ASSM.Repository.UsersRepository;
 import poly.edu.ASSM.Services.util.CloudinaryService;
 import poly.edu.ASSM.dto.request.ProfileUpdateRequest;
@@ -27,6 +29,9 @@ public class ProfileServiceImpl implements ProfileService {
     private UsersRepository usersRepository;
 
     @Autowired
+    private RankRepository rankRepository;
+
+    @Autowired
     private CloudinaryService cloudinaryService;
 
     @Override
@@ -38,31 +43,25 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     public Map<String, Object> updateProfile(String username, ProfileUpdateRequest request) {
         Accounts account = requireAccount(username);
+        Users users = requireOrCreateUser(account);
 
         if (request.getFullname() != null) {
-            account.setFullName(request.getFullname().trim());
+            users.setFullName(request.getFullname().trim());
         }
         if (request.getEmail() != null) {
             account.setEmail(request.getEmail().trim());
         }
         if (request.getPhoto() != null && !request.getPhoto().isBlank()) {
-            account.setAvatar(request.getPhoto().trim());
+            users.setAvatar(request.getPhoto().trim());
+        }
+        if (request.getPhone() != null) {
+            users.setPhone(request.getPhone().trim());
         }
 
         account.setUpdatedAt(Instant.now());
+        users.setUpdatedAt(Instant.now());
         accountRepository.save(account);
-
-        if (request.getPhone() != null) {
-            Users users = usersRepository.findByAccount_Id(account.getId()).orElseGet(() -> {
-                Users created = new Users();
-                created.setAccount(account);
-                created.setCreatedAt(Instant.now());
-                return created;
-            });
-            users.setPhone(request.getPhone().trim());
-            users.setUpdatedAt(Instant.now());
-            usersRepository.save(users);
-        }
+        usersRepository.save(users);
 
         return Map.of("profile", toProfileMap(account), "message", "Cập nhật hồ sơ thành công");
     }
@@ -74,10 +73,13 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         Accounts account = requireAccount(username);
+        Users users = requireOrCreateUser(account);
         String url = cloudinaryService.uploadAvatar(file);
-        account.setAvatar(url);
+        users.setAvatar(url);
+        users.setUpdatedAt(Instant.now());
         account.setUpdatedAt(Instant.now());
         accountRepository.save(account);
+        usersRepository.save(users);
 
         return Map.of(
                 "profile", toProfileMap(account),
@@ -96,16 +98,32 @@ public class ProfileServiceImpl implements ProfileService {
         return account;
     }
 
+    private Users requireOrCreateUser(Accounts account) {
+        return usersRepository.findByAccount_Id(account.getId()).orElseGet(() -> {
+            Users created = new Users();
+            created.setAccount(account);
+            created.setGender(0);
+            created.setRank(requireDefaultRank());
+            created.setCreatedAt(Instant.now());
+            return created;
+        });
+    }
+
+    private Ranks requireDefaultRank() {
+        return rankRepository.findById(1)
+                .orElseThrow(() -> new IllegalStateException("Default rank not found"));
+    }
+
     private Map<String, Object> toProfileMap(Accounts account) {
         Map<String, Object> profile = new HashMap<>();
         profile.put("username", account.getUsername());
-        profile.put("fullname", account.getFullName());
         profile.put("email", account.getEmail());
-        profile.put("photo", account.getAvatar());
-        profile.put("avatar", account.getAvatar());
         profile.put("createdAt", account.getCreatedAt());
 
         usersRepository.findByAccount_Id(account.getId()).ifPresent(users -> {
+            profile.put("fullname", users.getFullName());
+            profile.put("photo", users.getAvatar());
+            profile.put("avatar", users.getAvatar());
             profile.put("phone", users.getPhone());
             profile.put("createDate", users.getCreatedAt());
         });

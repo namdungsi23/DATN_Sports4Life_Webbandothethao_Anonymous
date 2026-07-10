@@ -10,6 +10,7 @@ public final class AdminPermissionCodes {
     public static final String PRODUCT = "PRODUCT_VIEW";
     public static final String CATEGORY = "CATEGORY_VIEW";
     public static final String ORDER = "ORDER_VIEW";
+    public static final String ORDER_UPDATE = "ORDER_UPDATE";
     public static final String USER = "USER_VIEW";
 
     public static boolean matches(String required, String granted) {

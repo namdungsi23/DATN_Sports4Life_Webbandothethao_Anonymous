@@ -12,7 +12,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class UserRoleResponse {
-    private Integer userId;
+    private Long userId;
     private String username;
     private Integer roleId;
     private String roleName;

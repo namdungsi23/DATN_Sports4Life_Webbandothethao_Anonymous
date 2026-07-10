@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import poly.edu.ASSM.Entity.Category;
 import poly.edu.ASSM.Services.core.CategoryService;
+import poly.edu.ASSM.dto.response.CategoryResponse;
+import poly.edu.ASSM.mapper.CategoryMapper;
 
 @RestController
 @RequestMapping("/api/admin/categories")
@@ -28,6 +30,9 @@ public class AdminCategoryApiController {
 
     @Autowired
     private CategoryService categoryService;
+
+    @Autowired
+    private CategoryMapper categoryMapper;
 
     @GetMapping
     public Map<String, Object> index(
@@ -48,8 +53,10 @@ public class AdminCategoryApiController {
             totalPages = result.getTotalPages();
         }
 
+        List<CategoryResponse> items = categoryMapper.toResponseList(categories);
+
         return Map.of(
-                "categories", categories,
+                "categories", items,
                 "totalPages", totalPages,
                 "currentPage", page,
                 "keyword", keyword != null ? keyword : "",
@@ -57,9 +64,9 @@ public class AdminCategoryApiController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Category> one(@PathVariable String id) {
+    public ResponseEntity<CategoryResponse> one(@PathVariable String id) {
         try {
-            return ResponseEntity.ok(categoryService.findById(id));
+            return ResponseEntity.ok(categoryMapper.toResponse(categoryService.findById(id)));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }

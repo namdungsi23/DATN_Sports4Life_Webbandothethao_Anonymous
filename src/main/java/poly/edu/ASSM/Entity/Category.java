@@ -1,5 +1,7 @@
 package poly.edu.ASSM.Entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,16 +16,15 @@ import java.util.Set;
 @Table(name = "Categories")
 public class Category {
     @Id
-    @Column(name = "Id", nullable = false, length = 4)
+    @Column(name = "Id", nullable = false, length = 10)
     private String id;
 
     @Nationalized
     @Column(name = "Name", nullable = false, length = 50)
     private String name;
 
-    @OneToMany
-    @JoinColumn(name = "Category_Id")
-    private Set<Products> products = new LinkedHashSet<>();
-
+   @JsonIgnore
+   @OneToMany(mappedBy = "category")
+   private Set<Products> products = new LinkedHashSet<>();
 
 }

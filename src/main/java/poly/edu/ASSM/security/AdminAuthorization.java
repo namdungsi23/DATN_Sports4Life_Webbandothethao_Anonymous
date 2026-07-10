@@ -21,4 +21,22 @@ public class AdminAuthorization {
         AdminAccessService.AdminAccess access = adminAccessService.resolve(auth.getName());
         return adminAccessService.hasPermission(access, permission);
     }
+
+    public boolean isAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) {
+            return false;
+        }
+        AdminAccessService.AdminAccess access = adminAccessService.resolve(auth.getName());
+        return adminAccessService.isAdminRole(access);
+    }
+
+    public boolean canWriteCatalog() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) {
+            return false;
+        }
+        AdminAccessService.AdminAccess access = adminAccessService.resolve(auth.getName());
+        return adminAccessService.canWriteCatalog(access);
+    }
 }

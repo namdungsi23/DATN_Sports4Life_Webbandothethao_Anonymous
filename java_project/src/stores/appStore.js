@@ -205,13 +205,16 @@ const login = (payload) => {
     return;
   }
 
-  const { accessToken, refreshToken, permissions, panelAccess, ...profile } = payload;
+  const { accessToken, refreshToken, permissions, panelAccess, canWriteCatalog, isAdmin, isStaff, ...profile } = payload;
   state.user =
     profile.username || profile.roles !== undefined || profile.email
       ? {
           ...profile,
           ...(Array.isArray(permissions) ? { permissions } : {}),
           ...(panelAccess !== undefined ? { panelAccess } : {}),
+          ...(canWriteCatalog !== undefined ? { canWriteCatalog } : {}),
+          ...(isAdmin !== undefined ? { isAdmin } : {}),
+          ...(isStaff !== undefined ? { isStaff } : {}),
         }
       : null;
   state.accessToken = accessToken || null;
@@ -254,6 +257,9 @@ const syncPanelAccess = (data) => {
     roles: data.roles ?? state.user.roles,
     permissions: data.permissions ?? state.user.permissions,
     panelAccess: data.panelAccess ?? state.user.panelAccess,
+    canWriteCatalog: data.canWriteCatalog ?? state.user.canWriteCatalog,
+    isAdmin: data.isAdmin ?? state.user.isAdmin,
+    isStaff: data.isStaff ?? state.user.isStaff,
   };
 };
 

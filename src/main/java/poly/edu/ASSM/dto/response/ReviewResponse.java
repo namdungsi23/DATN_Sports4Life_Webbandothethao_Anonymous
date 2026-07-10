@@ -15,7 +15,7 @@ import lombok.Setter;
 @Builder
 public class ReviewResponse {
     private Long id;
-    private Integer userId;
+    private Long userId;
     private String username;
     private Long productId;
     private String productName;

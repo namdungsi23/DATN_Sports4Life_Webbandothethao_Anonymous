@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import poly.edu.ASSM.Repository.AccountRepository;
 import poly.edu.ASSM.Repository.OrdersRepository;
 import poly.edu.ASSM.Repository.ProductRepository;
+import poly.edu.ASSM.Services.core.OrdersService;
 
 @RestController
 @RequestMapping("/api/admin/dashboard")
@@ -26,6 +27,8 @@ public class AdminDashboardApiController {
     private ProductRepository productRepo;
     @Autowired
     private OrdersRepository orderRepo;
+    @Autowired
+    private OrdersService ordersService;
 
     @GetMapping
     public Map<String, Object> stats() {
@@ -35,7 +38,7 @@ public class AdminDashboardApiController {
                 "totalUsers", accountRepo.count(),
                 "totalProducts", productRepo.count(),
                 "totalOrders", orderRepo.count(),
-                "todayOrders", orderRepo.countTodayOrders(today),
+                "todayOrders", ordersService.countTodayOrders(),
                 "newProducts", productRepo.countNewProducts(weekAgo));
     }
 }

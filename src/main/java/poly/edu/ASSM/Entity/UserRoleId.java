@@ -15,7 +15,7 @@ import java.io.Serializable;
 public class UserRoleId implements Serializable {
     private static final long serialVersionUID = 5382896330734438287L;
     @Column(name = "user_id", nullable = false)
-    private Integer userId;
+    private Long userId;
 
     @Column(name = "role_id", nullable = false)
     private Integer roleId;

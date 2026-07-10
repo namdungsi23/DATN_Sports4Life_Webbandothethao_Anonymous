@@ -24,14 +24,14 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import poly.edu.ASSM.Entity.Accounts;
-import poly.edu.ASSM.Services.core.AccountsServiceImpl;
+import poly.edu.ASSM.Services.core.AccountService;
 import poly.edu.ASSM.Services.util.JwtService;
 
 @Component
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
 	@Autowired
-	private AccountsServiceImpl accountService;
+	private AccountService accountService;
 
 	@Autowired
 	private UserDetailsService userDetailsService;
@@ -60,28 +60,9 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 			return;
 		}
 
-		Accounts user = accountService.findByUsername(email);
-		if (user == null) {
-			user = new Accounts();
-			user.setUsername(email);
-			user.setEmail(email);
-			user.setFullName(name);
-			user.setAvatar(picture);
-			user.setIsActive(true);
-			user.setAdmin(false);
-			user.setPasswordHash(null);
-			user = accountService.update(user);
-		} else {
-			if (name != null) {
-				user.setFullName(name);
-			}
-			if (picture != null) {
-				user.setAvatar(picture);
-			}
-			user = accountService.update(user);
-		}
+		Accounts account = accountService.saveOAuthLogin(email, name, picture);
 
-		if (user == null || !Boolean.TRUE.equals(user.getIsActive())) {
+		if (account == null || !Boolean.TRUE.equals(account.getIsActive())) {
 			redirectError(response, "Tài khoản bị khóa hoặc không hợp lệ.");
 			return;
 		}

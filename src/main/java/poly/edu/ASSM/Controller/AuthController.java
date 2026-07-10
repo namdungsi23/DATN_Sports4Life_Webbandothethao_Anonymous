@@ -11,6 +11,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Entity.Roles;
+import poly.edu.ASSM.Repository.RoleRepository;
 import poly.edu.ASSM.Services.core.AccountService;
 import poly.edu.ASSM.Services.util.AuthService;
 
@@ -24,6 +26,9 @@ public class AuthController {
 	
 	@Autowired
     PasswordEncoder passwordEncoder;
+
+	@Autowired
+	RoleRepository roleRepository;
 
 /*
 	@PostMapping("/login")
@@ -62,7 +67,7 @@ public class AuthController {
 		acc.setPasswordHash(password);
 		acc.setEmail(email);
 		acc.setIsActive(true);
-		acc.setAdmin(true);
+		acc.setRole(roleRepository.findByName("ROLE_ADMIN").orElseThrow());
 		account.update(acc);
 		model.addAttribute("sucess", "Đăng nhập thành công!Hãy đăng nhập");
 		model.addAttribute("showRegister", false);
@@ -92,8 +97,9 @@ public class AuthController {
 			acc.setPasswordHash(passwordEncoder.encode(password));
 			acc.setEmail(email);
 			acc.setIsActive(true);
-			acc.setAdmin(false);
+			acc.setRole(roleRepository.findByName("ROLE_USER").orElseThrow());
 			account.update(acc);
+			account.updateCustomerProfile(username, fullname, email, null, true);
 		return "page/login"; // To be continue
 		
 	}

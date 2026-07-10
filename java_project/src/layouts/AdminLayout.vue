@@ -19,6 +19,8 @@
         @toggle-sidebar="toggleSidebar"
       />
 
+      <AdminOrderAlertBanner />
+
       <main class="admin-content">
         <slot />
       </main>
@@ -31,6 +33,7 @@ import { computed, onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 import AdminSidebar from "../components/admin/AdminSidebar.vue";
 import AdminTopBar from "../components/admin/AdminTopBar.vue";
+import AdminOrderAlertBanner from "../components/admin/AdminOrderAlertBanner.vue";
 import { fetchAdminMeApi } from "../services/api";
 import { useAppStore } from "../stores/appStore";
 import { userCanAccessPanel } from "../utils/adminAccess";

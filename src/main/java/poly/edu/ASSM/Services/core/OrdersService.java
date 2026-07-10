@@ -25,4 +25,8 @@ public interface OrdersService {
     Orders updateStatus(int orderId, String status);
 
     long countTodayOrders();
+
+    long countPendingOrders();
+
+    List<Orders> findByOrderStatus(String status);
 }

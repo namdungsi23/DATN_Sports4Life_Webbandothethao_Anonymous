@@ -28,7 +28,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Products findById(Long id) {
-        return repo.findById(id).orElse(null);
+        return repo.findDetailedById(id).orElse(null);
     }
 
     @Transactional
@@ -70,6 +70,12 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Page<Products> filterProducts(String cat, String keyword, Double min, Double max, Pageable pageable) {
         return repo.filterProducts(cat, keyword, min, max, pageable);
+    }
+
+    @Override
+    @Transactional
+    public Page<Products> adminFilterProducts(String categoryId, String keyword, Pageable pageable) {
+        return repo.findAdminProducts(categoryId, keyword, pageable);
     }
 
     @Override

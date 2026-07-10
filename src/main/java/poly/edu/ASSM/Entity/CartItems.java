@@ -19,15 +19,16 @@ public class CartItems {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ProductId", nullable = false)
-    private Products products;
+    private Products product;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "CartId", nullable = false)
+    private Carts cart;
 
     @ColumnDefault("1")
     @Column(name = "Quantity", nullable = false)
     private Integer quantity;
 
-    @ColumnDefault("getdate()")
-    @Column(name = "CreatedAt")
-    private Instant createdAt;
 
 
 }

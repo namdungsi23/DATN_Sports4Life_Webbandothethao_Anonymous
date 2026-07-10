@@ -4,9 +4,10 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -21,31 +22,22 @@ public class Accounts {
     @Column(name = "Username", nullable = false, length = 30)
     private String username;
 
-    @Column(name = "PasswordHash", length = 100)
+    @Column(name = "PasswordHash", length = 255)
     private String passwordHash;
 
-    @Nationalized
-    @Column(name = "FullName", length = 50)
-    private String fullName;
-
-    @Column(name = "Email", length = 100)
+    @Column(name = "Email", length = 255)
     private String email;
 
-    @Column(name = "Avatar", length = 100)
-    private String avatar;
-
-    @Column(name = "IsActive")
+    @ColumnDefault("1")
+    @Column(name = "IsActive", nullable = false)
     private Boolean isActive;
 
-    @Column(name = "Admin")
-    private Boolean admin;
-
-    @ColumnDefault("0")
-    @Column(name = "SuperAdmin")
-    private Boolean superAdmin;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "RoleId", nullable = false)
+    private Roles role;
 
     @ColumnDefault("getdate()")
-    @Column(name = "CreatedAt")
+    @Column(name = "CreatedAt", nullable = false)
     private Instant createdAt;
 
     @Column(name = "UpdatedAt")
@@ -54,5 +46,13 @@ public class Accounts {
     @OneToOne(mappedBy = "account")
     private Users users;
 
+    @OneToOne(mappedBy = "account")
+    private Employees employee;
+
+    @OneToMany(mappedBy = "account")
+    private Set<Addresses> addresses = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "account")
+    private Set<Orders> orders = new LinkedHashSet<>();
 
 }

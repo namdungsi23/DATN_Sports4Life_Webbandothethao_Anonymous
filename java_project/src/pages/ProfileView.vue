@@ -75,6 +75,13 @@
                 Yêu thích
                 <span v-if="favoriteCount" class="profile-quick-link__badge">{{ favoriteCount }}</span>
               </RouterLink>
+              <RouterLink to="/addresses" class="profile-quick-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                  <path d="M12 22s8-4.5 8-11a8 8 0 1 0-16 0c0 6.5 8 11 8 11z" stroke-linejoin="round" />
+                </svg>
+                Sổ địa chỉ
+              </RouterLink>
               <RouterLink to="/cart" class="profile-quick-link">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <path d="M6 6h15l-1.5 9h-12L6 6z" stroke-linejoin="round" />

@@ -2,31 +2,35 @@ package poly.edu.ASSM.mapper;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.Entity.Inventory;
+import poly.edu.ASSM.Entity.ProductImages;
 import poly.edu.ASSM.Entity.ProductVariants;
 import poly.edu.ASSM.Entity.Products;
 import poly.edu.ASSM.dto.request.ProductVariantRequest;
+import poly.edu.ASSM.dto.response.ProductImageResponse;
 import poly.edu.ASSM.dto.response.ProductVariantResponse;
 
 @Component
 public class ProductVariantMapper {
 
-    public ProductVariantResponse toResponse(ProductVariants entity) {
-        return toResponse(entity, null);
+    private final ProductImageMapper imageMapper;
+
+    public ProductVariantMapper(ProductImageMapper imageMapper) {
+        this.imageMapper = imageMapper;
     }
 
-    public ProductVariantResponse toResponse(ProductVariants entity, Inventory inventory) {
+    public ProductVariantResponse toResponse(ProductVariants entity) {
         if (entity == null) {
             return null;
         }
 
-        Inventory inv = inventory != null ? inventory : entity.getInventory();
-        int quantity = inv != null && inv.getQuantity() != null ? inv.getQuantity() : 0;
+        int quantity = entity.getQuantity() != null ? entity.getQuantity() : 0;
         boolean active = Boolean.TRUE.equals(entity.getStatus());
 
         return ProductVariantResponse.builder()
@@ -51,6 +55,20 @@ public class ProductVariantMapper {
             return List.of();
         }
         return entities.stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
+    public ProductVariantResponse toDetailResponse(ProductVariants entity) {
+        ProductVariantResponse response = toResponse(entity);
+        if (response == null || entity.getProductImages() == null) {
+            return response;
+        }
+        List<ProductImageResponse> images = entity.getProductImages().stream()
+                .sorted(Comparator.comparing(
+                        img -> img.getSortOrder() != null ? img.getSortOrder() : Integer.MAX_VALUE))
+                .map(imageMapper::toResponse)
+                .collect(Collectors.toList());
+        response.setImages(images);
+        return response;
     }
 
     public ProductVariants toEntity(ProductVariantRequest request, Products product) {

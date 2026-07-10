@@ -1,10 +1,12 @@
 import { STORAGE_KEYS, useAppStore } from "../stores/appStore.js";
 
-/** Spring Boot origin (session cookies). Set VITE_API_BASE in .env when needed. */
+/** Spring Boot origin. In dev, use Vite proxy prefix `/base`. */
 export const API_BASE =
   typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE
     ? import.meta.env.VITE_API_BASE
-    : "http://localhost:8080";
+    : typeof import.meta !== "undefined" && import.meta.env?.DEV
+      ? "/base"
+      : "http://localhost:8080";
 
 function getAccessToken() {
   try {
@@ -46,8 +48,21 @@ export async function apiFetch(path, opts = {}) {
     });
   }
 
-  const ct = res.headers.get("content-type") || "";
-  const data = ct.includes("application/json") ? await res.json() : await res.text();
+  const ct = res.headers.get("Content-Type") || "";
+  let data;
+  if (ct.includes("application/json")) {
+    const raw = await res.text();
+    try {
+      data = raw ? JSON.parse(raw) : null;
+    } catch {
+      throw Object.assign(
+        new Error("Phản hồi API không hợp lệ (JSON lỗi). Kiểm tra backend đang chạy và endpoint trả về JSON đúng định dạng."),
+        { status: res.status, body: raw.slice(0, 500) }
+      );
+    }
+  } else {
+    data = await res.text();
+  }
 
   if (!res.ok) {
     const msg =

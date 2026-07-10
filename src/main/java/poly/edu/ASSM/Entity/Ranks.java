@@ -32,15 +32,15 @@ public class Ranks {
     private BigDecimal discountPercent;
 
     @Nationalized
-    @Column(name = "Description")
+    @Column(name = "Description", length = 255)
     private String description;
 
     @ColumnDefault("1")
     @Column(name = "IsActive")
     private Boolean isActive;
+
     @OneToMany
     @JoinColumn(name = "RankId")
     private Set<Users> users = new LinkedHashSet<>();
-
 
 }

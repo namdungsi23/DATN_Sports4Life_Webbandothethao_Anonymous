@@ -15,19 +15,20 @@ import java.util.Set;
 public class Roles {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
+    @Column(name = "Id", nullable = false)
     private Integer id;
 
-    @Column(name = "name", nullable = false, length = 50)
+    @Column(name = "Name", nullable = false, length = 50)
     private String name;
 
     @Nationalized
-    @Column(name = "Description")
+    @Column(name = "Description", length = 255)
     private String description;
+
+    @OneToMany(mappedBy = "role")
+    private Set<Accounts> accounts = new LinkedHashSet<>();
+
     @ManyToMany(mappedBy = "roles")
     private Set<Permissions> permissions = new LinkedHashSet<>();
-    @ManyToMany(mappedBy = "roles")
-    private Set<Users> users = new LinkedHashSet<>();
-
 
 }

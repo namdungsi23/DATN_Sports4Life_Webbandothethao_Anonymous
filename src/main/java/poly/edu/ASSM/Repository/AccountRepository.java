@@ -2,6 +2,7 @@ package poly.edu.ASSM.Repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,13 +15,15 @@ public interface AccountRepository extends JpaRepository<Accounts, Long> {
 
     boolean existsByUsername(String username);
 
+    @EntityGraph(attributePaths = "role")
     Accounts findByUsername(String username);
 
     @Query("""
             SELECT a
             FROM Accounts a
+            LEFT JOIN a.users u
             WHERE a.username LIKE %:keyword%
-               OR a.fullName LIKE %:keyword%
+               OR u.fullName LIKE %:keyword%
                OR a.email LIKE %:keyword%
             """)
     Page<Accounts> search(@Param("keyword") String keyword, Pageable pageable);

@@ -4,10 +4,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -21,32 +20,46 @@ public class Orders {
     @Column(name = "Id", nullable = false)
     private Integer id;
 
-    @Column(name = "Username", length = 30)
-    private String username;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "AccountId", nullable = false)
+    private Accounts account;
 
-    @Column(name = "CreateDate")
-    private LocalDate createDate;
+    @ColumnDefault("'PENDING'")
+    @Column(name = "OrderStatus", nullable = false, length = 50)
+    private String orderStatus;
 
-    @Nationalized
-    @Column(name = "Address", length = 100)
-    private String address;
+    @ColumnDefault("'UNPAID'")
+    @Column(name = "PaymentStatus", nullable = false, length = 50)
+    private String paymentStatus;
 
-    @ColumnDefault("'NEW'")
-    @Column(name = "Status", length = 50)
-    private String status;
+    @Column(name = "SubTotal", nullable = false, precision = 12, scale = 2)
+    private BigDecimal subTotal;
 
     @ColumnDefault("0")
-    @Column(name = "total_amount", precision = 12, scale = 2)
+    @Column(name = "DiscountAmount", nullable = false, precision = 12, scale = 2)
+    private BigDecimal discountAmount;
+
+    @Column(name = "TotalAmount", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalAmount;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "VoucherId")
     private Voucher voucher;
 
+    @ColumnDefault("getdate()")
+    @Column(name = "CreateDate", nullable = false)
+    private Instant createDate;
+
+    @Column(name = "UpdateDate")
+    private Instant updateDate;
+
     @OneToMany(mappedBy = "orders")
     private Set<OrderDetails> orderDetails = new LinkedHashSet<>();
+
     @OneToMany(mappedBy = "order")
     private Set<Payments> payments = new LinkedHashSet<>();
 
+    @OneToMany(mappedBy = "order")
+    private Set<OrderAddresses> orderAddresses = new LinkedHashSet<>();
 
 }

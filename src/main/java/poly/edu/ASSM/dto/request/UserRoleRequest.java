@@ -9,7 +9,7 @@ import lombok.Setter;
 public class UserRoleRequest {
 
     @NotNull(message = "UserId không được để trống")
-    private Integer userId;
+    private Long userId;
 
     @NotNull(message = "RoleId không được để trống")
     private Integer roleId;

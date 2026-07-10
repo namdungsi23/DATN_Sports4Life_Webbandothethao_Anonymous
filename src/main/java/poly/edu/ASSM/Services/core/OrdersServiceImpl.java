@@ -1,6 +1,8 @@
 package poly.edu.ASSM.Services.core;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import poly.edu.ASSM.Entity.Orders;
 import poly.edu.ASSM.Repository.OrdersRepository;
+import poly.edu.ASSM.domain.OrderStatus;
 
 @Service
 public class OrdersServiceImpl implements OrdersService {
@@ -29,10 +32,10 @@ public class OrdersServiceImpl implements OrdersService {
     @Override
     public Orders create(Orders order) {
         if (order.getCreateDate() == null) {
-            order.setCreateDate(LocalDate.now());
+            order.setCreateDate(Instant.now());
         }
-        if (order.getStatus() == null) {
-            order.setStatus("NEW");
+        if (order.getOrderStatus() == null) {
+            order.setOrderStatus("PENDING");
         }
         return repo.save(order);
     }
@@ -57,30 +60,49 @@ public class OrdersServiceImpl implements OrdersService {
 
     @Override
     public List<Orders> findByUsername(String username) {
-        return repo.findByUsername(username);
+        return repo.findByAccount_Username(username);
     }
 
     @Override
     public List<Orders> findByDate(LocalDate date) {
-        return repo.findByCreateDate(date);
+        return repo.findByCreateDateRange(dayStart(date), dayEnd(date));
     }
 
     @Override
     public List<Orders> findByDateRange(LocalDate from, LocalDate to) {
-        return repo.findByCreateDateBetween(from, to);
+        return repo.findByCreateDateRange(dayStart(from), dayEnd(to.plusDays(1)));
     }
 
 
     @Override
     public Orders updateStatus(int orderId, String status) {
         Orders order = findById(orderId);
-        order.setStatus(status);
+        order.setOrderStatus(status);
         return repo.save(order);
     }
 
     @Override
     public long countTodayOrders() {
-        return repo.countTodayOrders(LocalDate.now());
+        LocalDate today = LocalDate.now();
+        return repo.countTodayOrders(dayStart(today), dayEnd(today));
+    }
+
+    @Override
+    public long countPendingOrders() {
+        return repo.countByOrderStatus(OrderStatus.PENDING.name());
+    }
+
+    @Override
+    public List<Orders> findByOrderStatus(String status) {
+        return repo.findByOrderStatusOrderByCreateDateDesc(status);
+    }
+
+    private Instant dayStart(LocalDate date) {
+        return date.atStartOfDay(ZoneId.systemDefault()).toInstant();
+    }
+
+    private Instant dayEnd(LocalDate date) {
+        return date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
     }
 	
 }

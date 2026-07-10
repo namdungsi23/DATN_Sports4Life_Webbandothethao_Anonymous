@@ -14,6 +14,7 @@ import FeaturedView from "../pages/FeaturedView.vue";
 import CartView from "../pages/cart/CartView.vue";
 import CheckoutView from "../pages/cart/CheckoutView.vue";
 import PaymentView from "../pages/cart/PaymentView.vue";
+import AddressBookView from "../pages/AddressBookView.vue";
 import AdminProductView from "../pages/admin/AdminProductView.vue";
 import AdminCategoryView from "../pages/admin/AdminCategoryView.vue";
 import AdminUserView from "../pages/admin/AdminUserView.vue";
@@ -38,12 +39,13 @@ const routes = [
   { path: "/login", component: LoginView, meta: { guestOnly: true } },
   { path: "/register", component: RegisterView, meta: { guestOnly: true } },
   { path: "/profile", component: ProfileView, meta: { requiresAuth: true } },
+  { path: "/addresses", component: AddressBookView, meta: { requiresAuth: true } },
   { path: "/favorites", component: FavoritesView, meta: { requiresAuth: true } },
   { path: "/contact", component: ContactView },
   { path: "/more", component: MoreView },
   { path: "/cart", component: CartView },
-  { path: "/cart/checkout", component: CheckoutView },
-  { path: "/cart/payment", component: PaymentView },
+  { path: "/cart/checkout", component: CheckoutView, meta: { requiresAuth: true } },
+  { path: "/cart/payment", component: PaymentView, meta: { requiresAuth: true } },
   { path: "/admin", redirect: "/admin/dashboard" },
   {
     path: "/admin/dashboard",
@@ -68,7 +70,12 @@ const routes = [
   {
     path: "/admin/order",
     component: AdminOrderView,
-    meta: { ...panelMeta, permission: ADMIN_PERMS.ORDER, pageTitle: "Đơn hàng", pageSubtitle: "Quản lý đơn hàng" },
+    meta: { ...panelMeta, permission: ADMIN_PERMS.ORDER, pageTitle: "Đơn hàng", pageSubtitle: "Xác nhận & quản lý đơn hàng" },
+  },
+  {
+    path: "/admin/order/:id",
+    component: AdminOrderView,
+    meta: { ...panelMeta, permission: ADMIN_PERMS.ORDER, pageTitle: "Chi tiết đơn hàng", pageSubtitle: "Cập nhật trạng thái đơn hàng" },
   },
 ];
 

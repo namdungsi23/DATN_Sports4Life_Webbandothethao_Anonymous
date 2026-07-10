@@ -16,6 +16,10 @@ public interface AccountService {
 
     Accounts update(Accounts account);
 
+    Accounts saveOAuthLogin(String email, String fullName, String avatarUrl);
+
+    Accounts updateCustomerProfile(String username, String fullName, String email, String avatar, Boolean isActive);
+
     void delete(Long id);
 
     Accounts login(String username, String password);

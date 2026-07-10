@@ -20,13 +20,17 @@ public class Carts {
     private Integer id;
 
     @ColumnDefault("getdate()")
-    @Column(name = "CreatedAt")
+    @Column(name = "CreatedAt", nullable = false)
     private Instant createdAt;
+
+    @Column(name = "UpdatedAt")
+    private Instant updatedAt;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "UserId", nullable = false)
     private Users users;
-    @OneToMany
-    @JoinColumn(name = "CartId")
+
+    @OneToMany(mappedBy = "cart")
     private Set<CartItems> cartItems = new LinkedHashSet<>();
 
 
