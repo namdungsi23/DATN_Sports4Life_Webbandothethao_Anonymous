@@ -20,6 +20,7 @@ import AdminCategoryView from "../pages/admin/AdminCategoryView.vue";
 import AdminUserView from "../pages/admin/AdminUserView.vue";
 import AdminOrderView from "../pages/admin/AdminOrderView.vue";
 import AdminDashboardView from "../pages/admin/AdminDashboardView.vue";
+import AdminChatView from "../pages/admin/AdminChatView.vue";
 import { STORAGE_KEYS } from "../stores/appStore";
 import { ADMIN_PERMS } from "../utils/adminAccess.js";
 import {
@@ -51,6 +52,11 @@ const routes = [
     path: "/admin/dashboard",
     component: AdminDashboardView,
     meta: { ...panelMeta, permission: ADMIN_PERMS.DASHBOARD, pageTitle: "Dashboard", pageSubtitle: "Tổng quan hệ thống" },
+  },
+  {
+    path: "/admin/chat",
+    component: AdminChatView,
+    meta: { ...panelMeta, pageTitle: "Chat hỗ trợ", pageSubtitle: "Hội thoại khách hàng realtime" },
   },
   {
     path: "/admin/product",

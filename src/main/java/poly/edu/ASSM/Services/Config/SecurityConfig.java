@@ -71,7 +71,10 @@ public class SecurityConfig {
 	                "/login/oauth2/**",
 	                "/css/**",
 	                "/js/**",
-	                "/images/**"
+	                "/images/**",
+	                // Handshake WS: JWT xác thực ở STOMP CONNECT (JwtStompChannelInterceptor)
+	                "/ws",
+	                "/ws/**"
 	            ).permitAll()
 	            .anyRequest().authenticated()
 	        )
@@ -79,7 +82,7 @@ public class SecurityConfig {
 	            CorsConfiguration config = new CorsConfiguration();
 	            config.setAllowedOrigins(
 	            		List.of("http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"));
-	            config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+	            config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
 	            config.setAllowedHeaders(List.of("*"));
 	            config.setAllowCredentials(true);
 	            return config;

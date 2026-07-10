@@ -41,6 +41,11 @@
       <path d="M5 20c0-3.866 3.134-7 7-7s7 3.134 7 7" />
     </svg>
 
+    <!-- Chat -->
+    <svg v-else-if="name === 'chat'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12a8.5 8.5 0 0 1-8.5 8.5H8l-4 2.2.8-3.4A8.5 8.5 0 1 1 21 12z" />
+    </svg>
+
     <!-- Store -->
     <svg v-else-if="name === 'store'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M3 9l9-6 9 6v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9z" />
