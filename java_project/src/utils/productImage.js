@@ -40,6 +40,7 @@ export function normalizeProductsResponse(data) {
     return {
       ...data,
       products: { ...data.products, content },
+      suggestions: (data.suggestions ?? []).map(normalizeProduct),
     };
   }
 

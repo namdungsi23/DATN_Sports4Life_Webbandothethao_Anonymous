@@ -16,4 +16,7 @@ public interface PublicProductService {
     Map<String, Object> getProductDetail(Long id);
 
     Map<String, Object> getBrands();
+
+    /** Gợi ý autocomplete khi gõ từ khóa (prefix / chứa). */
+    Map<String, Object> suggestProducts(String keyword, int limit);
 }

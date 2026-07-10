@@ -1,6 +1,6 @@
 import axios from "axios";
 import { STORAGE_KEYS, useAppStore } from "../stores/appStore";
-import { normalizeProductsResponse, normalizeProductDetailResponse } from "../utils/productImage";
+import { normalizeProductsResponse, normalizeProductDetailResponse, normalizeProduct } from "../utils/productImage";
 
 const clientApi = axios.create({
   baseURL: "/base/api/public",
@@ -46,6 +46,16 @@ clientAuthApi.interceptors.request.use((config) => {
 export const fetchProductsApi = async (params) => {
   const response = await clientApi.get("/products", { params });
   return normalizeProductsResponse(response.data);
+};
+
+export const fetchProductSuggestionsApi = async (q, limit = 8) => {
+  const response = await clientApi.get("/products/suggest", {
+    params: { q, limit },
+  });
+  const data = response.data;
+  return {
+    suggestions: (data?.suggestions ?? []).map(normalizeProduct),
+  };
 };
 
 export const fetchProductByIdApi = async (id) => {

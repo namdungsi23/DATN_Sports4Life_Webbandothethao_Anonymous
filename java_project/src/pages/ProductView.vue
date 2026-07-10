@@ -74,38 +74,108 @@
               <span v-if="loading">Đang tải...</span>
               <span v-else>{{ totalLabel }}</span>
               <span v-if="filters.cat" class="product-toolbar__chip">{{ filters.cat }}</span>
+              <span v-if="exactMatch" class="product-toolbar__chip">Khớp chính xác</span>
             </p>
           </div>
         </div>
 
         <form class="product-filter" @submit.prevent="onFilter">
-          <div class="product-filter__search">
+          <div class="product-filter__search" ref="searchWrapRef">
             <span aria-hidden="true">🔍</span>
             <input
               v-model="filters.keyword"
               type="text"
               placeholder="Tìm tên sản phẩm, thương hiệu..."
+              autocomplete="off"
+              @input="onKeywordInput"
+              @focus="onSearchFocus"
+              @keydown.down.prevent="highlightNext"
+              @keydown.up.prevent="highlightPrev"
+              @keydown.enter="onSearchEnter"
+              @keydown.esc="closeSuggestions"
             />
+            <ul
+              v-if="showSuggestions && suggestions.length"
+              class="product-search-dropdown"
+              role="listbox"
+            >
+              <li
+                v-for="(item, index) in suggestions"
+                :key="item.id"
+                class="product-search-dropdown__item"
+                :class="{ 'is-active': index === highlightIndex }"
+                role="option"
+                @mousedown.prevent="goToProduct(item.id)"
+                @mouseenter="highlightIndex = index"
+              >
+                <img
+                  class="product-search-dropdown__img"
+                  :src="item.image || fallbackImage"
+                  :alt="item.name"
+                />
+                <div class="product-search-dropdown__meta">
+                  <span class="product-search-dropdown__name">{{ item.name }}</span>
+                  <span class="product-search-dropdown__sub">
+                    {{ item.brand || item.categoryName || "Sản phẩm" }}
+                    · {{ formatPrice(item.price) }}đ
+                  </span>
+                </div>
+              </li>
+            </ul>
+            <p
+              v-else-if="showSuggestions && suggestLoading"
+              class="product-search-dropdown product-search-dropdown--empty"
+            >
+              Đang tìm...
+            </p>
+            <p
+              v-else-if="showSuggestions && filters.keyword.trim() && !suggestLoading"
+              class="product-search-dropdown product-search-dropdown--empty"
+            >
+              Không tìm thấy sản phẩm phù hợp
+            </p>
           </div>
           <input v-model.number="filters.min" type="number" class="product-filter__price" placeholder="Giá từ" />
           <input v-model.number="filters.max" type="number" class="product-filter__price" placeholder="Giá đến" />
           <button type="submit" class="product-filter__btn" :disabled="loading">
-            {{ loading ? "..." : "Lọc" }}
+            {{ loading ? "..." : "Tìm kiếm" }}
           </button>
         </form>
 
         <div v-if="loading" class="product-loading">
           <div v-for="n in 6" :key="n" class="product-skeleton" />
         </div>
-        <ProductList
-          v-else
-          :products="products"
-          :sort="filters.sort"
-          :dir="filters.dir"
-          @change-page="changePage"
-          @add-to-cart="addToCart"
-          @sort-change="setSort"
-        />
+        <template v-else>
+          <ProductList
+            :products="products"
+            :sort="filters.sort"
+            :dir="filters.dir"
+            @change-page="changePage"
+            @add-to-cart="addToCart"
+            @sort-change="setSort"
+          />
+
+          <section v-if="exactMatch && relatedSuggestions.length" class="product-related-search">
+            <h3 class="product-related-search__title">Sản phẩm gợi ý</h3>
+            <p class="product-related-search__desc">
+              Cùng danh mục hoặc thương hiệu với kết quả tìm kiếm của bạn
+            </p>
+            <div class="product-related-search__grid">
+              <RouterLink
+                v-for="item in relatedSuggestions"
+                :key="item.id"
+                :to="`/product/${item.id}`"
+                class="product-related-search__card"
+              >
+                <img :src="item.image || fallbackImage" :alt="item.name" />
+                <div>
+                  <strong>{{ item.name }}</strong>
+                  <span>{{ formatPrice(item.price) }}đ</span>
+                </div>
+              </RouterLink>
+            </div>
+          </section>
+        </template>
       </section>
     </div>
 
@@ -114,13 +184,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from "vue";
-import { useRoute } from "vue-router";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
 import ProductList from "../components/ProductList.vue";
 import BrandStrip from "../components/BrandStrip.vue";
-import { fetchProductsApi } from "../services/api";
+import { fetchProductsApi, fetchProductSuggestionsApi } from "../services/api";
 import { useAppStore } from "../stores/appStore";
+import { FALLBACK_PRODUCT_IMAGE, resolveProductImage } from "../utils/productImage";
 
 const categoryIcons = {
   "Giày chạy bộ": "👟",
@@ -150,9 +221,22 @@ const products = ref({ content: [], totalPages: 0, number: 0, totalElements: 0 }
 const loading = ref(false);
 const error = ref("");
 const message = ref("");
+const exactMatch = ref(false);
+const relatedSuggestions = ref([]);
+
+const suggestions = ref([]);
+const showSuggestions = ref(false);
+const suggestLoading = ref(false);
+const highlightIndex = ref(-1);
+const searchWrapRef = ref(null);
+const fallbackImage = FALLBACK_PRODUCT_IMAGE;
+
+let suggestTimer = null;
+let suggestRequestId = 0;
 
 const store = useAppStore();
 const route = useRoute();
+const router = useRouter();
 
 const totalLabel = computed(() => {
   const total = products.value.totalElements ?? products.value.content?.length ?? 0;
@@ -160,6 +244,94 @@ const totalLabel = computed(() => {
 });
 
 const categoryIcon = (name) => categoryIcons[name] || "🏷️";
+
+const formatPrice = (value) => {
+  const n = Number(value) || 0;
+  return n.toLocaleString("vi-VN");
+};
+
+const closeSuggestions = () => {
+  showSuggestions.value = false;
+  highlightIndex.value = -1;
+};
+
+const fetchSuggestions = async (keyword) => {
+  const q = keyword?.trim() || "";
+  if (!q) {
+    suggestions.value = [];
+    showSuggestions.value = false;
+    return;
+  }
+
+  const requestId = ++suggestRequestId;
+  suggestLoading.value = true;
+  showSuggestions.value = true;
+  try {
+    const data = await fetchProductSuggestionsApi(q, 8);
+    if (requestId !== suggestRequestId) return;
+    suggestions.value = (data.suggestions ?? []).map((item) => ({
+      ...item,
+      image: resolveProductImage(item),
+    }));
+    highlightIndex.value = -1;
+  } catch (err) {
+    if (requestId !== suggestRequestId) return;
+    console.error("Suggest error:", err);
+    suggestions.value = [];
+  } finally {
+    if (requestId === suggestRequestId) {
+      suggestLoading.value = false;
+    }
+  }
+};
+
+const onKeywordInput = () => {
+  clearTimeout(suggestTimer);
+  highlightIndex.value = -1;
+  const q = filters.keyword?.trim() || "";
+  if (!q) {
+    suggestions.value = [];
+    showSuggestions.value = false;
+    return;
+  }
+  suggestTimer = setTimeout(() => fetchSuggestions(q), 220);
+};
+
+const onSearchFocus = () => {
+  if (filters.keyword?.trim() && suggestions.value.length) {
+    showSuggestions.value = true;
+  } else if (filters.keyword?.trim()) {
+    fetchSuggestions(filters.keyword);
+  }
+};
+
+const highlightNext = () => {
+  if (!suggestions.value.length) return;
+  showSuggestions.value = true;
+  highlightIndex.value = (highlightIndex.value + 1) % suggestions.value.length;
+};
+
+const highlightPrev = () => {
+  if (!suggestions.value.length) return;
+  showSuggestions.value = true;
+  highlightIndex.value =
+    highlightIndex.value <= 0 ? suggestions.value.length - 1 : highlightIndex.value - 1;
+};
+
+const goToProduct = (id) => {
+  closeSuggestions();
+  router.push(`/product/${id}`);
+};
+
+const onSearchEnter = (event) => {
+  // Chỉ vào chi tiết khi đã chọn bằng mũi tên; Enter thường = tìm danh sách
+  if (showSuggestions.value && highlightIndex.value >= 0 && suggestions.value[highlightIndex.value]) {
+    event.preventDefault();
+    goToProduct(suggestions.value[highlightIndex.value].id);
+    return;
+  }
+  closeSuggestions();
+};
 
 const fetchProducts = async () => {
   loading.value = true;
@@ -185,6 +357,11 @@ const fetchProducts = async () => {
     };
 
     categories.value = data.categories?.map((c) => c.name) || [];
+    exactMatch.value = Boolean(data.exactMatch);
+    relatedSuggestions.value = (data.suggestions ?? []).map((item) => ({
+      ...item,
+      image: resolveProductImage(item),
+    }));
   } catch (fetchError) {
     console.error("Fetch error:", fetchError);
     const apiMsg =
@@ -195,6 +372,8 @@ const fetchProducts = async () => {
       ? `Không thể tải sản phẩm. ${String(apiMsg).slice(0, 200)}`
       : "Không thể tải sản phẩm. Vui lòng thử lại.";
     products.value = { content: [], totalPages: 0, number: 0, totalElements: 0 };
+    exactMatch.value = false;
+    relatedSuggestions.value = [];
   } finally {
     loading.value = false;
   }
@@ -203,12 +382,24 @@ const fetchProducts = async () => {
 const selectCategory = (cat) => {
   filters.cat = cat;
   filters.page = 0;
+  closeSuggestions();
   fetchProducts();
 };
 
 const onFilter = () => {
   filters.page = 0;
-  fetchProducts();
+  closeSuggestions();
+  const query = {
+    ...(filters.keyword?.trim() ? { keyword: filters.keyword.trim() } : {}),
+    ...(filters.cat ? { cat: filters.cat } : {}),
+  };
+  const sameKeyword = String(route.query.keyword || "") === String(query.keyword || "");
+  const sameCat = String(route.query.cat || "") === String(query.cat || "");
+  if (sameKeyword && sameCat) {
+    fetchProducts();
+    return;
+  }
+  router.replace({ path: "/product", query });
 };
 
 const setSort = (sort, dir) => {
@@ -243,9 +434,31 @@ const addToCart = (id) => {
   }, 2000);
 };
 
+const onDocumentClick = (event) => {
+  if (!searchWrapRef.value?.contains(event.target)) {
+    closeSuggestions();
+  }
+};
+
+watch(
+  () => [route.query.keyword, route.query.cat],
+  ([keyword, cat]) => {
+    filters.keyword = keyword ? String(keyword) : "";
+    filters.cat = cat ? String(cat) : "";
+    filters.page = 0;
+    fetchProducts();
+  }
+);
+
 onMounted(() => {
   if (route.query.keyword) filters.keyword = String(route.query.keyword);
   if (route.query.cat) filters.cat = String(route.query.cat);
   fetchProducts();
+  document.addEventListener("click", onDocumentClick);
+});
+
+onBeforeUnmount(() => {
+  clearTimeout(suggestTimer);
+  document.removeEventListener("click", onDocumentClick);
 });
 </script>

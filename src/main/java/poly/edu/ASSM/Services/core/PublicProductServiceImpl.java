@@ -44,22 +44,70 @@ public class PublicProductServiceImpl implements PublicProductService {
             String sort,
             String dir) {
 
-        Sort.Direction direction = "desc".equalsIgnoreCase(dir) ? Sort.Direction.DESC : Sort.Direction.ASC;
-        String sortProp = resolveSortProperty(sort);
-        Pageable pageable = PageRequest.of(page, 10, Sort.by(direction, sortProp));
+        String trimmedKeyword = keyword != null ? keyword.trim() : "";
+        boolean sortByPrice = isPriceSort(sort);
+        String sortProp = sortByPrice ? "price" : resolveSortProperty(sort);
 
-        Page<Products> productPage = productRepository.filterProducts(cat, keyword, min, max, pageable);
+        List<Map<String, Object>> suggestions = new ArrayList<>();
+        boolean exactMatch = false;
+
+        // Nhập đúng tên sản phẩm → chỉ hiện SP đó + gợi ý cùng danh mục / thương hiệu
+        if (!trimmedKeyword.isEmpty() && (cat == null || cat.isBlank()) && min == null && max == null) {
+            List<Products> exactList = productRepository.findExactByNameIgnoreCase(
+                    trimmedKeyword, PageRequest.of(0, 1));
+            if (!exactList.isEmpty()) {
+                exactMatch = true;
+                Products exact = exactList.get(0);
+                ProductResponse exactResponse = productMapper.toResponse(exact);
+                List<Map<String, Object>> content = List.of(toFePayload(exactResponse));
+
+                String categoryName = exactResponse.getCategoryName();
+                String brand = resolveBrand(exactResponse.getBrand(), exactResponse.getName());
+                List<Products> related = productRepository.findRelatedByCategoryOrBrand(
+                        exact.getId(),
+                        categoryName,
+                        brand,
+                        PageRequest.of(0, 8));
+                for (Products relatedEntity : related) {
+                    suggestions.add(toFePayload(productMapper.toResponse(relatedEntity)));
+                }
+
+                Map<String, Object> pageBody = new HashMap<>();
+                pageBody.put("content", content);
+                pageBody.put("totalPages", 1);
+                pageBody.put("totalElements", 1);
+                pageBody.put("number", 0);
+                pageBody.put("size", 10);
+                pageBody.put("first", true);
+                pageBody.put("last", true);
+
+                return buildProductsPageBody(
+                        pageBody, categoriesPayload(), cat, trimmedKeyword, min, max, sortProp, dir, page,
+                        exactMatch, suggestions);
+            }
+        }
+
+        Pageable pageable = sortByPrice
+                ? PageRequest.of(page, 10)
+                : PageRequest.of(
+                        page,
+                        10,
+                        Sort.by(
+                                "desc".equalsIgnoreCase(dir) ? Sort.Direction.DESC : Sort.Direction.ASC,
+                                sortProp));
+
+        String filterKeyword = trimmedKeyword.isEmpty() ? null : trimmedKeyword;
+        Page<Products> productPage = sortByPrice
+                ? ("desc".equalsIgnoreCase(dir)
+                        ? productRepository.filterProductsOrderByDefaultPriceDesc(
+                                cat, filterKeyword, min, max, pageable)
+                        : productRepository.filterProductsOrderByDefaultPriceAsc(
+                                cat, filterKeyword, min, max, pageable))
+                : productRepository.filterProducts(cat, filterKeyword, min, max, pageable);
 
         List<Map<String, Object>> content = new ArrayList<>();
         for (Products entity : productPage.getContent()) {
             content.add(toFePayload(productMapper.toResponse(entity)));
-        }
-
-        List<Map<String, String>> categories = new ArrayList<>();
-        for (Category c : categoryService.findAll()) {
-            categories.add(Map.of(
-                    "id", c.getId() != null ? c.getId() : "",
-                    "name", c.getName() != null ? c.getName() : ""));
         }
 
         Map<String, Object> pageBody = new HashMap<>();
@@ -70,6 +118,50 @@ public class PublicProductServiceImpl implements PublicProductService {
         pageBody.put("size", productPage.getSize());
         pageBody.put("first", productPage.isFirst());
         pageBody.put("last", productPage.isLast());
+
+        return buildProductsPageBody(
+                pageBody, categoriesPayload(), cat, trimmedKeyword, min, max, sortProp, dir, page,
+                exactMatch, suggestions);
+    }
+
+    @Override
+    public Map<String, Object> suggestProducts(String keyword, int limit) {
+        String q = keyword != null ? keyword.trim() : "";
+        if (q.isEmpty()) {
+            return Map.of("suggestions", List.of());
+        }
+
+        int size = Math.min(Math.max(limit, 1), 20);
+        List<Products> found = productRepository.suggestByKeyword(q, PageRequest.of(0, size));
+        List<Map<String, Object>> suggestions = new ArrayList<>();
+        for (Products entity : found) {
+            suggestions.add(toFePayload(productMapper.toResponse(entity)));
+        }
+        return Map.of("suggestions", suggestions);
+    }
+
+    private List<Map<String, String>> categoriesPayload() {
+        List<Map<String, String>> categories = new ArrayList<>();
+        for (Category c : categoryService.findAll()) {
+            categories.add(Map.of(
+                    "id", c.getId() != null ? c.getId() : "",
+                    "name", c.getName() != null ? c.getName() : ""));
+        }
+        return categories;
+    }
+
+    private static Map<String, Object> buildProductsPageBody(
+            Map<String, Object> pageBody,
+            List<Map<String, String>> categories,
+            String cat,
+            String keyword,
+            Double min,
+            Double max,
+            String sortProp,
+            String dir,
+            int page,
+            boolean exactMatch,
+            List<Map<String, Object>> suggestions) {
 
         Map<String, Object> filters = new HashMap<>();
         filters.put("cat", cat != null ? cat : "");
@@ -84,6 +176,8 @@ public class PublicProductServiceImpl implements PublicProductService {
         body.put("products", pageBody);
         body.put("categories", categories);
         body.put("filters", filters);
+        body.put("exactMatch", exactMatch);
+        body.put("suggestions", suggestions != null ? suggestions : List.of());
         return body;
     }
 
@@ -213,6 +307,10 @@ public class PublicProductServiceImpl implements PublicProductService {
         return firstWord.isBlank() ? null : firstWord;
     }
 
+    private static boolean isPriceSort(String sort) {
+        return sort != null && "price".equalsIgnoreCase(sort.trim());
+    }
+
     private static String resolveSortProperty(String sort) {
         if (sort == null || sort.isBlank()) {
             return "createdAt";
@@ -220,7 +318,6 @@ public class PublicProductServiceImpl implements PublicProductService {
         return switch (sort.trim().toLowerCase()) {
             case "id" -> "id";
             case "name" -> "name";
-            case "price" -> "createdAt";
             case "available", "status" -> "status";
             case "createdate", "create_date" -> "createdAt";
             default -> "createdAt";
@@ -248,10 +345,14 @@ public class PublicProductServiceImpl implements PublicProductService {
             image = fallbackImageUrl(p.getCategoryId(), p.getId());
         }
 
+        double listPrice = p.getDefaultPrice() != null
+                ? p.getDefaultPrice().doubleValue()
+                : (p.getMinPrice() != null ? p.getMinPrice().doubleValue() : 0);
+
         m.put("id", p.getId());
         m.put("name", p.getName());
         m.put("image", image);
-        m.put("price", p.getMinPrice() != null ? p.getMinPrice().doubleValue() : 0);
+        m.put("price", listPrice);
         m.put("createDate", p.getCreatedAt());
         m.put("available", p.getStatus() != null ? p.getStatus() : true);
         m.put("description", p.getDescription());
@@ -260,6 +361,7 @@ public class PublicProductServiceImpl implements PublicProductService {
         m.put("categoryName", p.getCategoryName());
         m.put("categoryId", p.getCategoryId());
         m.put("brand", resolveBrand(p.getBrand(), p.getName()));
+        m.put("defaultPrice", p.getDefaultPrice());
         m.put("minPrice", p.getMinPrice());
         m.put("maxPrice", p.getMaxPrice());
         return m;

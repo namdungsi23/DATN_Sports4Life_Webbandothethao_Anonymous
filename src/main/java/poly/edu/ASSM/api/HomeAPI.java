@@ -35,6 +35,13 @@ public class HomeAPI {
         return publicProductService.getProductsPage(cat, keyword, min, max, page, sort, dir);
     }
 
+    @GetMapping("/products/suggest")
+    public Map<String, Object> productSuggest(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "8") int limit) {
+        return publicProductService.suggestProducts(q, limit);
+    }
+
     @GetMapping("/products/{id}")
     public Map<String, Object> productDetail(@org.springframework.web.bind.annotation.PathVariable Long id) {
         return publicProductService.getProductDetail(id);
