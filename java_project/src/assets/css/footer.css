@@ -145,7 +145,8 @@
   margin-bottom: 20px;
 }
 
-.site-footer__social a {
+.site-footer__social a,
+.site-footer__social-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -158,11 +159,31 @@
   font-weight: 700;
   text-decoration: none;
   transition: background 0.2s;
+  margin-bottom: 0;
 }
 
-.site-footer__social a:hover {
+.site-footer__social a:hover,
+.site-footer__social-btn:hover {
   background: #e8871e;
   color: #fff;
+}
+
+.site-footer__social-btn :deep(svg) {
+  display: block;
+}
+
+.site-footer__mail {
+  color: #aaa !important;
+  display: inline !important;
+  margin: 0 !important;
+}
+
+.site-footer__mail:hover {
+  color: #e8871e !important;
+}
+
+.site-footer__contact-ico {
+  flex-shrink: 0;
 }
 
 .site-footer__app-label {

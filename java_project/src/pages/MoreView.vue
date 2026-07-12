@@ -7,8 +7,8 @@
           alt="Cửa hàng giày thể thao Sports4Life"
         />
         <div class="page-hero__content site-container">
-          <img :src="logoMark" alt="" class="page-hero__logo-mark" width="56" height="56" />
-          <p class="page-hero__brand">Sports4Life</p>
+          <img :src="BRAND.logoMarkUrl" alt="" class="page-hero__logo-mark" width="56" height="56" />
+          <p class="page-hero__brand">{{ BRAND.name }}</p>
           <p class="page-hero__eyebrow">Since 2019</p>
           <h1>Về chúng tôi</h1>
           <p>Địa chỉ tin cậy cho người yêu thể thao — giày chính hãng, phong cách hiện đại</p>
@@ -67,7 +67,7 @@
         <p>Đội ngũ Sports4Life sẵn sàng hỗ trợ mỗi ngày</p>
         <div class="more-cta-band__actions">
           <RouterLink to="/contact" class="more-cta-band__btn">Liên hệ ngay</RouterLink>
-          <a href="tel:0336694988" class="more-cta-band__phone">0336 694 988</a>
+          <a :href="`tel:${BRAND.phoneTel}`" class="more-cta-band__phone">{{ BRAND.phone }}</a>
         </div>
       </div>
     </section>
@@ -78,7 +78,7 @@
 import { RouterLink } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
 import BrandStrip from "../components/BrandStrip.vue";
-import logoMark from "../assets/logo-sports4life-mark.svg";
+import { BRAND } from "../utils/brand";
 
 const promises = [
   {

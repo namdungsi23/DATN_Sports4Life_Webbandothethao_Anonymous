@@ -3,7 +3,13 @@
     <div class="header-top">
       <div class="site-container header-top__inner">
         <RouterLink to="/" class="header-logo" aria-label="Sports4Life trang chủ">
-          <img :src="logoFull" alt="Sports4Life" class="header-logo__img" width="180" height="40" />
+          <img
+            :src="BRAND.logoUrl"
+            alt="Sports4Life"
+            class="header-logo__img"
+            width="180"
+            height="40"
+          />
         </RouterLink>
 
         <form class="header-search" @submit.prevent="onSearch">
@@ -140,7 +146,7 @@ import { RouterLink, useRouter } from "vue-router";
 import { fetchCategoriesApi } from "../services/api";
 import { useToast } from "../stores/appStore";
 import { KEYWORD_MAX, validateProductFilters } from "../utils/productFilter";
-import logoFull from "../assets/logo-sports4life.svg";
+import { BRAND } from "../utils/brand";
 
 const props = defineProps({
   user: { type: Object, default: null },

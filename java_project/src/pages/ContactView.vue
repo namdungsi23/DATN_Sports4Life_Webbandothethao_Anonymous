@@ -25,7 +25,7 @@
           <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&q=80" alt="Văn phòng Sports4Life" />
           <div class="contact-map__info">
             <h3>Showroom TP.HCM</h3>
-            <p>123 Nguyễn Văn Linh, Quận 7, TP.HCM</p>
+            <p>{{ BRAND.address }}</p>
             <p>Thứ 2 – CN: 8:00 – 22:00</p>
           </div>
         </div>
@@ -100,6 +100,7 @@ import MainLayout from "../layouts/MainLayout.vue";
 import { sendContactApi } from "../services/api";
 import { useToast } from "../stores/appStore";
 import { firstError, getApiError, normalizePhone, runValidation } from "../utils/validators";
+import { BRAND } from "../utils/brand";
 
 const toast = useToast();
 const loading = ref(false);
@@ -109,9 +110,9 @@ const fieldErrors = reactive({});
 const form = reactive({ name: "", email: "", phone: "", message: "" });
 
 const contactCards = [
-  { icon: "📞", title: "Hotline", lines: ["0336 694 988", "Hỗ trợ 8:00 – 22:00 hàng ngày"] },
-  { icon: "✉", title: "Email", lines: ["support@sports4life.vn", "Phản hồi trong 24h"] },
-  { icon: "📍", title: "Địa chỉ", lines: ["123 Nguyễn Văn Linh, Q.7", "TP. Hồ Chí Minh"] },
+  { icon: "📞", title: "Hotline", lines: [BRAND.phone, "Hỗ trợ 8:00 – 22:00 hàng ngày"] },
+  { icon: "✉", title: "Email", lines: [BRAND.email, "Phản hồi trong 24h"] },
+  { icon: "📍", title: "Địa chỉ", lines: ["Lê Văn Lương, Q.7", "TP. Hồ Chí Minh"] },
   { icon: "💬", title: "Mạng xã hội", lines: ["Facebook / Instagram", "TikTok: @sports4life"] },
 ];
 
@@ -165,7 +166,7 @@ const submitContact = async () => {
     console.warn("Contact failed", contactError);
     const api = getApiError(
       contactError,
-      "Không gửi được liên hệ. Vui lòng thử lại hoặc gọi hotline 0336 694 988."
+      `Không gửi được liên hệ. Vui lòng thử lại hoặc gọi hotline ${BRAND.phone}.`
     );
     Object.assign(fieldErrors, api.errors);
     error.value = api.message;
