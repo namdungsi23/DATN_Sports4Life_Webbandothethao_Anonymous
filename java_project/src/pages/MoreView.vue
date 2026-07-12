@@ -3,10 +3,11 @@
     <template #full>
       <div class="page-hero page-hero--more">
         <img
-          src="https://images.unsplash.com/photo-1483721310020-033aa2247bd8?w=1600&q=80"
-          alt="Sports4Life Store"
+          src="https://images.unsplash.com/photo-1556906781-9a412961c28c?w=1600&q=80"
+          alt="Cửa hàng giày thể thao Sports4Life"
         />
         <div class="page-hero__content site-container">
+          <img :src="logoMark" alt="" class="page-hero__logo-mark" width="56" height="56" />
           <p class="page-hero__brand">Sports4Life</p>
           <p class="page-hero__eyebrow">Since 2019</p>
           <h1>Về chúng tôi</h1>
@@ -18,8 +19,8 @@
     <section class="more-story">
       <div class="more-story__media">
         <img
-          src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=80"
-          alt="Giày thể thao Sports4Life"
+          src="https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=1200&q=80"
+          alt="Giày chạy bộ chính hãng tại Sports4Life"
         />
       </div>
       <div class="more-story__text">
@@ -57,7 +58,7 @@
 
     <section class="more-cta-band">
       <img
-        src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1400&q=80"
+        src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1400&q=80"
         alt=""
         class="more-cta-band__bg"
       />
@@ -77,6 +78,7 @@
 import { RouterLink } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
 import BrandStrip from "../components/BrandStrip.vue";
+import logoMark from "../assets/logo-sports4life-mark.svg";
 
 const promises = [
   {

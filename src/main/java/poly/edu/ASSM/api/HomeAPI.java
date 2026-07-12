@@ -109,7 +109,7 @@ public class HomeAPI {
             adminNotificationService.notifyPanelUsers(
                     "User mới đăng ký",
                     "Tài khoản mới: " + username + " (" + request.getEmail().trim() + ")",
-                    "/admin/user?keyword=" + username);
+                    "/admin/user?keyword=" + java.net.URLEncoder.encode(username, java.nio.charset.StandardCharsets.UTF_8));
         } catch (Exception ex) {
             org.slf4j.LoggerFactory.getLogger(HomeAPI.class)
                     .warn("Gửi thông báo đăng ký thất bại: {}", ex.getMessage());

@@ -707,7 +707,7 @@ p {
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  margin: 28px 0 20px;
+  margin: 0 0 20px;
   padding: 16px 18px;
   background: linear-gradient(135deg, #fafafa 0%, #fff 100%);
   border: 1px solid #eee;
@@ -763,6 +763,13 @@ p {
   background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
   border: 1px solid #eee;
   border-radius: 14px;
+}
+
+.product-empty {
+  margin: 24px 0;
+  text-align: center;
+  color: #6b7280;
+  font-size: 15px;
 }
 
 .product-pagination__info {

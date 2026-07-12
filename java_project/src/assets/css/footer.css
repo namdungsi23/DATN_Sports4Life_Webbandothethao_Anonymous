@@ -77,17 +77,22 @@
 }
 
 .site-footer__logo {
-  font-family: "Playfair Display", Georgia, serif;
-  font-size: 26px;
-  font-weight: 700;
-  color: #e8a838;
+  display: inline-flex;
+  align-items: center;
   text-decoration: none;
-  display: inline-block;
   margin-bottom: 16px;
 }
 
-.site-footer__logo:hover {
-  color: #f5c563;
+.site-footer__logo-img {
+  display: block;
+  height: 46px;
+  width: auto;
+  max-width: 220px;
+}
+
+.site-footer__logo:hover .site-footer__logo-img {
+  opacity: 0.92;
+  filter: brightness(1.08);
 }
 
 .site-footer__desc {

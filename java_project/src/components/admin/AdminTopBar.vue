@@ -113,7 +113,7 @@
             :key="n.id"
             type="button"
             class="admin-topbar__hit"
-            :class="{ 'is-unread': !n.isRead }"
+            :class="{ 'is-unread': isUnread(n) }"
             @click="openNotification(n)"
           >
             <strong>{{ n.title }}</strong>
@@ -253,18 +253,40 @@ const loadNotifications = async () => {
   }
 };
 
+const isUnread = (n) => n && n.isRead !== true && n.read !== true;
+
+const resolveNotificationTarget = (link) => {
+  if (!link || typeof link !== "string") return null;
+  const raw = link.trim();
+  if (!raw) return null;
+  try {
+    // Hỗ trợ "/admin/order/1" hoặc "/admin/user?keyword=x"
+    const url = new URL(raw, window.location.origin);
+    return { path: url.pathname, query: Object.fromEntries(url.searchParams.entries()) };
+  } catch {
+    return raw.startsWith("/") ? raw : `/${raw}`;
+  }
+};
+
 const openNotification = async (n) => {
   try {
-    if (!n.isRead) {
+    if (isUnread(n) && n.id != null) {
       await markAdminNotificationReadApi(n.id);
       n.isRead = true;
       unreadCount.value = Math.max(0, unreadCount.value - 1);
     }
   } catch {
-    /* ignore */
+    /* vẫn cho điều hướng dù đánh dấu đọc lỗi */
   }
   bellOpen.value = false;
-  if (n.link) router.push(n.link);
+
+  const target = resolveNotificationTarget(n?.link);
+  if (!target) return;
+  try {
+    await router.push(target);
+  } catch {
+    /* bỏ qua NavigationDuplicated / hủy điều hướng */
+  }
 };
 
 const markAllRead = async () => {

@@ -336,6 +336,7 @@ const fetchProducts = async () => {
       totalPages: pageData.totalPages ?? 0,
       number: pageData.number ?? 0,
       totalElements: pageData.totalElements ?? pageData.content?.length ?? 0,
+      size: pageData.size ?? 10,
     };
 
     if (Array.isArray(data.categories) && data.categories.length) {
@@ -380,9 +381,10 @@ const setSort = (sort, dir) => {
 };
 
 const changePage = (page) => {
-  if (page < 0 || page >= products.value.totalPages) return;
+  if (page < 0 || page >= (products.value.totalPages || 1)) return;
   filters.page = page;
   fetchProducts();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
 const addToCart = (id) => {

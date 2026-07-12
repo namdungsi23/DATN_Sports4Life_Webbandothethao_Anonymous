@@ -16,7 +16,9 @@
     <div class="site-footer__main">
       <div class="site-container site-footer__grid">
         <div class="site-footer__brand">
-          <RouterLink to="/" class="site-footer__logo">Sports4Life</RouterLink>
+          <RouterLink to="/" class="site-footer__logo" aria-label="Sports4Life trang chủ">
+            <img :src="logoFull" alt="Sports4Life" class="site-footer__logo-img" width="200" height="46" />
+          </RouterLink>
           <p class="site-footer__desc">
             Cửa hàng giày thể thao chính hãng hàng đầu Việt Nam. Cam kết chất lượng, giá tốt và dịch vụ tận tâm.
           </p>
@@ -121,6 +123,7 @@ import { ref } from "vue";
 import { RouterLink } from "vue-router";
 import { useToast } from "../stores/appStore";
 import { firstError, runValidation } from "../utils/validators";
+import logoFull from "../assets/logo-sports4life.svg";
 
 const toast = useToast();
 const email = ref("");

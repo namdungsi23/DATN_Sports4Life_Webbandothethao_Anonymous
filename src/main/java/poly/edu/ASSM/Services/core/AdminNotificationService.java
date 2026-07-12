@@ -109,10 +109,8 @@ public class AdminNotificationService {
 	public Map<String, Object> markRead(String username, int id) {
 		Users user = requireUser(username);
 		int updated = notificationRepository.markRead(id, user.getId());
-		if (updated == 0) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy thông báo.");
-		}
-		return Map.of("ok", true);
+		// Không 404 nếu đã đọc / không khớp — tránh FE hiện lỗi khi bấm thông báo
+		return Map.of("ok", true, "updated", updated);
 	}
 
 	@Transactional

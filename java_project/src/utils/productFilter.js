@@ -100,8 +100,11 @@ export function applyRouteQueryToFilters(query, filters) {
 
   if (query.sort) filters.sort = String(query.sort);
   if (query.dir) filters.dir = String(query.dir);
-  if (query.page != null) {
+
+  if (query.page != null && query.page !== "") {
     const p = Number(query.page);
     filters.page = Number.isFinite(p) && p >= 0 ? Math.floor(p) : 0;
+  } else {
+    filters.page = 0;
   }
 }
