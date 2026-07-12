@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,8 +26,10 @@ import poly.edu.ASSM.Entity.ProductVariants;
 import poly.edu.ASSM.Entity.Products;
 import poly.edu.ASSM.Entity.Shipments;
 import poly.edu.ASSM.Repository.CarrierRepository;
+import poly.edu.ASSM.Repository.OrdersRepository;
 import poly.edu.ASSM.Repository.ProductVariantRepository;
 import poly.edu.ASSM.Repository.ShipmentRepository;
+import poly.edu.ASSM.Repository.UsersRepository;
 import poly.edu.ASSM.domain.OrderStatus;
 import poly.edu.ASSM.domain.PaymentStatus;
 import poly.edu.ASSM.domain.ShippingStatus;
@@ -50,12 +53,38 @@ public class AdminOrderManagementServiceImpl implements AdminOrderManagementServ
     @Autowired
     private ProductVariantRepository productVariantRepository;
 
+    @Autowired
+    private OrdersRepository ordersRepository;
+
+    @Autowired
+    private RankService rankService;
+
+    @Autowired
+    private UsersRepository usersRepository;
+
     @Override
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> listOrderSummaries() { 
-        return ordersService.findAll().stream()
-                .map(this::toSummary)
-                .collect(Collectors.toList());
+    public List<Map<String, Object>> listOrderSummaries() {
+        return listOrderSummaries(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> listOrderSummaries(String keyword) {
+        String kw = keyword == null ? "" : keyword.trim();
+        List<Orders> source;
+        if (kw.isEmpty()) {
+            source = ordersService.findAll();
+        } else {
+            Integer idExact = null;
+            try {
+                idExact = Integer.valueOf(kw);
+            } catch (NumberFormatException ignored) {
+                /* not an id */
+            }
+            source = ordersRepository.searchByKeyword(kw, idExact, PageRequest.of(0, 200));
+        }
+        return source.stream().map(this::toSummary).collect(Collectors.toList());
     }
 
     @Override
@@ -158,6 +187,14 @@ public class AdminOrderManagementServiceImpl implements AdminOrderManagementServ
         }
 
         ordersService.update(order);
+
+        // Cộng điểm hạng thành viên khi đơn giao thành công lần đầu
+        if (statusChanged
+                && currentStatus == OrderStatus.DELIVERED
+                && previousStatus != OrderStatus.DELIVERED) {
+            rankService.awardForDeliveredOrder(order);
+        }
+
         return getOrderDetail(order.getId());
     }
 
@@ -174,14 +211,7 @@ public class AdminOrderManagementServiceImpl implements AdminOrderManagementServ
             if (variant == null || detail.getQuantity() == null || detail.getQuantity() <= 0) {
                 continue;
             }
-            int qty = detail.getQuantity();
-            if (variant.getQuantity() != null) {
-                int restored = variant.getQuantity() + qty;
-                variant.setQuantity(restored > Short.MAX_VALUE ? Short.MAX_VALUE : (short) restored);
-            }
-            int sold = variant.getSoldCount() != null ? variant.getSoldCount() : 0;
-            variant.setSoldCount(Math.max(0, sold - qty));
-            productVariantRepository.save(variant);
+            productVariantRepository.restock(variant.getId(), detail.getQuantity());
         }
     }
 
@@ -313,6 +343,14 @@ public class AdminOrderManagementServiceImpl implements AdminOrderManagementServ
         }
         m.put("username", account.getUsername());
         m.put("email", account.getEmail());
+        usersRepository.findByAccount_Id(account.getId()).ifPresent(user -> {
+            m.put("fullName", user.getFullName());
+            m.put("totalPoint", user.getTotalPoint() != null ? user.getTotalPoint() : 0);
+            if (user.getRank() != null) {
+                m.put("rankId", user.getRank().getId());
+                m.put("rankName", user.getRank().getRankName());
+            }
+        });
         return m;
     }
 

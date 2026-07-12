@@ -31,18 +31,80 @@ public interface ProductRepository extends JpaRepository<Products, Long> {
     @Query("""
             SELECT p FROM Products p
             WHERE (COALESCE(p.status, true) = true)
-            AND ((:cat IS NULL OR :cat = '') OR (p.category IS NOT NULL AND p.category.name = :cat))
+            AND ((:cat IS NULL OR :cat = '')
+                    OR (p.category IS NOT NULL AND (p.category.name = :cat OR p.category.id = :cat)))
             AND ((:keyword IS NULL OR :keyword = '')
                     OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
                     OR LOWER(COALESCE(p.brand, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))
-            AND (:min IS NULL OR EXISTS (
+            AND ((:min IS NULL AND :max IS NULL) OR EXISTS (
                     SELECT 1 FROM ProductVariants v
-                    WHERE v.product = p AND v.price >= :min AND COALESCE(v.status, true) = true))
-            AND (:max IS NULL OR EXISTS (
-                    SELECT 1 FROM ProductVariants v
-                    WHERE v.product = p AND v.price <= :max AND COALESCE(v.status, true) = true))
+                    WHERE v.product = p
+                    AND COALESCE(v.status, true) = true
+                    AND (:min IS NULL OR v.price >= :min)
+                    AND (:max IS NULL OR v.price <= :max)))
             """)
     Page<Products> filterProducts(
+            @Param("cat") String cat,
+            @Param("keyword") String keyword,
+            @Param("min") Double min,
+            @Param("max") Double max,
+            Pageable pageable);
+
+    String GUEST_PRODUCT_FILTER = """
+            (COALESCE(p.status, true) = true)
+            AND ((:cat IS NULL OR :cat = '')
+                    OR (p.category IS NOT NULL AND (p.category.name = :cat OR p.category.id = :cat)))
+            AND ((:keyword IS NULL OR :keyword = '')
+                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(COALESCE(p.brand, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            AND ((:min IS NULL AND :max IS NULL) OR EXISTS (
+                    SELECT 1 FROM ProductVariants v
+                    WHERE v.product = p
+                    AND COALESCE(v.status, true) = true
+                    AND (:min IS NULL OR v.price >= :min)
+                    AND (:max IS NULL OR v.price <= :max)))
+            """;
+
+    @EntityGraph(attributePaths = {
+            "category",
+            "productVariants",
+            "productVariants.productImages" })
+    @Query(
+            value = """
+                    SELECT p FROM Products p
+                    WHERE """ + GUEST_PRODUCT_FILTER + """
+                    ORDER BY (
+                        SELECT MIN(v.price) FROM ProductVariants v
+                        WHERE v.product = p AND COALESCE(v.status, true) = true
+                    ) ASC
+                    """,
+            countQuery = """
+                    SELECT count(p) FROM Products p
+                    WHERE """ + GUEST_PRODUCT_FILTER)
+    Page<Products> filterProductsOrderByMinPriceAsc(
+            @Param("cat") String cat,
+            @Param("keyword") String keyword,
+            @Param("min") Double min,
+            @Param("max") Double max,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "category",
+            "productVariants",
+            "productVariants.productImages" })
+    @Query(
+            value = """
+                    SELECT p FROM Products p
+                    WHERE """ + GUEST_PRODUCT_FILTER + """
+                    ORDER BY (
+                        SELECT MIN(v.price) FROM ProductVariants v
+                        WHERE v.product = p AND COALESCE(v.status, true) = true
+                    ) DESC
+                    """,
+            countQuery = """
+                    SELECT count(p) FROM Products p
+                    WHERE """ + GUEST_PRODUCT_FILTER)
+    Page<Products> filterProductsOrderByMinPriceDesc(
             @Param("cat") String cat,
             @Param("keyword") String keyword,
             @Param("min") Double min,

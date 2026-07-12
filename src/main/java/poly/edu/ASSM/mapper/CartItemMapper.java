@@ -1,6 +1,5 @@
 package poly.edu.ASSM.mapper;
 
-import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -9,9 +8,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 import poly.edu.ASSM.Entity.CartItems;
-import poly.edu.ASSM.Entity.Carts;
 import poly.edu.ASSM.Entity.Products;
-import poly.edu.ASSM.Entity.Users;
+import poly.edu.ASSM.Entity.ProductVariants;
 import poly.edu.ASSM.dto.request.CartItemRequest;
 import poly.edu.ASSM.dto.response.CartItemResponse;
 import poly.edu.ASSM.dto.response.PageResponse;
@@ -23,7 +21,8 @@ public class CartItemMapper {
         if (entity == null) {
             return null;
         }
-        Products product = entity.getProduct();
+        ProductVariants variant = entity.getProductVariant();
+        Products product = variant != null ? variant.getProduct() : null;
         return CartItemResponse.builder()
                 .id(entity.getId())
                 .productId(product != null ? product.getId() : null)
@@ -39,17 +38,17 @@ public class CartItemMapper {
         return entities.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
-    public CartItems toEntity(CartItemRequest request, Products product) {
+    public CartItems toEntity(CartItemRequest request, ProductVariants variant) {
         CartItems entity = new CartItems();
-        applyRequest(entity, request, product);
+        applyRequest(entity, request, variant);
         return entity;
     }
 
-    public void applyRequest(CartItems entity, CartItemRequest request, Products product) {
+    public void applyRequest(CartItems entity, CartItemRequest request, ProductVariants variant) {
         if (entity == null || request == null) {
             return;
         }
-        entity.setProduct(product);
+        entity.setProductVariant(variant);
         entity.setQuantity(request.getQuantity());
     }
 

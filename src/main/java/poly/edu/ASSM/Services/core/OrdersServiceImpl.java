@@ -35,7 +35,7 @@ public class OrdersServiceImpl implements OrdersService {
             order.setCreateDate(Instant.now());
         }
         if (order.getOrderStatus() == null) {
-            order.setOrderStatus("PENDING");
+            order.setOrderStatus(OrderStatus.PENDING.name());
         }
         return repo.save(order);
     }

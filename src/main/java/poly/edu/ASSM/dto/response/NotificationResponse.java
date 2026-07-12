@@ -18,6 +18,7 @@ public class NotificationResponse {
     private Long userId;
     private String title;
     private String message;
+    private String link;
     private Boolean isRead;
     private Instant createdAt;
 }

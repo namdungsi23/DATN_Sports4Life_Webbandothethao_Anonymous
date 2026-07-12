@@ -12,8 +12,14 @@
               <tr><th>Sản phẩm</th><th>Giá</th><th>Số lượng</th><th>Tạm tính</th></tr>
             </thead>
             <tbody>
-              <tr v-for="item in cartItems" :key="item.productId">
-                <td>{{ item.name }}</td>
+              <tr v-for="item in cartItems" :key="`${item.productId}-${item.variantId ?? 'x'}`">
+                <td>
+                  {{ item.name }}
+                  <div v-if="item.color || item.size" class="small text-muted">
+                    <span v-if="item.color">Màu: {{ item.color }}</span>
+                    <span v-if="item.size"> · Size: {{ item.size }}</span>
+                  </div>
+                </td>
                 <td>{{ formatPrice(item.price) }} đ</td>
                 <td>{{ item.quantity }}</td>
                 <td class="fw-bold text-danger">{{ formatPrice(item.price * item.quantity) }} đ</td>

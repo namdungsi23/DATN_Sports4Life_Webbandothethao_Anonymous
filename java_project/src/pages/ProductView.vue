@@ -39,15 +39,86 @@
           </a>
           <a
             v-for="cat in categories"
-            :key="cat"
+            :key="cat.id || cat.name"
             href="#"
             class="product-category__link"
-            :class="{ active: filters.cat === cat }"
-            @click.prevent="selectCategory(cat)"
+            :class="{ active: filters.cat === cat.name || filters.cat === cat.id }"
+            @click.prevent="selectCategory(cat.name)"
           >
-            <span>{{ categoryIcon(cat) }}</span>
-            {{ cat }}
+            <span>{{ categoryIcon(cat.name) }}</span>
+            {{ cat.name }}
           </a>
+        </div>
+
+        <div class="product-price-filter">
+          <h3>
+            <span class="product-category__icon" aria-hidden="true">₫</span>
+            Khoảng giá
+          </h3>
+
+          <ul class="product-price-filter__list" role="list">
+            <li v-for="range in priceRanges" :key="range.label">
+              <button
+                type="button"
+                class="product-price-filter__chip"
+                :class="{ active: isPriceRangeActive(range) }"
+                :aria-pressed="isPriceRangeActive(range)"
+                @click="selectPriceRange(range)"
+              >
+                <span class="product-price-filter__radio" aria-hidden="true" />
+                <span class="product-price-filter__chip-text">{{ range.label }}</span>
+              </button>
+            </li>
+          </ul>
+
+          <div class="product-price-filter__divider">
+            <span>Hoặc nhập khoảng</span>
+          </div>
+
+          <div class="product-price-filter__custom">
+            <label class="product-price-filter__input-wrap">
+              <span>Từ</span>
+              <input
+                v-model.number="filters.min"
+                type="number"
+                min="0"
+                step="1000"
+                placeholder="0"
+                :class="{ 'is-invalid': fieldErrors.min }"
+                @input="clearFieldError('min')"
+              />
+            </label>
+            <span class="product-price-filter__dash" aria-hidden="true">–</span>
+            <label class="product-price-filter__input-wrap">
+              <span>Đến</span>
+              <input
+                v-model.number="filters.max"
+                type="number"
+                min="0"
+                step="1000"
+                placeholder="∞"
+                :class="{ 'is-invalid': fieldErrors.max }"
+                @input="clearFieldError('max')"
+              />
+            </label>
+          </div>
+          <p v-if="fieldErrors.min || fieldErrors.max" class="product-filter__error">
+            {{ fieldErrors.min || fieldErrors.max }}
+          </p>
+          <div class="product-price-filter__actions">
+            <button type="button" class="product-price-filter__apply" :disabled="loading" @click="onFilter">
+              Áp dụng
+            </button>
+            <button
+              v-if="hasPriceFilter"
+              type="button"
+              class="product-price-filter__clear"
+              :disabled="loading"
+              @click="clearPriceFilter"
+            >
+              Xóa lọc
+            </button>
+          </div>
         </div>
 
         <div class="product-sidebar__promo">
@@ -74,23 +145,28 @@
               <span v-if="loading">Đang tải...</span>
               <span v-else>{{ totalLabel }}</span>
               <span v-if="filters.cat" class="product-toolbar__chip">{{ filters.cat }}</span>
+              <span v-if="priceFilterLabel" class="product-toolbar__chip">{{ priceFilterLabel }}</span>
             </p>
           </div>
         </div>
 
         <form class="product-filter" @submit.prevent="onFilter">
-          <div class="product-filter__search">
-            <span aria-hidden="true">🔍</span>
-            <input
-              v-model="filters.keyword"
-              type="text"
-              placeholder="Tìm tên sản phẩm, thương hiệu..."
-            />
+          <div class="product-filter__field product-filter__field--search">
+            <div class="product-filter__search" :class="{ 'is-invalid': fieldErrors.keyword }">
+              <span aria-hidden="true">🔍</span>
+              <input
+                v-model="filters.keyword"
+                type="text"
+                maxlength="100"
+                placeholder="Tìm tên sản phẩm, thương hiệu..."
+                @input="clearFieldError('keyword')"
+              />
+            </div>
+            <p v-if="fieldErrors.keyword" class="product-filter__error">{{ fieldErrors.keyword }}</p>
           </div>
-          <input v-model.number="filters.min" type="number" class="product-filter__price" placeholder="Giá từ" />
-          <input v-model.number="filters.max" type="number" class="product-filter__price" placeholder="Giá đến" />
+
           <button type="submit" class="product-filter__btn" :disabled="loading">
-            {{ loading ? "..." : "Lọc" }}
+            {{ loading ? "..." : "Tìm" }}
           </button>
         </form>
 
@@ -114,13 +190,19 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from "vue";
-import { useRoute } from "vue-router";
+import { computed, onMounted, reactive, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
 import ProductList from "../components/ProductList.vue";
 import BrandStrip from "../components/BrandStrip.vue";
 import { fetchProductsApi } from "../services/api";
-import { useAppStore } from "../stores/appStore";
+import { useAppStore, useToast } from "../stores/appStore";
+import {
+  applyRouteQueryToFilters,
+  buildProductQueryParams,
+  filtersToRouteQuery,
+  validateProductFilters,
+} from "../utils/productFilter";
 
 const categoryIcons = {
   "Giày chạy bộ": "👟",
@@ -135,7 +217,19 @@ const categoryIcons = {
   "Phụ kiện thể thao": "⌚",
 };
 
-const { addToCart: addToCartStore } = useAppStore();
+const priceRanges = [
+  { label: "Dưới 500.000đ", min: null, max: 500000 },
+  { label: "500.000 – 1.000.000đ", min: 500000, max: 1000000 },
+  { label: "1.000.000 – 2.000.000đ", min: 1000000, max: 2000000 },
+  { label: "2.000.000 – 3.000.000đ", min: 2000000, max: 3000000 },
+  { label: "Trên 3.000.000đ", min: 3000000, max: null },
+];
+
+const store = useAppStore();
+const toast = useToast();
+const route = useRoute();
+const router = useRouter();
+
 const categories = ref([]);
 const filters = reactive({
   cat: "",
@@ -146,13 +240,28 @@ const filters = reactive({
   dir: "desc",
   page: 0,
 });
+const fieldErrors = reactive({});
 const products = ref({ content: [], totalPages: 0, number: 0, totalElements: 0 });
 const loading = ref(false);
 const error = ref("");
 const message = ref("");
+const syncingRoute = ref(false);
 
-const store = useAppStore();
-const route = useRoute();
+const formatVnd = (value) =>
+  Number(value).toLocaleString("vi-VN", { maximumFractionDigits: 0 }) + "đ";
+
+const hasPriceFilter = computed(
+  () => Number.isFinite(filters.min) || Number.isFinite(filters.max)
+);
+
+const priceFilterLabel = computed(() => {
+  if (!hasPriceFilter.value) return "";
+  if (Number.isFinite(filters.min) && Number.isFinite(filters.max)) {
+    return `${formatVnd(filters.min)} – ${formatVnd(filters.max)}`;
+  }
+  if (Number.isFinite(filters.min)) return `Từ ${formatVnd(filters.min)}`;
+  return `Đến ${formatVnd(filters.max)}`;
+});
 
 const totalLabel = computed(() => {
   const total = products.value.totalElements ?? products.value.content?.length ?? 0;
@@ -161,19 +270,64 @@ const totalLabel = computed(() => {
 
 const categoryIcon = (name) => categoryIcons[name] || "🏷️";
 
+const samePrice = (a, b) => {
+  if (a == null && b == null) return true;
+  return Number(a) === Number(b);
+};
+
+const isPriceRangeActive = (range) =>
+  samePrice(filters.min, range.min) && samePrice(filters.max, range.max);
+
+const selectPriceRange = (range) => {
+  filters.min = range.min;
+  filters.max = range.max;
+  clearFieldError("min");
+  clearFieldError("max");
+  filters.page = 0;
+  fetchProducts();
+};
+
+const clearPriceFilter = () => {
+  filters.min = null;
+  filters.max = null;
+  clearFieldError("min");
+  clearFieldError("max");
+  filters.page = 0;
+  fetchProducts();
+};
+
+const clearFieldError = (key) => {
+  delete fieldErrors[key];
+};
+
+const syncUrl = () => {
+  syncingRoute.value = true;
+  router
+    .replace({ path: "/product", query: filtersToRouteQuery(filters) })
+    .finally(() => {
+      syncingRoute.value = false;
+    });
+};
+
 const fetchProducts = async () => {
+  const validation = validateProductFilters(filters);
+  Object.keys(fieldErrors).forEach((k) => delete fieldErrors[k]);
+  if (!validation.ok) {
+    Object.assign(fieldErrors, validation.errors);
+    const first = Object.values(validation.errors)[0];
+    error.value = first;
+    toast.error(first);
+    return;
+  }
+
+  filters.keyword = validation.values.keyword;
+  filters.min = validation.values.min;
+  filters.max = validation.values.max;
+
   loading.value = true;
   error.value = "";
   try {
-    filters.min = filters.min == 0 ? null : filters.min;
-    filters.max = filters.max == 0 ? null : filters.max;
-
-    const params = { page: filters.page ?? 0, sort: filters.sort, dir: filters.dir };
-    if (filters.cat) params.cat = filters.cat;
-    if (filters.keyword?.trim()) params.keyword = filters.keyword.trim();
-    if (Number.isFinite(filters.min)) params.min = filters.min;
-    if (Number.isFinite(filters.max)) params.max = filters.max;
-
+    const params = buildProductQueryParams(filters);
     const data = await fetchProductsApi(params);
     const pageData = data.products ?? data;
 
@@ -184,7 +338,13 @@ const fetchProducts = async () => {
       totalElements: pageData.totalElements ?? pageData.content?.length ?? 0,
     };
 
-    categories.value = data.categories?.map((c) => c.name) || [];
+    if (Array.isArray(data.categories) && data.categories.length) {
+      categories.value = data.categories.map((c) =>
+        typeof c === "string" ? { id: c, name: c } : { id: c.id || c.name, name: c.name || c.id }
+      );
+    }
+
+    syncUrl();
   } catch (fetchError) {
     console.error("Fetch error:", fetchError);
     const apiMsg =
@@ -194,6 +354,7 @@ const fetchProducts = async () => {
     error.value = apiMsg
       ? `Không thể tải sản phẩm. ${String(apiMsg).slice(0, 200)}`
       : "Không thể tải sản phẩm. Vui lòng thử lại.";
+    toast.error(error.value);
     products.value = { content: [], totalPages: 0, number: 0, totalElements: 0 };
   } finally {
     loading.value = false;
@@ -228,6 +389,7 @@ const addToCart = (id) => {
   const user = store.state.user;
   if (!user) {
     message.value = "Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.";
+    toast.warning(message.value);
     setTimeout(() => {
       message.value = "";
     }, 2000);
@@ -236,16 +398,36 @@ const addToCart = (id) => {
 
   const product = products.value.content.find((item) => item.id === id);
   if (!product) return;
-  addToCartStore(product, 1);
+  const result = store.addToCart(product, 1);
+  if (!result?.success) {
+    const msg =
+      result?.reason === "out_of_stock"
+        ? "Sản phẩm đã hết hàng."
+        : result?.reason === "stock_limit"
+          ? `Chỉ còn tối đa ${result.stock} sản phẩm trong kho.`
+          : "Không thể thêm vào giỏ hàng.";
+    message.value = msg;
+    toast.error(msg);
+    return;
+  }
   message.value = `Đã thêm "${product.name}" vào giỏ hàng.`;
+  toast.success(message.value);
   setTimeout(() => {
     message.value = "";
   }, 2000);
 };
 
 onMounted(() => {
-  if (route.query.keyword) filters.keyword = String(route.query.keyword);
-  if (route.query.cat) filters.cat = String(route.query.cat);
+  applyRouteQueryToFilters(route.query, filters);
   fetchProducts();
 });
+
+watch(
+  () => route.query,
+  (query) => {
+    if (syncingRoute.value) return;
+    applyRouteQueryToFilters(query, filters);
+    fetchProducts();
+  }
+);
 </script>

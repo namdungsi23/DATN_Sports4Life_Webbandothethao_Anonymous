@@ -12,10 +12,8 @@ import org.springframework.web.context.annotation.SessionScope;
 
 import poly.edu.ASSM.Entity.ProductVariants;
 import poly.edu.ASSM.Entity.Products;
-import poly.edu.ASSM.Services.core.InventoryService;
 import poly.edu.ASSM.Services.core.ProductServiceImpl;
 import poly.edu.ASSM.domain.CartItem;
-import poly.edu.ASSM.exception.OutOfStockException;
 
 @Service
 @SessionScope
@@ -24,9 +22,6 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
 
     @Autowired
     ProductServiceImpl productService;
-
-    @Autowired
-    InventoryService inventoryService;
 
     private static double resolvePrice(Products product) {
         if (product == null || product.getProductVariants() == null) {
@@ -78,13 +73,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
             throw new IllegalArgumentException("Không tìm thấy sản phẩm");
         }
 
-        try {
-            inventoryService.checkInventory(id, qty);
-            item.setQuantity(qty);
-        } catch (OutOfStockException e) {
-            throw e;
-        }
-
+        item.setQuantity(qty);
         return item;
     }
 

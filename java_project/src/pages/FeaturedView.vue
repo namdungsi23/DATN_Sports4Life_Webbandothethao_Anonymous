@@ -2,30 +2,50 @@
   <MainLayout>
     <template #full>
       <div class="page-hero page-hero--featured">
-        <img src="https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=1400&q=80" alt="Sản phẩm nổi bật" />
+        <img
+          src="https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=1600&q=80"
+          alt="Sản phẩm nổi bật Sports4Life"
+        />
         <div class="page-hero__content site-container">
+          <p class="page-hero__brand">Sports4Life</p>
           <p class="page-hero__eyebrow">Editor's pick</p>
-          <h1>Sản phẩm nổi bật</h1>
-          <p>Những mẫu giày được yêu thích nhất — chọn lọc bởi đội ngũ Sports4Life</p>
+          <h1>Nổi bật</h1>
+          <p>Những mẫu được yêu thích nhất — chọn lọc cho phong cách năng động</p>
+          <RouterLink to="/product" class="page-hero__cta">Khám phá tất cả</RouterLink>
         </div>
       </div>
     </template>
 
-    <section class="featured-page-grid">
-      <div v-if="loading" class="bestseller-loading">Đang tải...</div>
-      <div v-else class="featured-grid featured-grid--page">
-        <article v-for="product in allProducts" :key="product.id" class="featured-card">
-          <span class="featured-card__badge">NỔI BẬT</span>
-          <div class="featured-card__img">
-            <ProductImage :product="product" :alt="product.name" />
+    <section class="featured-page">
+      <header class="featured-page__intro">
+        <h2>Bộ sưu tập chọn lọc</h2>
+        <p>{{ loading ? "Đang tải..." : `${allProducts.length} sản phẩm nổi bật` }}</p>
+      </header>
+
+      <div v-if="loading" class="featured-page__loading">Đang tải sản phẩm...</div>
+
+      <div v-else-if="allProducts.length" class="featured-editorial">
+        <article
+          v-for="(product, index) in allProducts"
+          :key="product.id"
+          class="featured-editorial__item"
+          :class="{ 'featured-editorial__item--hero': index === 0 }"
+        >
+          <div class="featured-editorial__media product-img">
+            <RouterLink :to="`/product/${product.id}`">
+              <ProductImage :product="product" :alt="product.name" />
+            </RouterLink>
+            <FavoriteButton :product="product" variant="icon" :size="index === 0 ? 'md' : 'sm'" />
           </div>
-          <div class="featured-card__info">
-            <p v-if="product.categoryName" class="featured-card__cat">{{ product.categoryName }}</p>
-            <h3>{{ product.name }}</h3>
-            <p class="featured-card__price">{{ formatPrice(product.price) }}đ</p>
+          <div class="featured-editorial__body">
+            <p v-if="product.categoryName" class="featured-editorial__cat">{{ product.categoryName }}</p>
+            <RouterLink :to="`/product/${product.id}`" class="featured-editorial__name">
+              <h3>{{ product.name }}</h3>
+            </RouterLink>
+            <p class="featured-editorial__price">{{ formatPrice(product.price) }}đ</p>
             <button
               type="button"
-              class="featured-card__btn"
+              class="featured-editorial__btn"
               :disabled="!product.inStock"
               @click="onAddToCart(product)"
             >
@@ -34,31 +54,48 @@
           </div>
         </article>
       </div>
+
+      <p v-else class="featured-page__empty">Chưa có sản phẩm nổi bật.</p>
     </section>
 
-    <BrandStrip />
     <BestSellerSection />
   </MainLayout>
 </template>
 
 <script setup>
 import { onMounted, ref } from "vue";
+import { RouterLink } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
-import BrandStrip from "../components/BrandStrip.vue";
 import BestSellerSection from "../components/BestSellerSection.vue";
 import ProductImage from "../components/ProductImage.vue";
+import FavoriteButton from "../components/FavoriteButton.vue";
 import { fetchProductsApi } from "../services/api";
-import { useAppStore } from "../stores/appStore";
+import { useAppStore, useToast } from "../stores/appStore";
 
-const { addToCart, state } = useAppStore();
+const store = useAppStore();
+const toast = useToast();
 const allProducts = ref([]);
 const loading = ref(true);
 
 const formatPrice = (price) => Number(price || 0).toLocaleString("vi-VN");
 
 const onAddToCart = (product) => {
-  if (!state.user) return;
-  addToCart(product, 1);
+  if (!store.state.user) {
+    toast.warning("Vui lòng đăng nhập để thêm vào giỏ hàng.");
+    return;
+  }
+  const result = store.addToCart(product, 1);
+  if (!result?.success) {
+    toast.error(
+      result?.reason === "out_of_stock"
+        ? "Sản phẩm đã hết hàng."
+        : result?.reason === "stock_limit"
+          ? `Chỉ còn tối đa ${result.stock} sản phẩm.`
+          : "Không thể thêm vào giỏ hàng."
+    );
+    return;
+  }
+  toast.success(`Đã thêm "${product.name}" vào giỏ.`);
 };
 
 onMounted(async () => {

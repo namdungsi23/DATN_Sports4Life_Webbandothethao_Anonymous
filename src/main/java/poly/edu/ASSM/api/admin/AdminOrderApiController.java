@@ -29,9 +29,9 @@ public class AdminOrderApiController {
     private OrdersService ordersService;
 
     @GetMapping
-    public Map<String, Object> list() {
+    public Map<String, Object> list(@org.springframework.web.bind.annotation.RequestParam(required = false) String keyword) {
         return Map.of(
-                "orders", orderManagementService.listOrderSummaries(),
+                "orders", orderManagementService.listOrderSummaries(keyword),
                 "todayCount", ordersService.countTodayOrders(),
                 "pendingCount", ordersService.countPendingOrders());
     }

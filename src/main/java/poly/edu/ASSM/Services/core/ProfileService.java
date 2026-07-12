@@ -5,6 +5,7 @@ import java.util.Map;
 import org.springframework.web.multipart.MultipartFile;
 
 import poly.edu.ASSM.dto.request.ProfileUpdateRequest;
+import poly.edu.ASSM.dto.request.ChangePasswordRequest;
 
 public interface ProfileService {
 
@@ -13,4 +14,6 @@ public interface ProfileService {
     Map<String, Object> updateProfile(String username, ProfileUpdateRequest request);
 
     Map<String, Object> uploadAvatar(String username, MultipartFile file);
+
+    Map<String, Object> changePassword(String username, ChangePasswordRequest request);
 }

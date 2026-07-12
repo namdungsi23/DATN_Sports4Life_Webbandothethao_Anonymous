@@ -26,7 +26,7 @@
           </div>
           <div class="site-footer__contact-item">
             <span>📞</span>
-            <span>Hotline: <strong>1900 6750</strong> (8h–22h)</span>
+            <span>Hotline: <strong>0336 694 988</strong> (8h–22h)</span>
           </div>
           <div class="site-footer__contact-item">
             <span>✉</span>
@@ -119,12 +119,24 @@
 <script setup>
 import { ref } from "vue";
 import { RouterLink } from "vue-router";
+import { useToast } from "../stores/appStore";
+import { firstError, runValidation } from "../utils/validators";
 
+const toast = useToast();
 const email = ref("");
 const subscribeMsg = ref("");
 
 const onSubscribe = () => {
+  const result = runValidation(
+    { email: email.value },
+    { email: ["required", "email"] }
+  );
+  if (!result.ok) {
+    toast.error(firstError(result.errors));
+    return;
+  }
   subscribeMsg.value = "Cảm ơn bạn đã đăng ký nhận tin!";
+  toast.success(subscribeMsg.value);
   email.value = "";
   setTimeout(() => {
     subscribeMsg.value = "";

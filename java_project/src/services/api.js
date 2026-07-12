@@ -43,6 +43,27 @@ clientAuthApi.interceptors.request.use((config) => {
   return config;
 });
 
+function attachUnauthorizedHandler(client) {
+  client.interceptors.response.use(
+    (res) => res,
+    (error) => {
+      const status = error?.response?.status;
+      if (status === 401) {
+        try {
+          useAppStore().logout();
+        } catch {
+          /* ignore */
+        }
+      }
+      return Promise.reject(error);
+    }
+  );
+}
+
+attachUnauthorizedHandler(clientApi);
+attachUnauthorizedHandler(clientBase);
+attachUnauthorizedHandler(clientAuthApi);
+
 export const fetchProductsApi = async (params) => {
   const response = await clientApi.get("/products", { params });
   return normalizeProductsResponse(response.data);
@@ -53,9 +74,28 @@ export const fetchProductByIdApi = async (id) => {
   return normalizeProductDetailResponse(response.data);
 };
 
+export const fetchProductCommentsApi = async (productId) => {
+  const response = await clientApi.get(`/products/${productId}/comments`);
+  return response.data;
+};
+
+export const postProductCommentApi = async (payload) => {
+  const response = await clientAuthApi.post("/comments", payload);
+  return response.data;
+};
+
 export const fetchBrandsApi = async () => {
   const response = await clientApi.get("/brands");
   return response.data;
+};
+
+export const fetchCategoriesApi = async () => {
+  const response = await clientApi.get("/categories");
+  const data = response.data;
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === "object" && Array.isArray(data.data)) return data.data;
+  if (Array.isArray(data?.categories)) return data.categories;
+  return [];
 };
 
 export const loginApi = async (payload) => {
@@ -69,6 +109,21 @@ export const loginApi = async (payload) => {
 
 export const registerApi = async (payload) => {
   const response = await clientApi.post("/register", payload);
+  return response.data;
+};
+
+export const forgotPasswordApi = async (payload) => {
+  const response = await clientApi.post("/forgot-password", payload);
+  return response.data;
+};
+
+export const verifyOtpApi = async (payload) => {
+  const response = await clientApi.post("/verify-otp", payload);
+  return response.data;
+};
+
+export const resetPasswordApi = async (payload) => {
+  const response = await clientApi.post("/reset-password", payload);
   return response.data;
 };
 
@@ -91,8 +146,38 @@ export const uploadProfileAvatarApi = async (file) => {
   return response.data;
 };
 
+export const changePasswordApi = async (payload) => {
+  const response = await clientAuthApi.post("/profile/change-password", payload);
+  return response.data;
+};
+
 export const fetchAdminMeApi = async () => {
   const response = await clientAuthApi.get("/admin/me");
+  return response.data;
+};
+
+export const fetchAdminSearchApi = async (q) => {
+  const response = await clientAuthApi.get("/admin/search", { params: { q } });
+  return response.data;
+};
+
+export const fetchAdminNotificationsApi = async (limit = 20) => {
+  const response = await clientAuthApi.get("/admin/notifications", { params: { limit } });
+  return response.data;
+};
+
+export const fetchAdminUnreadCountApi = async () => {
+  const response = await clientAuthApi.get("/admin/notifications/unread-count");
+  return response.data;
+};
+
+export const markAdminNotificationReadApi = async (id) => {
+  const response = await clientAuthApi.patch(`/admin/notifications/${id}/read`);
+  return response.data;
+};
+
+export const markAllAdminNotificationsReadApi = async () => {
+  const response = await clientAuthApi.patch("/admin/notifications/read-all");
   return response.data;
 };
 
@@ -148,5 +233,15 @@ export const setDefaultAddressApi = async (id) => {
 
 export const confirmPaymentApi = async (payload) => {
   const response = await clientAuthApi.post("/checkout/confirm", payload);
+  return response.data;
+};
+
+export const fetchMyOrdersApi = async () => {
+  const response = await clientAuthApi.get("/orders");
+  return response.data;
+};
+
+export const fetchMyOrderDetailApi = async (id) => {
+  const response = await clientAuthApi.get(`/orders/${id}`);
   return response.data;
 };

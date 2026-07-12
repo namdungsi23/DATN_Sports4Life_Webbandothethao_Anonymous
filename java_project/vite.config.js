@@ -10,6 +10,8 @@ export default defineConfig({
       '/base': {
         target: 'http://localhost:8080',
         changeOrigin: true,
+        timeout: 60000,
+        proxyTimeout: 60000,
         rewrite: (path) => path.replace(/^\/base/, ''),
         // Spring Security often redirects with an absolute Location to :8080.
         // The browser would then leave the dev origin and hit CORS. Rewrite so
@@ -22,6 +24,16 @@ export default defineConfig({
             if (!springOrigin.test(loc)) return
             const path = loc.replace(springOrigin, '') || '/'
             proxyRes.headers['location'] = `/base${path.startsWith('/') ? path : `/${path}`}`
+          })
+          proxy.on('error', (err, _req, res) => {
+            console.error('[vite] http proxy error:', err.message)
+            if (res && !res.headersSent) {
+              res.writeHead(502, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({
+                ok: false,
+                message: 'Backend không phản hồi (kiểm tra Spring Boot đang chạy / SMTP treo).',
+              }))
+            }
           })
         },
       },

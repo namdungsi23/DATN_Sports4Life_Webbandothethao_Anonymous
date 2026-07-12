@@ -17,9 +17,10 @@
             <p class="profile-hero__eyebrow">Thành viên Sports4Life</p>
             <h1>{{ displayName }}</h1>
             <p class="profile-hero__username">@{{ profile.username || "user" }}</p>
-            <div class="profile-hero__tags">
-              <span v-for="role in roleLabels" :key="role" class="profile-tag">{{ role }}</span>
-            </div>
+            <p v-if="profile.rankName" class="profile-hero__rank">
+              Hạng <strong>{{ profile.rankName }}</strong>
+              <span v-if="profile.totalPoint != null"> · {{ profile.totalPoint }} điểm</span>
+            </p>
           </div>
           <button type="button" class="profile-hero__logout" @click="onLogout">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -35,12 +36,16 @@
 
         <div class="profile-stats">
           <div class="profile-stat">
-            <strong>{{ cartCount }}</strong>
-            <span>Sản phẩm trong giỏ</span>
+            <strong>{{ profile.rankName || "—" }}</strong>
+            <span>Hạng thành viên</span>
           </div>
           <div class="profile-stat">
-            <strong>{{ formatPrice(cartAmount) }}đ</strong>
-            <span>Giá trị giỏ hàng</span>
+            <strong>{{ profile.totalPoint ?? 0 }}</strong>
+            <span>Điểm tích lũy</span>
+          </div>
+          <div class="profile-stat">
+            <strong>{{ cartCount }}</strong>
+            <span>Sản phẩm trong giỏ</span>
           </div>
           <div class="profile-stat">
             <strong>{{ memberSince }}</strong>
@@ -181,40 +186,123 @@
                   <div class="profile-field__value">{{ profile.phone || "Chưa cập nhật" }}</div>
                 </div>
                 <div class="profile-field">
-                  <label>Vai trò</label>
-                  <div class="profile-field__value">{{ roleLabels.join(", ") || "Khách hàng" }}</div>
+                  <label>Hạng thành viên</label>
+                  <div class="profile-field__value">
+                    {{ profile.rankName || "—" }}
+                    <span v-if="profile.rankDiscountPercent" class="text-muted">
+                      (giảm {{ profile.rankDiscountPercent }}%)
+                    </span>
+                  </div>
+                </div>
+                <div class="profile-field">
+                  <label>Điểm tích lũy</label>
+                  <div class="profile-field__value">{{ profile.totalPoint ?? 0 }}</div>
                 </div>
               </div>
             </section>
 
             <section v-show="activeTab === 'orders'" class="profile-panel">
-              <h2>Giỏ hàng của bạn</h2>
-              <p class="profile-panel__desc">Xem nhanh sản phẩm đang có trong giỏ.</p>
+              <h2>Đơn hàng của tôi</h2>
+              <p class="profile-panel__desc">Theo dõi trạng thái và chi tiết các đơn đã đặt.</p>
 
-              <div v-if="!cartItems.length" class="profile-empty">
-                <p>Giỏ hàng trống.</p>
+              <div v-if="ordersLoading" class="profile-loading">Đang tải đơn hàng...</div>
+
+              <div v-else-if="!myOrders.length" class="profile-empty">
+                <p>Bạn chưa có đơn hàng nào.</p>
                 <RouterLink to="/product" class="profile-empty__btn">Mua sắm ngay</RouterLink>
               </div>
 
-              <ul v-else class="profile-cart-list">
-                <li v-for="item in cartItems" :key="item.productId" class="profile-cart-item">
-                  <ProductImage :src="item.image" :alt="item.name" />
-                  <div>
-                    <h4>{{ item.name }}</h4>
-                    <p>{{ item.quantity }} × {{ formatPrice(item.price) }}đ</p>
+              <div v-else class="profile-orders">
+                <article
+                  v-for="order in myOrders"
+                  :key="order.id"
+                  class="profile-order-card"
+                  :class="{ 'profile-order-card--open': expandedOrderId === order.id }"
+                >
+                  <div class="profile-order-card__head">
+                    <div>
+                      <strong>Đơn #{{ order.id }}</strong>
+                      <p class="profile-order-card__date">{{ formatOrderDate(order.createDate) }}</p>
+                    </div>
+                    <div class="profile-order-card__badges">
+                      <span class="profile-order-badge" :class="orderStatusClass(order.orderStatus)">
+                        {{ orderStatusLabel(order.orderStatus) }}
+                      </span>
+                      <span class="profile-order-badge profile-order-badge--muted">
+                        {{ paymentStatusLabel(order.paymentStatus) }}
+                      </span>
+                    </div>
                   </div>
-                  <strong>{{ formatPrice(item.price * item.quantity) }}đ</strong>
-                </li>
-              </ul>
 
-              <RouterLink v-if="cartItems.length" to="/cart" class="profile-panel__action">
-                Xem giỏ hàng & thanh toán →
-              </RouterLink>
+                  <div class="profile-order-card__meta">
+                    <span>{{ order.itemCount || 0 }} sản phẩm</span>
+                    <strong>{{ formatPrice(order.totalAmount) }}đ</strong>
+                  </div>
+                  <p v-if="order.address" class="profile-order-card__addr">{{ order.address }}</p>
+
+                  <button
+                    type="button"
+                    class="profile-order-card__toggle"
+                    @click="toggleOrderDetail(order.id)"
+                  >
+                    {{ expandedOrderId === order.id ? "Thu gọn" : "Xem chi tiết" }}
+                  </button>
+
+                  <div v-if="expandedOrderId === order.id" class="profile-order-detail">
+                    <div v-if="orderDetailLoading" class="text-muted small py-2">Đang tải chi tiết...</div>
+                    <template v-else-if="orderDetail">
+                      <ul v-if="orderDetail.items?.length" class="profile-order-items">
+                        <li v-for="item in orderDetail.items" :key="item.id">
+                          <div>
+                            <strong>{{ item.productName || "Sản phẩm" }}</strong>
+                            <p v-if="item.size || item.color" class="profile-order-item__variant">
+                              {{ [item.size, item.color].filter(Boolean).join(" · ") }}
+                            </p>
+                          </div>
+                          <div class="profile-order-item__qty">
+                            {{ item.quantity }} × {{ formatPrice(item.price) }}đ
+                          </div>
+                          <strong>{{ formatPrice(item.lineTotal) }}đ</strong>
+                        </li>
+                      </ul>
+
+                      <div v-if="orderDetail.shippingAddress" class="profile-order-shipping">
+                        <h4>Địa chỉ giao hàng</h4>
+                        <p>
+                          <strong>{{ orderDetail.shippingAddress.receiverName }}</strong>
+                          · {{ orderDetail.shippingAddress.receiverPhone }}
+                        </p>
+                        <p class="text-muted">
+                          {{ orderDetail.shippingAddress.addressDetail }},
+                          {{ orderDetail.shippingAddress.ward }},
+                          {{ orderDetail.shippingAddress.province }}
+                        </p>
+                      </div>
+
+                      <div v-if="orderDetail.shipment" class="profile-order-shipment">
+                        <h4>Vận chuyển</h4>
+                        <p v-if="orderDetail.shipment.carrierName">
+                          Đơn vị: <strong>{{ orderDetail.shipment.carrierName }}</strong>
+                        </p>
+                        <p v-if="orderDetail.shipment.trackingNumber">
+                          Mã vận đơn: <strong>{{ orderDetail.shipment.trackingNumber }}</strong>
+                        </p>
+                        <p>
+                          Trạng thái:
+                          <strong>{{ shippingStatusLabel(orderDetail.shipment.shippingStatus) }}</strong>
+                        </p>
+                      </div>
+                    </template>
+                  </div>
+                </article>
+              </div>
+
+              <RouterLink to="/cart" class="profile-panel__action">Xem giỏ hàng →</RouterLink>
             </section>
 
             <section v-show="activeTab === 'security'" class="profile-panel">
               <h2>Bảo mật</h2>
-              <p class="profile-panel__desc">Thông tin đăng nhập và bảo mật tài khoản.</p>
+              <p class="profile-panel__desc">Đổi mật khẩu đăng nhập và giữ tài khoản an toàn.</p>
 
               <div class="profile-fields">
                 <div class="profile-field">
@@ -227,12 +315,71 @@
                 </div>
               </div>
 
+              <form class="profile-form profile-form--password" @submit.prevent="submitChangePassword">
+                <h3 class="profile-form__title">Đổi mật khẩu</h3>
+                <div v-if="pwdError" class="profile-alert profile-alert--error">{{ pwdError }}</div>
+                <div v-if="pwdSuccess" class="profile-alert profile-alert--success">{{ pwdSuccess }}</div>
+
+                <div class="profile-form__grid">
+                  <label class="profile-form__field">
+                    <span>Mật khẩu hiện tại *</span>
+                    <input
+                      v-model="pwdForm.currentPassword"
+                      type="password"
+                      autocomplete="current-password"
+                      :class="{ 'is-invalid': pwdFieldErrors.currentPassword }"
+                      @input="clearPwdError('currentPassword')"
+                    />
+                    <small v-if="pwdFieldErrors.currentPassword" class="profile-form__error">{{
+                      pwdFieldErrors.currentPassword
+                    }}</small>
+                  </label>
+                  <label class="profile-form__field">
+                    <span>Mật khẩu mới *</span>
+                    <input
+                      v-model="pwdForm.newPassword"
+                      type="password"
+                      autocomplete="new-password"
+                      placeholder="Tối thiểu 8 ký tự, có chữ và số"
+                      :class="{ 'is-invalid': pwdFieldErrors.newPassword }"
+                      @input="clearPwdError('newPassword')"
+                    />
+                    <small v-if="pwdFieldErrors.newPassword" class="profile-form__error">{{
+                      pwdFieldErrors.newPassword
+                    }}</small>
+                  </label>
+                  <label class="profile-form__field">
+                    <span>Nhập lại mật khẩu mới *</span>
+                    <input
+                      v-model="pwdForm.confirmPassword"
+                      type="password"
+                      autocomplete="new-password"
+                      :class="{ 'is-invalid': pwdFieldErrors.confirmPassword }"
+                      @input="clearPwdError('confirmPassword')"
+                    />
+                    <small v-if="pwdFieldErrors.confirmPassword" class="profile-form__error">{{
+                      pwdFieldErrors.confirmPassword
+                    }}</small>
+                  </label>
+                </div>
+
+                <div class="profile-form__actions">
+                  <button type="submit" class="profile-form__save" :disabled="pwdSaving">
+                    {{ pwdSaving ? "Đang lưu..." : "Cập nhật mật khẩu" }}
+                  </button>
+                </div>
+              </form>
+
               <div class="profile-security-tips">
                 <h3>Mẹo bảo mật</h3>
                 <ul>
                   <li>Không chia sẻ mật khẩu với bất kỳ ai</li>
                   <li>Đăng xuất khi dùng máy công cộng</li>
-                  <li>Liên hệ hotline 1900 6750 nếu phát hiện truy cập lạ</li>
+                  <li>Liên hệ hotline 0336 694 988 nếu phát hiện truy cập lạ</li>
+                  <li>
+                    Quên mật khẩu?
+                    <RouterLink to="/forgot-password">Khôi phục bằng OTP email</RouterLink>
+                  </li>
                 </ul>
               </div>
             </section>
@@ -244,17 +391,30 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from "vue";
-import { RouterLink, useRouter } from "vue-router";
+import { computed, onMounted, reactive, ref, watch } from "vue";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
-import ProductImage from "../components/ProductImage.vue";
-import { fetchProfileApi, updateProfileApi, uploadProfileAvatarApi } from "../services/api";
-import { useAppStore } from "../stores/appStore";
-import { normalizeUserRoles, userIsAdmin } from "../utils/roles";
-import { userCanAccessPanel } from "../utils/adminAccess";
+import {
+  changePasswordApi,
+  fetchMyOrderDetailApi,
+  fetchMyOrdersApi,
+  fetchProfileApi,
+  updateProfileApi,
+  uploadProfileAvatarApi,
+} from "../services/api";
+import { useAppStore, useToast } from "../stores/appStore";
+import { firstError, getApiError, normalizePhone, runValidation } from "../utils/validators";
+import {
+  ORDER_STATUS_LABELS,
+  PAYMENT_STATUS_LABELS,
+  SHIPPING_STATUS_LABELS,
+  userCanAccessPanel,
+} from "../utils/adminAccess";
 
+const route = useRoute();
 const router = useRouter();
 const store = useAppStore();
+const toast = useToast();
 const loading = ref(true);
 const saving = ref(false);
 const editing = ref(false);
@@ -263,6 +423,11 @@ const profile = ref({});
 const message = ref("");
 const error = ref("");
 const avatarFile = ref(null);
+const myOrders = ref([]);
+const ordersLoading = ref(false);
+const expandedOrderId = ref(null);
+const orderDetail = ref(null);
+const orderDetailLoading = ref(false);
 
 const form = reactive({
   fullname: "",
@@ -271,17 +436,72 @@ const form = reactive({
   photo: "",
 });
 
+const pwdForm = reactive({
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: "",
+});
+const pwdFieldErrors = reactive({});
+const pwdSaving = ref(false);
+const pwdError = ref("");
+const pwdSuccess = ref("");
+
+const clearPwdError = (key) => {
+  delete pwdFieldErrors[key];
+};
+
+const submitChangePassword = async () => {
+  Object.keys(pwdFieldErrors).forEach((k) => delete pwdFieldErrors[k]);
+  pwdError.value = "";
+  pwdSuccess.value = "";
+
+  const result = runValidation(pwdForm, {
+    currentPassword: ["required"],
+    newPassword: ["required", "password"],
+    confirmPassword: [
+      "required",
+      { type: "match", field: "newPassword", message: "Mật khẩu nhập lại không khớp." },
+    ],
+  });
+
+  if (!result.ok) {
+    Object.assign(pwdFieldErrors, result.errors);
+    pwdError.value = firstError(result.errors);
+    toast.error(pwdError.value);
+    return;
+  }
+
+  pwdSaving.value = true;
+  try {
+    const data = await changePasswordApi({
+      currentPassword: pwdForm.currentPassword,
+      newPassword: pwdForm.newPassword,
+      confirmPassword: pwdForm.confirmPassword,
+    });
+    pwdSuccess.value = data?.message || "Đổi mật khẩu thành công.";
+    toast.success(pwdSuccess.value);
+    pwdForm.currentPassword = "";
+    pwdForm.newPassword = "";
+    pwdForm.confirmPassword = "";
+  } catch (err) {
+    const api = getApiError(err, "Đổi mật khẩu thất bại. Vui lòng thử lại.");
+    Object.assign(pwdFieldErrors, api.errors);
+    pwdError.value = api.message;
+    toast.error(pwdError.value);
+  } finally {
+    pwdSaving.value = false;
+  }
+};
+
 const tabs = [
   { id: "account", label: "Tài khoản", icon: "👤" },
-  { id: "orders", label: "Giỏ hàng", icon: "🛍" },
+  { id: "orders", label: "Đơn hàng", icon: "📦" },
   { id: "security", label: "Bảo mật", icon: "🔒" },
 ];
 
-const cartItems = computed(() => store.state.cartItems);
 const cartCount = computed(() => store.cartCount.value);
 const cartAmount = computed(() => store.cartAmount.value);
 const favoriteCount = computed(() => store.favoriteCount.value);
-const isAdmin = computed(() => userIsAdmin(store.state.user));
 const canAccessPanel = computed(() => userCanAccessPanel(store.state.user));
 
 const displayName = computed(
@@ -299,12 +519,6 @@ const initials = computed(() => {
   return name.slice(0, 2).toUpperCase();
 });
 
-const roleLabels = computed(() => {
-  const roles = normalizeUserRoles(profile.value);
-  const map = { ROLE_ADMIN: "Quản trị viên", ROLE_STAFF: "Nhân viên", ROLE_USER: "Khách hàng" };
-  return roles.map((r) => map[r] || r.replace("ROLE_", ""));
-});
-
 const memberSince = computed(() => {
   const d = profile.value.createDate || profile.value.createdAt;
   if (d) return new Date(d).getFullYear();
@@ -312,6 +526,55 @@ const memberSince = computed(() => {
 });
 
 const formatPrice = (price) => Number(price || 0).toLocaleString("vi-VN");
+const formatOrderDate = (value) => {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("vi-VN");
+};
+const orderStatusLabel = (status) => ORDER_STATUS_LABELS[status] || status || "—";
+const paymentStatusLabel = (status) => PAYMENT_STATUS_LABELS[status] || status || "—";
+const shippingStatusLabel = (status) => SHIPPING_STATUS_LABELS[status] || status || "—";
+const orderStatusClass = (status) => {
+  const map = {
+    PENDING: "profile-order-badge--pending",
+    CONFIRMED: "profile-order-badge--confirmed",
+    SHIPPING: "profile-order-badge--shipping",
+    DELIVERED: "profile-order-badge--delivered",
+    CANCELLED: "profile-order-badge--cancelled",
+  };
+  return map[status] || "profile-order-badge--muted";
+};
+
+const loadMyOrders = async () => {
+  ordersLoading.value = true;
+  try {
+    const data = await fetchMyOrdersApi();
+    myOrders.value = Array.isArray(data) ? data : data?.orders || [];
+  } catch (err) {
+    toast.error(err?.response?.data?.message || err?.message || "Không thể tải đơn hàng.");
+    myOrders.value = [];
+  } finally {
+    ordersLoading.value = false;
+  }
+};
+
+const toggleOrderDetail = async (orderId) => {
+  if (expandedOrderId.value === orderId) {
+    expandedOrderId.value = null;
+    orderDetail.value = null;
+    return;
+  }
+  expandedOrderId.value = orderId;
+  orderDetail.value = null;
+  orderDetailLoading.value = true;
+  try {
+    orderDetail.value = await fetchMyOrderDetailApi(orderId);
+  } catch (err) {
+    toast.error(err?.response?.data?.message || "Không thể tải chi tiết đơn hàng.");
+    expandedOrderId.value = null;
+  } finally {
+    orderDetailLoading.value = false;
+  }
+};
 
 const applyProfile = (data) => {
   profile.value = { ...(store.state.user || {}), ...(data?.profile || data || {}) };
@@ -356,6 +619,37 @@ const onAvatarPick = (event) => {
 };
 
 const saveProfile = async () => {
+  const result = runValidation(
+    {
+      fullname: form.fullname,
+      email: form.email,
+      phone: form.phone,
+      photo: avatarFile.value || (form.photo?.startsWith("blob:") ? null : form.photo),
+    },
+    {
+      fullname: [
+        "required",
+        { type: "min", min: 2, message: "Họ tên tối thiểu 2 ký tự." },
+        { type: "max", max: 100 },
+      ],
+      email: ["required", "email", { type: "max", max: 100 }],
+      phone: ["required", "phone"],
+      photo: ["fileImage"],
+    }
+  );
+
+  if (!result.ok) {
+    error.value = firstError(result.errors);
+    toast.error(error.value);
+    return;
+  }
+
+  if (form.photo && !form.photo.startsWith("blob:") && !form.photo.startsWith("http")) {
+    error.value = "Link ảnh phải bắt đầu bằng http:// hoặc https://";
+    toast.error(error.value);
+    return;
+  }
+
   saving.value = true;
   message.value = "";
   error.value = "";
@@ -370,9 +664,9 @@ const saveProfile = async () => {
     }
 
     const payload = {
-      fullname: form.fullname.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim(),
+      fullname: result.values.fullname,
+      email: result.values.email,
+      phone: normalizePhone(form.phone),
     };
 
     if (form.photo && !form.photo.startsWith("blob:")) {
@@ -384,10 +678,12 @@ const saveProfile = async () => {
     syncStore();
     editing.value = false;
     message.value = data?.message || "Cập nhật hồ sơ thành công.";
+    toast.success(message.value);
   } catch (err) {
     console.warn("Update profile failed", err);
-    error.value =
-      err?.response?.data?.message || err?.message || "Không thể cập nhật hồ sơ. Vui lòng thử lại.";
+    const api = getApiError(err, "Không thể cập nhật hồ sơ. Vui lòng thử lại.");
+    error.value = api.message;
+    toast.error(error.value);
   } finally {
     saving.value = false;
   }
@@ -404,6 +700,10 @@ onMounted(async () => {
     return;
   }
 
+  if (route.query.tab === "orders") {
+    activeTab.value = "orders";
+  }
+
   try {
     const data = await fetchProfileApi();
     applyProfile(data);
@@ -413,6 +713,16 @@ onMounted(async () => {
     profile.value = store.state.user || {};
   } finally {
     loading.value = false;
+  }
+
+  if (activeTab.value === "orders") {
+    loadMyOrders();
+  }
+});
+
+watch(activeTab, (tab) => {
+  if (tab === "orders") {
+    loadMyOrders();
   }
 });
 </script>

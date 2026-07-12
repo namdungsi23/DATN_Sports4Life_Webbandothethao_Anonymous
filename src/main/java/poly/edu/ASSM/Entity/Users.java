@@ -64,10 +64,6 @@ public class Users {
 
     @OneToMany
     @JoinColumn(name = "UserId")
-    private Set<AuditLogs> auditLogs = new LinkedHashSet<>();
-
-    @OneToMany
-    @JoinColumn(name = "UserId")
     private Set<Carts> carts = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "users")
@@ -77,7 +73,7 @@ public class Users {
     private Set<Payments> payments = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "users")
-    private Set<Reviews> reviews = new LinkedHashSet<>();
+    private Set<Comment> comments = new LinkedHashSet<>();
 
     @OneToMany
     @JoinColumn(name = "UserId")

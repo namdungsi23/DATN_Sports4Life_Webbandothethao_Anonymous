@@ -24,15 +24,18 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
 import { apiFetch } from "../../services/http.js";
 import { useAppStore } from "../../stores/appStore";
+import { useAdminNotify } from "../../utils/adminNotify";
 import { ADMIN_PERMS, userHasPermission } from "../../utils/adminAccess";
 
 const POLL_MS = 20_000;
 
 const store = useAppStore();
+const notify = useAdminNotify();
 const pendingCount = ref(0);
 const recentPending = ref([]);
 const dismissed = ref(false);
 const lastSeenCount = ref(0);
+const hasLoadedOnce = ref(false);
 let pollTimer = null;
 
 const visible = computed(() => {
@@ -50,6 +53,7 @@ async function loadAlerts() {
   try {
     const data = await apiFetch("/api/admin/orders/alerts");
     const count = Number(data.pendingCount || 0);
+    const prevCount = pendingCount.value;
     recentPending.value = data.recentPending || [];
 
     if (count > lastSeenCount.value && dismissed.value) {
@@ -60,7 +64,20 @@ async function loadAlerts() {
       lastSeenCount.value = 0;
     }
 
+    if (hasLoadedOnce.value && count > prevCount) {
+      const delta = count - prevCount;
+      notify.warning(
+        delta === 1
+          ? "Có 1 đơn hàng mới đang chờ xác nhận."
+          : `Có ${delta} đơn hàng mới đang chờ xác nhận.`
+      );
+    }
+
     pendingCount.value = count;
+    if (!hasLoadedOnce.value) {
+      lastSeenCount.value = count;
+      hasLoadedOnce.value = true;
+    }
   } catch {
     pendingCount.value = 0;
     recentPending.value = [];

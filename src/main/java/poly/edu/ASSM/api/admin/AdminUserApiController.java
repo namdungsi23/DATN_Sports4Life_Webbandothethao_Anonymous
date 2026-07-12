@@ -23,6 +23,7 @@ import poly.edu.ASSM.Repository.RoleRepository;
 import poly.edu.ASSM.Repository.UsersRepository;
 import poly.edu.ASSM.Services.core.AccountService;
 import poly.edu.ASSM.Services.core.AdminAccessService;
+import poly.edu.ASSM.Services.core.RankService;
 import poly.edu.ASSM.security.SpringRoleNames;
 
 @RestController
@@ -38,6 +39,9 @@ public class AdminUserApiController {
     private UsersRepository usersRepository;
     @Autowired
     private AdminAccessService adminAccessService;
+
+    @Autowired
+    private RankService rankService;
 
     private List<String> loadAuthorities() {
         return roleRepo.findAll().stream()
@@ -60,6 +64,14 @@ public class AdminUserApiController {
         row.put("activated", account.getIsActive());
         row.put("admin", roleName.contains("ADMIN"));
         row.put("roleNames", adminAccessService.roleNamesForAccount(account));
+        row.put("totalPoint", profile != null && profile.getTotalPoint() != null ? profile.getTotalPoint() : 0);
+        if (profile != null && profile.getRank() != null) {
+            row.put("rankId", profile.getRank().getId());
+            row.put("rankName", profile.getRank().getRankName());
+        } else {
+            row.put("rankId", null);
+            row.put("rankName", null);
+        }
         return row;
     }
 
@@ -105,8 +117,9 @@ public class AdminUserApiController {
     public record UserSaveBody(String username, String fullname, String email, String photo, Boolean activated) {
     }
 
-    @PostMapping("/save")
-    public ResponseEntity<?> save(@RequestBody UserSaveBody body) {
+	@PostMapping("/save")
+	@PreAuthorize("@adminAuth.isAdmin()")
+	public ResponseEntity<?> save(@RequestBody UserSaveBody body) {
         if (body == null || body.username() == null || body.username().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "Thiếu username"));
         }
@@ -121,5 +134,25 @@ public class AdminUserApiController {
                 body.photo(),
                 body.activated() != null ? body.activated() : true);
         return ResponseEntity.ok(Map.of("ok", true, "message", "Cập nhật thành công"));
+    }
+
+    public record MemberPointsBody(Integer totalPoint) {
+    }
+
+    @PostMapping("/{accountId}/points")
+    @PreAuthorize("@adminAuth.isAdmin()")
+    public ResponseEntity<?> setPoints(@PathVariable Long accountId, @RequestBody MemberPointsBody body) {
+        if (body == null || body.totalPoint() == null) {
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "Thiếu totalPoint"));
+        }
+        rankService.setMemberPoints(accountId, body.totalPoint());
+        Users user = usersRepository.findByAccount_Id(accountId).orElse(null);
+        Map<String, Object> res = new HashMap<>();
+        res.put("ok", true);
+        res.put("message", "Đã cập nhật điểm thành viên.");
+        if (user != null && user.getAccount() != null) {
+            res.put("user", toUserRow(user.getAccount()));
+        }
+        return ResponseEntity.ok(res);
     }
 }

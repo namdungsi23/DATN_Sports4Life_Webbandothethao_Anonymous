@@ -27,6 +27,7 @@ const state = reactive({
   accessToken: sessionStorage.getItem(STORAGE_KEYS.accessToken) || null,
   favorites: [],
   favoritesLoading: false,
+  toasts: [],
 });
 
 watch(
@@ -87,40 +88,117 @@ const normalizeQty = (qty) => {
   return Math.floor(parsed);
 };
 
+const resolveStock = (product) => {
+  const raw = product?.stock ?? product?.quantity ?? product?.availableStock;
+  if (raw == null || raw === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : null;
+};
+
+/**
+ * @returns {{ success: boolean, reason?: string, added?: number, stock?: number }}
+ */
 const addToCart = (product, quantity = 1) => {
-  if (!product?.id) return;
-  const existing = state.cartItems.find((it) => it.productId === product.id);
-  if (existing) {
-    existing.quantity += normalizeQty(quantity);
-    return;
+  if (!product?.id) return { success: false, reason: "invalid" };
+
+  const stock = resolveStock(product);
+  const requested = normalizeQty(quantity);
+  const variantId = product.variantId ?? null;
+
+  if (stock != null && stock <= 0) {
+    return { success: false, reason: "out_of_stock", stock: 0 };
   }
+
+  const existing = state.cartItems.find(
+    (it) =>
+      it.productId === product.id &&
+      (it.variantId ?? null) === variantId
+  );
+  const currentQty = existing ? existing.quantity : 0;
+  let target = currentQty + requested;
+
+  if (stock != null && target > stock) {
+    target = stock;
+  }
+
+  const added = target - currentQty;
+  if (added <= 0) {
+    return { success: false, reason: "stock_limit", stock, added: 0 };
+  }
+
+  if (existing) {
+    existing.quantity = target;
+    if (stock != null) existing.stock = stock;
+    existing.price = Number(product.price || existing.price || 0);
+    existing.size = product.size || existing.size || "";
+    existing.color = product.color || existing.color || "";
+    return { success: true, added, stock };
+  }
+
   state.cartItems.push({
     productId: product.id,
+    variantId,
     name: product.name || "Sản phẩm",
     price: Number(product.price || 0),
-    quantity: normalizeQty(quantity),
+    quantity: target,
+    stock: stock ?? undefined,
     image: resolveProductImage(product),
+    size: product.size || "",
+    color: product.color || "",
   });
+  return { success: true, added, stock };
 };
 
-const removeFromCart = (productId) => {
-  state.cartItems = state.cartItems.filter((item) => item.productId !== productId);
+const removeFromCart = (productId, variantId = null) => {
+  state.cartItems = state.cartItems.filter(
+    (item) =>
+      !(
+        item.productId === productId &&
+        (item.variantId ?? null) === (variantId ?? null)
+      )
+  );
 };
 
-const updateCartQuantity = (productId, quantity) => {
-  const item = state.cartItems.find((it) => it.productId === productId);
-  if (!item) return;
-  item.quantity = normalizeQty(quantity);
+/**
+ * @returns {{ success: boolean, reason?: string, quantity: number, stock?: number, clamped?: boolean }}
+ */
+const updateCartQuantity = (productId, quantity, variantId = null) => {
+  const item = state.cartItems.find(
+    (it) =>
+      it.productId === productId &&
+      (it.variantId ?? null) === (variantId ?? null)
+  );
+  if (!item) return { success: false, reason: "not_found", quantity: 0 };
+
+  const stock = resolveStock(item);
+  let target = normalizeQty(quantity);
+  let clamped = false;
+
+  if (stock != null && target > stock) {
+    target = Math.max(1, stock);
+    clamped = true;
+  }
+
+  item.quantity = target;
+  return { success: true, quantity: target, stock, clamped };
 };
 
 const clearCart = () => {
   state.cartItems = [];
 };
 
-const isLoggedIn = () => Boolean(state.user);
+const isLoggedIn = () => Boolean(state.user && state.accessToken);
 
-const isFavorite = (productId) =>
-  Boolean(state.user) && state.favorites.some((item) => item.id === productId);
+const toProductId = (value) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+};
+
+const isFavorite = (productId) => {
+  const id = toProductId(productId);
+  if (id == null || !state.user) return false;
+  return state.favorites.some((item) => toProductId(item.id) === id);
+};
 
 const loadFavorites = async () => {
   if (!state.user) {
@@ -141,29 +219,31 @@ const loadFavorites = async () => {
 };
 
 /**
- * @returns {Promise<{ success: boolean, requiresLogin?: boolean, added?: boolean }>}
+ * @returns {Promise<{ success: boolean, requiresLogin?: boolean, added?: boolean, message?: string }>}
  */
 const toggleFavorite = async (product) => {
   if (!state.user) {
-    return { success: false, requiresLogin: true };
-  }
-  if (!product?.id) {
-    return { success: false };
+    return { success: false, requiresLogin: true, message: "Vui lòng đăng nhập để yêu thích sản phẩm." };
   }
 
-  const index = state.favorites.findIndex((item) => item.id === product.id);
+  const productId = toProductId(product?.id);
+  if (productId == null) {
+    return { success: false, message: "Không xác định được sản phẩm." };
+  }
+
+  const index = state.favorites.findIndex((item) => toProductId(item.id) === productId);
   const removing = index >= 0;
 
   try {
     if (removing) {
-      await removeWishlistApi(product.id);
+      await removeWishlistApi(productId);
       state.favorites.splice(index, 1);
-      return { success: true, added: false };
+      return { success: true, added: false, message: "Đã bỏ khỏi yêu thích." };
     }
 
-    await addWishlistApi(product.id);
+    await addWishlistApi(productId);
     state.favorites.unshift({
-      id: product.id,
+      id: productId,
       name: product.name || "Sản phẩm",
       price: Number(product.price || product.minPrice || 0),
       image: resolveProductImage(product),
@@ -172,19 +252,33 @@ const toggleFavorite = async (product) => {
       inStock: product.inStock !== false,
       brand: product.brand || "",
     });
-    return { success: true, added: true };
+    return { success: true, added: true, message: "Đã thêm vào yêu thích." };
   } catch (err) {
     console.warn("Toggle favorite failed", err);
-    return { success: false };
+    const apiMsg =
+      err?.response?.data?.message ||
+      err?.response?.data?.error ||
+      err?.message;
+    const status = err?.response?.status;
+    let message = "Không thể cập nhật yêu thích. Vui lòng thử lại.";
+    if (status === 401 || status === 403) {
+      message = "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.";
+    } else if (status === 404) {
+      message = apiMsg ? String(apiMsg) : "Không tìm thấy sản phẩm hoặc hồ sơ người dùng.";
+    } else if (apiMsg) {
+      message = String(apiMsg).slice(0, 200);
+    }
+    return { success: false, message, requiresLogin: status === 401 };
   }
 };
 
 const removeFavorite = async (productId) => {
-  if (!state.user || !productId) return false;
+  const id = toProductId(productId);
+  if (!state.user || id == null) return false;
 
   try {
-    await removeWishlistApi(productId);
-    state.favorites = state.favorites.filter((item) => item.id !== productId);
+    await removeWishlistApi(id);
+    state.favorites = state.favorites.filter((item) => toProductId(item.id) !== id);
     return true;
   } catch (err) {
     console.warn("Remove favorite failed", err);
@@ -278,6 +372,27 @@ const cartAmount = computed(() =>
 
 const favoriteCount = computed(() => (state.user ? state.favorites.length : 0));
 
+let toastSeq = 0;
+const removeToast = (id) => {
+  state.toasts = state.toasts.filter((t) => t.id !== id);
+};
+
+const pushToast = (message, type = "info", duration = 3500) => {
+  const id = ++toastSeq;
+  state.toasts.push({ id, message: String(message || ""), type });
+  if (duration > 0) {
+    window.setTimeout(() => removeToast(id), duration);
+  }
+  return id;
+};
+
+const toast = {
+  success: (message, duration) => pushToast(message, "success", duration),
+  error: (message, duration) => pushToast(message, "error", duration ?? 4500),
+  warning: (message, duration) => pushToast(message, "warning", duration),
+  info: (message, duration) => pushToast(message, "info", duration),
+};
+
 export const useAppStore = () => ({
   state,
   cartCount,
@@ -297,4 +412,9 @@ export const useAppStore = () => ({
   updateUserProfile,
   syncPanelAccess,
   getRefreshToken,
+  pushToast,
+  removeToast,
+  toast,
 });
+
+export const useToast = () => toast;

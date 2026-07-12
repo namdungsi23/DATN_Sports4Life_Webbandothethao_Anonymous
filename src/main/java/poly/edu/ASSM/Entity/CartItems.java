@@ -5,8 +5,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
-import java.time.Instant;
-
 @Getter
 @Setter
 @Entity
@@ -17,9 +15,9 @@ public class CartItems {
     @Column(name = "Id", nullable = false)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "ProductId", nullable = false)
-    private Products product;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ProductVariantId")
+    private ProductVariants productVariant;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "CartId", nullable = false)
@@ -28,7 +26,4 @@ public class CartItems {
     @ColumnDefault("1")
     @Column(name = "Quantity", nullable = false)
     private Integer quantity;
-
-
-
 }

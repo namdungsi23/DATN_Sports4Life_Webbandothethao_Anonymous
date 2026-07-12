@@ -1,5 +1,6 @@
 package poly.edu.ASSM.Services.core;
 
+import java.util.List;
 import java.util.Map;
 
 public interface PublicProductService {
@@ -16,4 +17,6 @@ public interface PublicProductService {
     Map<String, Object> getProductDetail(Long id);
 
     Map<String, Object> getBrands();
+
+    List<Map<String, String>> getCategories();
 }

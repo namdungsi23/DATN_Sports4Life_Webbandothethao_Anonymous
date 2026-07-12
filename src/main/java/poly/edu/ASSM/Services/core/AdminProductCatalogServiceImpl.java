@@ -144,11 +144,46 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
         if (request.getSku() == null || request.getSku().isBlank()) {
             throw new InvalidInputException("SKU không được để trống.");
         }
+        if (request.getPrice() == null || request.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidInputException("Giá biến thể phải lớn hơn 0.");
+        }
+        if (request.getQuantity() != null && request.getQuantity() < 0) {
+            throw new InvalidInputException("Số lượng không được âm.");
+        }
+
+        String size = request.getSize() != null ? request.getSize().trim() : "";
+        String color = request.getColor() != null ? request.getColor().trim() : "";
+        long variantCount = variantRepository.countByProduct_Id(product.getId());
+        // Thêm biến thể mới khi đã có ≥1, hoặc sửa khi SP đã có ≥2 → bắt buộc màu + size thật
+        boolean requireAttrs =
+                (request.getId() == null && variantCount >= 1) || variantCount >= 2;
+        if (requireAttrs) {
+            if (size.isBlank() || isPlaceholderAttr(size)) {
+                throw new InvalidInputException("Kích cỡ không được để trống khi có nhiều biến thể.");
+            }
+            if (color.isBlank() || isPlaceholderAttr(color)) {
+                throw new InvalidInputException("Màu sắc không được để trống khi có nhiều biến thể.");
+            }
+        }
+
+        if (!size.isBlank() && !color.isBlank()) {
+            for (ProductVariants existing : variantRepository
+                    .findByProduct_IdOrderByDisplayOrderAscIdAsc(product.getId())) {
+                if (request.getId() != null && request.getId().equals(existing.getId())) {
+                    continue;
+                }
+                String es = existing.getSize() != null ? existing.getSize().trim() : "";
+                String ec = existing.getColor() != null ? existing.getColor().trim() : "";
+                if (size.equalsIgnoreCase(es) && color.equalsIgnoreCase(ec)) {
+                    throw new InvalidInputException("Đã tồn tại biến thể với màu và size này.");
+                }
+            }
+        }
 
         variant.setSku(request.getSku().trim());
-        variant.setSize(request.getSize());
-        variant.setColor(request.getColor());
-        variant.setPrice(request.getPrice() != null ? request.getPrice() : BigDecimal.ZERO);
+        variant.setSize(size.isBlank() ? null : size);
+        variant.setColor(color.isBlank() ? null : color);
+        variant.setPrice(request.getPrice());
         variant.setQuantity(request.getQuantity() != null ? request.getQuantity().shortValue() : (short) 0);
         variant.setStatus(request.getStatus() != null ? request.getStatus() : Boolean.TRUE);
         variant.setUpdatedAt(Instant.now());
@@ -427,6 +462,14 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
         variant.setCreatedAt(Instant.now());
         variant.setUpdatedAt(null);
         return variantRepository.save(variant);
+    }
+
+    private static boolean isPlaceholderAttr(String value) {
+        if (value == null) {
+            return true;
+        }
+        String v = value.trim().toLowerCase();
+        return v.isEmpty() || "default".equals(v) || "mặc định".equals(v);
     }
 
     private void clearDefaultVariant(Long productId) {

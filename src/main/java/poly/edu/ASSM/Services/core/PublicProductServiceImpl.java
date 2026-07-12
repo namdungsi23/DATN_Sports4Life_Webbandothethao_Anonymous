@@ -44,22 +44,32 @@ public class PublicProductServiceImpl implements PublicProductService {
             String sort,
             String dir) {
 
-        Sort.Direction direction = "desc".equalsIgnoreCase(dir) ? Sort.Direction.DESC : Sort.Direction.ASC;
-        String sortProp = resolveSortProperty(sort);
-        Pageable pageable = PageRequest.of(page, 10, Sort.by(direction, sortProp));
+        String safeKeyword = normalizeKeyword(keyword);
+        Double safeMin = normalizePrice(min, "Giá từ");
+        Double safeMax = normalizePrice(max, "Giá đến");
+        if (safeMin != null && safeMax != null && safeMin > safeMax) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Giá từ không được lớn hơn giá đến");
+        }
 
-        Page<Products> productPage = productRepository.filterProducts(cat, keyword, min, max, pageable);
+        int safePage = Math.max(page, 0);
+        String sortKey = resolveSortKey(sort);
+        String dirKey = "desc".equalsIgnoreCase(dir) ? "desc" : "asc";
+
+        Page<Products> productPage;
+        if ("price".equals(sortKey)) {
+            Pageable unsorted = PageRequest.of(safePage, 10);
+            productPage = "desc".equals(dirKey)
+                    ? productRepository.filterProductsOrderByMinPriceDesc(cat, safeKeyword, safeMin, safeMax, unsorted)
+                    : productRepository.filterProductsOrderByMinPriceAsc(cat, safeKeyword, safeMin, safeMax, unsorted);
+        } else {
+            Sort.Direction direction = "desc".equals(dirKey) ? Sort.Direction.DESC : Sort.Direction.ASC;
+            Pageable pageable = PageRequest.of(safePage, 10, Sort.by(direction, resolveSortProperty(sortKey)));
+            productPage = productRepository.filterProducts(cat, safeKeyword, safeMin, safeMax, pageable);
+        }
 
         List<Map<String, Object>> content = new ArrayList<>();
         for (Products entity : productPage.getContent()) {
             content.add(toFePayload(productMapper.toResponse(entity)));
-        }
-
-        List<Map<String, String>> categories = new ArrayList<>();
-        for (Category c : categoryService.findAll()) {
-            categories.add(Map.of(
-                    "id", c.getId() != null ? c.getId() : "",
-                    "name", c.getName() != null ? c.getName() : ""));
         }
 
         Map<String, Object> pageBody = new HashMap<>();
@@ -73,18 +83,29 @@ public class PublicProductServiceImpl implements PublicProductService {
 
         Map<String, Object> filters = new HashMap<>();
         filters.put("cat", cat != null ? cat : "");
-        filters.put("keyword", keyword != null ? keyword : "");
-        filters.put("min", min != null ? min : 0);
-        filters.put("max", max != null ? max : 0);
-        filters.put("sort", sortProp);
-        filters.put("dir", dir != null ? dir : "asc");
-        filters.put("page", page);
+        filters.put("keyword", safeKeyword != null ? safeKeyword : "");
+        filters.put("min", safeMin != null ? safeMin : 0);
+        filters.put("max", safeMax != null ? safeMax : 0);
+        filters.put("sort", sortKey);
+        filters.put("dir", dirKey);
+        filters.put("page", safePage);
 
         Map<String, Object> body = new HashMap<>();
         body.put("products", pageBody);
-        body.put("categories", categories);
+        body.put("categories", getCategories());
         body.put("filters", filters);
         return body;
+    }
+
+    @Override
+    public List<Map<String, String>> getCategories() {
+        List<Map<String, String>> categories = new ArrayList<>();
+        for (Category c : categoryService.findAll()) {
+            categories.add(Map.of(
+                    "id", c.getId() != null ? c.getId().trim() : "",
+                    "name", c.getName() != null ? c.getName() : ""));
+        }
+        return categories;
     }
 
     @Override
@@ -213,16 +234,49 @@ public class PublicProductServiceImpl implements PublicProductService {
         return firstWord.isBlank() ? null : firstWord;
     }
 
-    private static String resolveSortProperty(String sort) {
+    private static String normalizeKeyword(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return null;
+        }
+        String trimmed = keyword.trim();
+        if (trimmed.length() > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Từ khóa tìm kiếm tối đa 100 ký tự");
+        }
+        return trimmed;
+    }
+
+    private static Double normalizePrice(Double value, String label) {
+        if (value == null) {
+            return null;
+        }
+        if (value < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, label + " không được âm");
+        }
+        if (value > 100_000_000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, label + " vượt quá giới hạn cho phép");
+        }
+        return value;
+    }
+
+    private static String resolveSortKey(String sort) {
         if (sort == null || sort.isBlank()) {
-            return "createdAt";
+            return "createDate";
         }
         return switch (sort.trim().toLowerCase()) {
             case "id" -> "id";
             case "name" -> "name";
-            case "price" -> "createdAt";
+            case "price" -> "price";
             case "available", "status" -> "status";
-            case "createdate", "create_date" -> "createdAt";
+            case "createdate", "create_date", "createdat", "created_at" -> "createDate";
+            default -> "createDate";
+        };
+    }
+
+    private static String resolveSortProperty(String sortKey) {
+        return switch (sortKey) {
+            case "id" -> "id";
+            case "name" -> "name";
+            case "status" -> "status";
             default -> "createdAt";
         };
     }
@@ -262,6 +316,7 @@ public class PublicProductServiceImpl implements PublicProductService {
         m.put("brand", resolveBrand(p.getBrand(), p.getName()));
         m.put("minPrice", p.getMinPrice());
         m.put("maxPrice", p.getMaxPrice());
+        m.put("stock", totalQty);
         return m;
     }
 
@@ -272,42 +327,82 @@ public class PublicProductServiceImpl implements PublicProductService {
         if (p.getImages() != null) {
             for (ProductImageResponse img : p.getImages()) {
                 if (img.getImageUrl() != null && !img.getImageUrl().isBlank()) {
-                    gallery.add(img.getImageUrl());
+                    addUnique(gallery, img.getImageUrl().trim());
                 }
             }
         }
-        if (gallery.isEmpty() && m.get("image") != null) {
-            gallery.add(String.valueOf(m.get("image")));
-        }
-        m.put("gallery", gallery);
 
         List<Map<String, Object>> variants = new ArrayList<>();
         if (p.getVariants() != null) {
             for (ProductVariantResponse v : p.getVariants()) {
                 Map<String, Object> variant = new HashMap<>();
                 variant.put("id", v.getId());
+                variant.put("sku", v.getSku());
                 variant.put("size", v.getSize());
                 variant.put("color", v.getColor());
                 variant.put("price", v.getPrice() != null ? v.getPrice().doubleValue() : m.get("price"));
+                variant.put("isDefault", Boolean.TRUE.equals(v.getIsDefault()));
                 variant.put("inStock", Boolean.TRUE.equals(v.getInStock()));
+                variant.put("stock", v.getQuantity() != null ? v.getQuantity() : 0);
+
+                // Tạm thời: lấy ảnh DB của biến thể; không có thì dùng 1 ảnh Cloudinary tạm
+                List<String> imageUrls = resolveVariantImageUrlsTemp(v, p.getCategoryId(), p.getId());
+                variant.put("images", imageUrls);
+                variant.put("image", imageUrls.isEmpty() ? null : imageUrls.get(0));
                 variants.add(variant);
+
+                for (String url : imageUrls) {
+                    addUnique(gallery, url);
+                }
             }
         }
-        m.put("variants", variants);
 
-        double price = m.get("price") instanceof Number n ? n.doubleValue() : 0;
-        m.put("originalPrice", Math.round(price * 1.25));
-        m.put("discountPercent", 20);
+        if (gallery.isEmpty() && m.get("image") != null) {
+            gallery.add(String.valueOf(m.get("image")));
+        }
+
+        m.put("gallery", gallery);
+        m.put("images", gallery);
+        m.put("variants", variants);
         return m;
     }
 
-    /** URL Cloudinary theo pattern dữ liệu mẫu: c001_1.jpg, c002_3.jpg, ... */
+    private static void addUnique(List<String> list, String url) {
+        if (url == null || url.isBlank()) {
+            return;
+        }
+        if (!list.contains(url)) {
+            list.add(url);
+        }
+    }
+
+    /** Tạm thời: ảnh DB của biến thể, hoặc 1 URL Cloudinary fallback. */
+    private static List<String> resolveVariantImageUrlsTemp(
+            ProductVariantResponse variant,
+            String categoryId,
+            Long productId) {
+        List<String> urls = new ArrayList<>();
+        if (variant != null && variant.getImages() != null) {
+            for (ProductImageResponse img : variant.getImages()) {
+                if (img != null && img.getImageUrl() != null && !img.getImageUrl().isBlank()) {
+                    addUnique(urls, img.getImageUrl().trim());
+                }
+            }
+        }
+        if (!urls.isEmpty()) {
+            return urls;
+        }
+        String fallback = fallbackImageUrl(categoryId, productId);
+        return fallback != null ? List.of(fallback) : List.of();
+    }
+
+    /** URL Cloudinary tạm theo pattern: c001_1.jpg, c002_3.jpg, ... */
     private static String fallbackImageUrl(String categoryId, Long productId) {
         if (categoryId == null || categoryId.isBlank() || productId == null) {
             return null;
         }
         int seq = (int) ((productId - 1) % 10 + 1);
         return "https://res.cloudinary.com/pnam233/image/upload/product/"
-                + categoryId.toLowerCase() + "_" + seq + ".jpg";
+                + categoryId.toLowerCase().trim() + "_" + seq + ".jpg";
     }
 }

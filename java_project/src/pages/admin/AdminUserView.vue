@@ -58,6 +58,29 @@
                   <label class="form-label"><strong>Ảnh đại diện (URL)</strong></label>
                   <input v-model="form.photo" type="text" class="form-control" />
                 </div>
+                <div v-if="isEditing" class="mb-3">
+                  <label class="form-label"><strong>Hạng / Điểm</strong></label>
+                  <div class="input-group">
+                    <span class="input-group-text">{{ form.rankName || "—" }}</span>
+                    <input
+                      v-model.number="form.totalPoint"
+                      type="number"
+                      class="form-control"
+                      min="0"
+                      :readonly="!canWrite"
+                    />
+                    <button
+                      v-if="canWrite"
+                      type="button"
+                      class="btn btn-outline-primary"
+                      :disabled="pointsSaving"
+                      @click="savePoints"
+                    >
+                      {{ pointsSaving ? "..." : "Cập nhật điểm" }}
+                    </button>
+                  </div>
+                  <small class="text-muted">Đổi điểm sẽ tự đồng bộ hạng theo MinPoint.</small>
+                </div>
                 <div class="mb-3">
                   <label class="form-label d-block"><strong>Vai trò</strong></label>
                   <div v-for="role in roleOptions" :key="role" class="form-check">
@@ -92,6 +115,8 @@
                     <th>Username</th>
                     <th>Họ tên</th>
                     <th>Email</th>
+                    <th>Hạng</th>
+                    <th>Điểm</th>
                     <th>Vai trò</th>
                     <th>Trạng thái</th>
                     <th class="text-center">Hành động</th>
@@ -102,6 +127,11 @@
                     <td>{{ u.username }}</td>
                     <td>{{ u.fullname }}</td>
                     <td>{{ u.email }}</td>
+                    <td>
+                      <span v-if="u.rankName" class="badge text-bg-light border">{{ u.rankName }}</span>
+                      <span v-else class="text-muted">—</span>
+                    </td>
+                    <td>{{ u.totalPoint ?? 0 }}</td>
                     <td>
                       <template v-if="u.roleNames?.length">
                         <span
@@ -183,8 +213,12 @@ const form = reactive({
   photo: "",
   activated: true,
   roles: [],
+  accountId: null,
+  rankName: "",
+  totalPoint: 0,
 });
 const editingUsername = ref(null);
+const pointsSaving = ref(false);
 
 const isEditing = computed(() => editingUsername.value != null && editingUsername.value !== "");
 
@@ -213,6 +247,9 @@ function clearForm() {
   form.photo = "";
   form.activated = true;
   form.roles = [];
+  form.accountId = null;
+  form.rankName = "";
+  form.totalPoint = 0;
 }
 
 async function load(page = 0) {
@@ -242,21 +279,83 @@ function loadEdit(u) {
   form.photo = u.photo || "";
   form.activated = !!u.activated;
   form.roles = Array.isArray(u.roleNames) ? [...u.roleNames] : [];
+  form.accountId = u.id ?? null;
+  form.rankName = u.rankName || "";
+  form.totalPoint = u.totalPoint ?? 0;
+}
+
+async function savePoints() {
+  if (!form.accountId) {
+    err.value = "Không xác định được tài khoản.";
+    return;
+  }
+  pointsSaving.value = true;
+  err.value = "";
+  okMsg.value = "";
+  try {
+    const res = await apiFetch(`/api/admin/users/${form.accountId}/points`, {
+      method: "POST",
+      body: JSON.stringify({ totalPoint: Number(form.totalPoint) || 0 }),
+    });
+    okMsg.value = res.message || "Đã cập nhật điểm.";
+    if (res.user) {
+      form.rankName = res.user.rankName || "";
+      form.totalPoint = res.user.totalPoint ?? 0;
+    }
+    await load(pages.number);
+  } catch (e) {
+    err.value = e?.message || "Cập nhật điểm thất bại.";
+  } finally {
+    pointsSaving.value = false;
+  }
 }
 
 async function saveUser() {
   err.value = "";
   okMsg.value = "";
   const creating = editingUsername.value == null;
+  const username = String(form.username || "").trim();
+  const fullname = String(form.fullname || "").trim();
+  const email = String(form.email || "").trim();
+
+  if (!username || username.length < 3) {
+    err.value = "Username tối thiểu 3 ký tự.";
+    return;
+  }
+  if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
+    err.value = "Username chỉ gồm chữ, số, dấu . _ -";
+    return;
+  }
+  if (!fullname || fullname.length < 2) {
+    err.value = "Họ tên không được để trống (tối thiểu 2 ký tự).";
+    return;
+  }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    err.value = "Email không hợp lệ.";
+    return;
+  }
+  if (creating && (!form.password || String(form.password).trim().length < 6)) {
+    err.value = "Mật khẩu tối thiểu 6 ký tự khi tạo tài khoản.";
+    return;
+  }
+  if (!creating && form.password?.trim() && String(form.password).trim().length < 6) {
+    err.value = "Mật khẩu mới tối thiểu 6 ký tự.";
+    return;
+  }
+  if (!Array.isArray(form.roles) || !form.roles.length) {
+    err.value = "Vui lòng chọn ít nhất một vai trò.";
+    return;
+  }
+
   const payload = {
-    username: form.username.trim(),
-    fullname: form.fullname,
-    email: form.email,
+    username,
+    fullname,
+    email,
     photo: form.photo,
     activated: form.activated,
     roles: form.roles,
   };
-  if (creating && form.password?.trim()) {
+  if (form.password?.trim()) {
     payload.password = form.password.trim();
   }
   try {
@@ -266,7 +365,7 @@ async function saveUser() {
     });
     okMsg.value = res.message || "Đã lưu";
     if (creating) {
-      editingUsername.value = form.username.trim();
+      editingUsername.value = username;
     }
     await load(pages.number);
   } catch (e) {

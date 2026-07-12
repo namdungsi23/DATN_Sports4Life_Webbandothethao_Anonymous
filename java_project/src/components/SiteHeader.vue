@@ -7,15 +7,18 @@
         <form class="header-search" @submit.prevent="onSearch">
           <select v-model="searchCategory" class="header-search__category" aria-label="Danh mục">
             <option value="">Tất cả</option>
-            <option value="nam">Giày nam</option>
-            <option value="nu">Giày nữ</option>
-            <option value="tre-em">Trẻ em</option>
+            <option v-for="cat in categories" :key="cat.id || cat.name" :value="cat.name">
+              {{ cat.name }}
+            </option>
           </select>
           <input
             v-model="searchKeyword"
             type="search"
             class="header-search__input"
+            :class="{ 'is-invalid': searchError }"
+            :maxlength="KEYWORD_MAX"
             placeholder="Tìm sản phẩm bạn mong muốn"
+            @input="searchError = ''"
           />
           <button type="submit" class="header-search__btn" aria-label="Tìm kiếm">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -122,7 +125,7 @@
           <svg class="header-hotline__svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z" stroke-linejoin="round" />
           </svg>
-          Hotline: <strong>1900 6750</strong>
+          Hotline: <strong>0336 694 988</strong>
         </div>
       </div>
     </nav>
@@ -130,8 +133,11 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
+import { fetchCategoriesApi } from "../services/api";
+import { useToast } from "../stores/appStore";
+import { KEYWORD_MAX, validateProductFilters } from "../utils/productFilter";
 
 const props = defineProps({
   user: { type: Object, default: null },
@@ -142,8 +148,11 @@ const props = defineProps({
 defineEmits(["logout"]);
 
 const router = useRouter();
+const toast = useToast();
 const searchKeyword = ref("");
 const searchCategory = ref("");
+const categories = ref([]);
+const searchError = ref("");
 
 const userDisplayName = computed(
   () => props.user?.fullname || props.user?.fullName || props.user?.username || "Tài khoản"
@@ -161,12 +170,31 @@ const userInitials = computed(() => {
 });
 
 const onSearch = () => {
+  const validation = validateProductFilters({ keyword: searchKeyword.value });
+  if (!validation.ok) {
+    searchError.value = validation.errors.keyword || "Từ khóa không hợp lệ";
+    toast.error(searchError.value);
+    return;
+  }
+  searchError.value = "";
   router.push({
     path: "/product",
     query: {
-      keyword: searchKeyword.value.trim() || undefined,
+      keyword: validation.values.keyword || undefined,
       cat: searchCategory.value || undefined,
     },
   });
 };
+
+onMounted(async () => {
+  try {
+    const data = await fetchCategoriesApi();
+    categories.value = (data || []).map((c) =>
+      typeof c === "string" ? { id: c, name: c } : { id: c.id || c.name, name: c.name || c.id }
+    );
+  } catch (err) {
+    console.warn("Không tải được danh mục header", err);
+    categories.value = [];
+  }
+});
 </script>

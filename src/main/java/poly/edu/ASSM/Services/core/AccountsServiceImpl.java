@@ -1,5 +1,6 @@
 package poly.edu.ASSM.Services.core;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -167,25 +168,14 @@ public class AccountsServiceImpl implements AccountService {
     }
 
     private void createCustomerProfile(Accounts account, String fullName, String avatarUrl) {
-        Users user = new Users();
-        user.setAccount(account);
+        Users user = newUsersProfile(account);
         user.setFullName(fullName);
         user.setAvatar(avatarUrl);
-        user.setGender(0);
-        user.setRank(requireDefaultRank());
-        user.setCreatedAt(Instant.now());
         usersRepository.save(user);
     }
 
     private void updateCustomerProfile(Accounts account, String fullName, String avatarUrl) {
-        Users user = usersRepository.findByAccount_Id(account.getId()).orElseGet(() -> {
-            Users created = new Users();
-            created.setAccount(account);
-            created.setGender(0);
-            created.setRank(requireDefaultRank());
-            created.setCreatedAt(Instant.now());
-            return created;
-        });
+        Users user = usersRepository.findByAccount_Id(account.getId()).orElseGet(() -> newUsersProfile(account));
 
         if (fullName != null) {
             user.setFullName(fullName);
@@ -200,6 +190,17 @@ public class AccountsServiceImpl implements AccountService {
     private Roles requireRole(String roleName) {
         return roleRepository.findByName(roleName)
                 .orElseThrow(() -> new IllegalStateException("Role not found: " + roleName));
+    }
+
+    private Users newUsersProfile(Accounts account) {
+        Users user = new Users();
+        user.setAccount(account);
+        user.setGender(0);
+        user.setTotalPoint(0);
+        user.setTotalSpending(BigDecimal.ZERO);
+        user.setRank(requireDefaultRank());
+        user.setCreatedAt(Instant.now());
+        return user;
     }
 
     private Ranks requireDefaultRank() {

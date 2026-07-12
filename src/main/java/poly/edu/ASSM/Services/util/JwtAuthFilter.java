@@ -56,7 +56,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 			String token = authorization.substring(7).trim();
 			try {
 				Claims claims = jwtService.getBody(token);
-				if (jwtService.validate(claims)) {
+				// Chỉ chấp nhận access token trên API (refresh dùng /api/auth/refresh)
+				if (jwtService.validate(claims) && jwtService.isAccessToken(claims)) {
 					String username = claims.getSubject();
 					List<String> roles = toRoleStringList(claims.get("roles"));
 					List<String> permissions = toRoleStringList(claims.get("permissions"));

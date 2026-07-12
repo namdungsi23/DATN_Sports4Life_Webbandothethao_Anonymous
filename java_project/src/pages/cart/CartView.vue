@@ -15,20 +15,24 @@
 
       <div v-else class="cart-layout">
         <section class="cart-list">
-          <div v-for="item in cartItems" :key="item.productId" class="cart-item">
+          <div v-for="item in cartItems" :key="`${item.productId}-${item.variantId ?? 'x'}`" class="cart-item">
             <div class="cart-item__img">
               <ProductImage :src="item.image" :alt="item.name" />
             </div>
             <div class="cart-item__info">
               <h3>{{ item.name }}</h3>
+              <p v-if="item.color || item.size" class="cart-item__meta">
+                <span v-if="item.color">Màu: {{ item.color }}</span>
+                <span v-if="item.size">Size: {{ item.size }}</span>
+              </p>
               <p class="cart-item__price">{{ formatPrice(item.price) }}đ</p>
               <div class="cart-item__actions">
                 <div class="cart-qty">
-                  <button type="button" aria-label="Giảm" @click="changeQty(item.productId, item.quantity - 1)">−</button>
+                  <button type="button" aria-label="Giảm" @click="changeQty(item, item.quantity - 1)">−</button>
                   <span>{{ item.quantity }}</span>
-                  <button type="button" aria-label="Tăng" @click="changeQty(item.productId, item.quantity + 1)">+</button>
+                  <button type="button" aria-label="Tăng" @click="changeQty(item, item.quantity + 1)">+</button>
                 </div>
-                <button type="button" class="cart-item__remove" @click="removeItem(item.productId)">Xóa</button>
+                <button type="button" class="cart-item__remove" @click="removeItem(item)">Xóa</button>
               </div>
             </div>
             <div class="cart-item__subtotal">
@@ -60,7 +64,7 @@
           <ul class="cart-summary__benefits">
             <li>✓ Đổi trả trong 7 ngày</li>
             <li>✓ Thanh toán COD / VNPAY / Momo</li>
-            <li>✓ Hỗ trợ 24/7: 1900 6750</li>
+            <li>✓ Hỗ trợ 24/7: 0336 694 988</li>
           </ul>
         </aside>
       </div>
@@ -84,13 +88,13 @@ const total = computed(() => amount.value + shippingFee.value);
 
 const formatPrice = (price) => Number(price || 0).toLocaleString("vi-VN");
 
-const removeItem = (id) => store.removeFromCart(id);
+const removeItem = (item) => store.removeFromCart(item.productId, item.variantId ?? null);
 
-const changeQty = (id, qty) => {
+const changeQty = (item, qty) => {
   if (qty < 1) {
-    removeItem(id);
+    removeItem(item);
     return;
   }
-  store.updateCartQuantity(id, qty);
+  store.updateCartQuantity(item.productId, qty, item.variantId ?? null);
 };
 </script>

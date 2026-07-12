@@ -13,4 +13,6 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
 
     @EntityGraph(attributePaths = { "account", "rank" })
     Optional<Users> findByAccount_Id(Long accountId);
+
+    long countByRank_Id(Integer rankId);
 }

@@ -27,6 +27,7 @@ public class NotificationMapper {
                 .userId(user != null ? user.getId() : null)
                 .title(entity.getTitle())
                 .message(entity.getMessage())
+                .link(entity.getLink())
                 .isRead(entity.getIsRead())
                 .createdAt(entity.getCreatedAt())
                 .build();

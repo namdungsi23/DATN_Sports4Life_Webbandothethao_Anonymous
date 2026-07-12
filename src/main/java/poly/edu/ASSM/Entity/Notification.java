@@ -35,6 +35,9 @@ public class Notification {
     @Column(name = "IsRead")
     private Boolean isRead;
 
+    @Column(name = "Link", length = 255)
+    private String link;
+
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")
     private Instant createdAt;

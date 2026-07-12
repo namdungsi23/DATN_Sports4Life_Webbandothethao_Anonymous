@@ -1,8 +1,10 @@
 package poly.edu.ASSM.Services.Config;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -10,18 +12,19 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 
 import poly.edu.ASSM.Services.util.JwtAuthFilter;
-import poly.edu.ASSM.component.CustomAccessDeniedHandler;
-import poly.edu.ASSM.component.CustomAuthenticationEntryPoint;
-import poly.edu.ASSM.component.CustomSuccessHandler;
-import poly.edu.ASSM.component.OAuth2LoginFailureHandler;
-import poly.edu.ASSM.component.OAuth2LoginSuccessHandler;
+import poly.edu.ASSM.security.CustomAccessDeniedHandler;
+import poly.edu.ASSM.security.CustomAuthenticationEntryPoint;
+import poly.edu.ASSM.security.CustomAuthenticationFailureHandler;
+import poly.edu.ASSM.security.CustomSuccessHandler;
+import poly.edu.ASSM.security.LoginRateLimitFilter;
+import poly.edu.ASSM.security.OAuth2LoginFailureHandler;
+import poly.edu.ASSM.security.OAuth2LoginSuccessHandler;
+import poly.edu.ASSM.security.SecurityHeadersFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -32,105 +35,88 @@ public class SecurityConfig {
 
 	@Autowired
 	OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
-	
+
 	@Autowired
 	CustomSuccessHandler customSuccessHandler;
-	
+
+	@Autowired
+	CustomAuthenticationFailureHandler customAuthenticationFailureHandler;
+
 	@Autowired
 	CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
-	
+
 	@Autowired
 	CustomAccessDeniedHandler customAccessDeniedHandler;
-	
+
 	@Autowired
 	JwtAuthFilter jwtAuthFilter;
-	
-	/*
-	@Bean
-    public PasswordEncoder getPasswordEncoder() {
-    	return PasswordEncoderFactories.createDelegatingPasswordEncoder();
-    }
-    */
 
-	
+	@Autowired
+	LoginRateLimitFilter loginRateLimitFilter;
+
+	@Autowired
+	SecurityHeadersFilter securityHeadersFilter;
+
+	@Value("${app.security.cors.allowed-origins:http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174}")
+	private String corsAllowedOrigins;
+
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-	    http
-	        .authorizeHttpRequests(auth -> auth
-	            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-		        .requestMatchers("/admin/**").hasAnyRole("ADMIN", "STAFF")
-	            .requestMatchers("/api/admin/**").authenticated()
-	            .requestMatchers(
-	            	"/",
-	            	"/api/public/**",
-	            	"/home",
-	            	"/product",
-	                "/login", 
-	                "/error",
-	                "/oauth2/**",
-	                "/login/oauth2/**",
-	                "/css/**",
-	                "/js/**",
-	                "/images/**"
-	            ).permitAll()
-	            .anyRequest().authenticated()
-	        )
-	        .cors(cors -> cors.configurationSource(request -> {
-	            CorsConfiguration config = new CorsConfiguration();
-	            config.setAllowedOrigins(
-	            		List.of("http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"));
-	            config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
-	            config.setAllowedHeaders(List.of("*"));
-	            config.setAllowCredentials(true);
-	            return config;
-	        }))
-	        //Disable CSRF
-	        .csrf(csrf -> csrf.disable())
-	        //Enable stateless communication between backend server and frontend
-	        .sessionManagement(session -> {
-	        	session.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-	        })
-	        //
-	        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-	        // FORM LOGIN
-	        .formLogin(form -> form
-	        	//.disable()
-	            .loginPage("/")               
-	            .loginProcessingUrl("/login/validate")     
-	            //.defaultSuccessUrl("/product", true)
-	            .successHandler(customSuccessHandler)
-	            .failureUrl("/") 
-	            .usernameParameter("username")
-	            .passwordParameter("pwd")
-	        )
-	      //OAuth2 Login
-			.oauth2Login(oauth -> oauth
-					.successHandler(oAuth2LoginSuccessHandler)
-					.failureHandler(oAuth2LoginFailureHandler))
-	        // EXCEPTION HANDLING
-	        .exceptionHandling(ex -> ex
-	            .authenticationEntryPoint(customAuthenticationEntryPoint
-	            	/*
-	            	(req, res, e) -> {
-	            		res.sendRedirect("/");
-	            	}
-	            	*/
-	            )
-	            .accessDeniedHandler(customAccessDeniedHandler
-	            	/*
-	                (req, res, e) -> {
-	                	res.sendRedirect("/");
-	            	}
-	            	*/
-	            )
-	        )
-	        .rememberMe(reme -> reme
-	         		.rememberMeParameter("remember-me")
-	        		.rememberMeCookieName("remember-me")
-	        		.tokenValiditySeconds(30*24*60*60)
-	        );
+		List<String> origins = Arrays.stream(corsAllowedOrigins.split(","))
+				.map(String::trim)
+				.filter(s -> !s.isEmpty())
+				.toList();
 
-	    return http.build();
+		http
+				.authorizeHttpRequests(auth -> auth
+						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+						.requestMatchers("/admin/**").hasAnyRole("ADMIN", "STAFF")
+						.requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "STAFF")
+						.requestMatchers(
+								"/",
+								"/api/public/**",
+								"/api/auth/refresh",
+								"/home",
+								"/product",
+								"/login",
+								"/error",
+								"/oauth2/**",
+								"/login/oauth2/**",
+								"/css/**",
+								"/js/**",
+								"/images/**")
+						.permitAll()
+						.anyRequest().authenticated())
+				.cors(cors -> cors.configurationSource(request -> {
+					CorsConfiguration config = new CorsConfiguration();
+					config.setAllowedOrigins(origins);
+					config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+					config.setAllowedHeaders(List.of("*"));
+					config.setAllowCredentials(true);
+					config.setMaxAge(3600L);
+					return config;
+				}))
+				// SPA dùng Bearer JWT → CSRF tắt; không dựa cookie session cho API
+				.csrf(csrf -> csrf.disable())
+				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+				.addFilterBefore(securityHeadersFilter, UsernamePasswordAuthenticationFilter.class)
+				.addFilterBefore(loginRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
+				.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+				.formLogin(form -> form
+						.loginPage("/")
+						.loginProcessingUrl("/login/validate")
+						.successHandler(customSuccessHandler)
+						.failureHandler(customAuthenticationFailureHandler)
+						.usernameParameter("username")
+						.passwordParameter("pwd"))
+				.oauth2Login(oauth -> oauth
+						.successHandler(oAuth2LoginSuccessHandler)
+						.failureHandler(oAuth2LoginFailureHandler))
+				.exceptionHandling(ex -> ex
+						.authenticationEntryPoint(customAuthenticationEntryPoint)
+						.accessDeniedHandler(customAccessDeniedHandler))
+				.rememberMe(reme -> reme.disable());
+
+		return http.build();
 	}
-	
 }
