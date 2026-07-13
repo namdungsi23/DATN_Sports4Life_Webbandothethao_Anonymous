@@ -178,4 +178,4 @@ Entity / bảng mới hoặc refactor:
 
 ---
 
-*Tài liệu do Văn Duy tổng hợp sau các phiên pair-programming với Cursor AI.*
+*Tài liệu do Văn Duy tổng hợp sau các phiên pair-programming.
