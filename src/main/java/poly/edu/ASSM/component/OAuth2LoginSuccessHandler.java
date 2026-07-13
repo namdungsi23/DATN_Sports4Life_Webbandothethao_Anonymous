@@ -6,6 +6,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -24,14 +26,16 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import poly.edu.ASSM.Entity.Accounts;
-import poly.edu.ASSM.Services.core.AccountsServiceImpl;
+import poly.edu.ASSM.Services.core.AccountService;
 import poly.edu.ASSM.Services.util.JwtService;
 
 @Component
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
+	private static final Logger log = LoggerFactory.getLogger(OAuth2LoginSuccessHandler.class);
+
 	@Autowired
-	private AccountsServiceImpl accountService;
+	private AccountService accountService;
 
 	@Autowired
 	private UserDetailsService userDetailsService;
@@ -48,45 +52,29 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
 			Authentication authentication) throws IOException, ServletException {
 
-		OAuth2AuthenticationToken token = (OAuth2AuthenticationToken) authentication;
-		OAuth2User oauth2User = token.getPrincipal();
-
-		String email = oauth2User.getAttribute("email");
-		String name = oauth2User.getAttribute("name");
-		String picture = oauth2User.getAttribute("picture");
-
-		if (email == null || email.isBlank()) {
-			redirectError(response, "Không lấy được email từ Google.");
-			return;
-		}
-
-		Accounts user = accountService.findByUsername(email);
-		if (user == null) {
-			user = new Accounts();
-			user.setUsername(email);
-			user.setEmail(email);
-			user.setFullName(name);
-			user.setAvatar(picture);
-			user.setIsActive(true);
-			user.setAdmin(false);
-			user.setPasswordHash(null);
-			user = accountService.update(user);
-		} else {
-			if (name != null) {
-				user.setFullName(name);
-			}
-			if (picture != null) {
-				user.setAvatar(picture);
-			}
-			user = accountService.update(user);
-		}
-
-		if (user == null || !Boolean.TRUE.equals(user.getIsActive())) {
-			redirectError(response, "Tài khoản bị khóa hoặc không hợp lệ.");
-			return;
-		}
-
 		try {
+			if (!(authentication instanceof OAuth2AuthenticationToken token)) {
+				redirectError(response, "Phản hồi đăng nhập Google không hợp lệ.");
+				return;
+			}
+
+			OAuth2User oauth2User = token.getPrincipal();
+			String email = oauth2User.getAttribute("email");
+			String name = oauth2User.getAttribute("name");
+			String picture = oauth2User.getAttribute("picture");
+
+			if (email == null || email.isBlank()) {
+				redirectError(response, "Không lấy được email từ Google.");
+				return;
+			}
+
+			Accounts account = accountService.saveOAuthLogin(email, name, picture);
+
+			if (account == null || !Boolean.TRUE.equals(account.getIsActive())) {
+				redirectError(response, "Tài khoản bị khóa hoặc không hợp lệ.");
+				return;
+			}
+
 			UserDetails ud = userDetailsService.loadUserByUsername(email);
 			String accessToken = jwtService.create(ud, 15 * 60);
 			List<String> roles = ud.getAuthorities().stream()
@@ -102,7 +90,14 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 					"roles", rolesJson));
 			response.sendRedirect(url);
 		} catch (UsernameNotFoundException e) {
+			log.warn("OAuth user not found after save: {}", e.getMessage());
 			redirectError(response, "Không tìm thấy người dùng trong hệ thống.");
+		} catch (Exception e) {
+			log.error("OAuth login failed", e);
+			String msg = e.getMessage() != null && !e.getMessage().isBlank()
+					? e.getMessage()
+					: "Đăng nhập Google thất bại.";
+			redirectError(response, msg);
 		}
 	}
 

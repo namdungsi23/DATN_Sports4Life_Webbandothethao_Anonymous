@@ -27,4 +27,7 @@ public class VoucherRequest {
     private Instant startDate;
     private Instant expiredAt;
     private Short isActive;
+
+    /** PERCENT | FIXED | FREESHIP — chỉ dùng khi tạo/cập nhật từ admin */
+    private String discountType;
 }

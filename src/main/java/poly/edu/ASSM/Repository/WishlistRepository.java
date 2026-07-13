@@ -18,14 +18,13 @@ public interface WishlistRepository extends JpaRepository<Wishlist, Long> {
             "product",
             "product.category",
             "product.productVariants",
-            "product.productVariants.inventory",
             "product.productVariants.productImages" })
     @Query("SELECT w FROM Wishlist w WHERE w.user.id = :userId ORDER BY w.createdAt DESC")
-    List<Wishlist> findAllByUserId(@Param("userId") Integer userId);
+    List<Wishlist> findAllByUserId(@Param("userId") Long userId);
 
-    Optional<Wishlist> findByUser_IdAndProduct_Id(Integer userId, Long productId);
+    Optional<Wishlist> findByUser_IdAndProduct_Id(Long userId, Long productId);
 
-    boolean existsByUser_IdAndProduct_Id(Integer userId, Long productId);
+    boolean existsByUser_IdAndProduct_Id(Long userId, Long productId);
 
-    void deleteByUser_IdAndProduct_Id(Integer userId, Long productId);
+    void deleteByUser_IdAndProduct_Id(Long userId, Long productId);
 }

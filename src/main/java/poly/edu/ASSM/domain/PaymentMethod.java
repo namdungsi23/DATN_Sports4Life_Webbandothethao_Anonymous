@@ -1,5 +1,5 @@
 package poly.edu.ASSM.domain;
 
 public enum PaymentMethod {
-	CASH, MOMO, TECHCOMBANK
+	CASH, MOMO, TECHCOMBANK, SEPAY
 }

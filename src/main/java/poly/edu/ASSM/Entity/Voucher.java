@@ -24,7 +24,7 @@ public class Voucher {
     @Column(name = "code", nullable = false, length = 50)
     private String code;
 
-    @Column(name = "DiscountPercent")
+    @Column(name = "DiscountPercent", columnDefinition = "int")
     private Integer discountPercent;
 
     @Column(name = "DiscountAmount", precision = 10, scale = 2)
@@ -36,11 +36,10 @@ public class Voucher {
     @Column(name = "MaxDiscount", precision = 10, scale = 2)
     private BigDecimal maxDiscount;
 
-    @ColumnDefault("0")
     @Column(name = "Quantity")
     private Integer quantity;
 
-    @Column(name = "start_date")
+    @Column(name = "StartDate")
     private Instant startDate;
 
     @Column(name = "ExpiredAt")
@@ -50,15 +49,14 @@ public class Voucher {
     private Short isActive;
 
     @Nationalized
-    @Column(name = "Name")
+    @Column(name = "Name", length = 255)
     private String name;
 
     @ColumnDefault("0")
     @Column(name = "UsedCount")
     private Integer usedCount;
-    @OneToMany
-    @JoinColumn(name = "VoucherId")
-    private Set<Orders> orders = new LinkedHashSet<>();
 
+    @OneToMany(mappedBy = "voucher")
+    private Set<Orders> orders = new LinkedHashSet<>();
 
 }

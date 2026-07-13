@@ -26,6 +26,9 @@ public class AdminSessionApiController {
         body.put("roles", List.copyOf(access.roles()));
         body.put("permissions", List.copyOf(access.permissions()));
         body.put("panelAccess", access.panelUser());
+        body.put("isAdmin", adminAccessService.isAdminRole(access));
+        body.put("isStaff", adminAccessService.isStaffOnly(access));
+        body.put("canWriteCatalog", adminAccessService.canWriteCatalog(access));
         return body;
     }
 }

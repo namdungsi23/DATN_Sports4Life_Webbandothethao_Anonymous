@@ -9,14 +9,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import poly.edu.ASSM.Entity.Accounts;
 import poly.edu.ASSM.Entity.Permissions;
 import poly.edu.ASSM.Entity.Roles;
-import poly.edu.ASSM.Entity.Users;
 import poly.edu.ASSM.Repository.AccountRepository;
 import poly.edu.ASSM.Repository.PermissionRepository;
-import poly.edu.ASSM.Repository.UsersRepository;
 import poly.edu.ASSM.security.AdminPermissionCodes;
 import poly.edu.ASSM.security.SpringRoleNames;
 
@@ -27,44 +26,45 @@ public class AdminAccessService {
     private AccountRepository accountRepository;
 
     @Autowired
-    private UsersRepository usersRepository;
-
-    @Autowired
     private PermissionRepository permissionRepository;
 
     public record AdminAccess(Set<String> roles, Set<String> permissions, boolean panelUser) {
     }
 
+    @Transactional(readOnly = true)
     public AdminAccess resolve(String username) {
         Accounts account = accountRepository.findByUsername(username);
         if (account == null) {
             return new AdminAccess(Set.of(), Set.of(), false);
         }
-        return resolve(account);
+        return resolveLoaded(account);
     }
 
     public AdminAccess resolve(Accounts account) {
+        if (account == null) {
+            return new AdminAccess(Set.of(), Set.of(), false);
+        }
+        return resolve(account.getUsername());
+    }
+
+    private AdminAccess resolveLoaded(Accounts account) {
         Set<String> roles = new LinkedHashSet<>();
         Set<String> permissions = new LinkedHashSet<>();
 
-        usersRepository.findByAccount_Id(account.getId()).ifPresent(user -> {
-            for (Roles role : user.getRoles()) {
-                if (role.getName() != null && !role.getName().isBlank()) {
-                    roles.add(SpringRoleNames.normalize(role.getName()));
-                }
-                loadPermissionsForRole(role, permissions);
-            }
-        });
+        Roles role = account.getRole();
+        if (role != null && role.getName() != null && !role.getName().isBlank()) {
+            String normalized = SpringRoleNames.normalize(role.getName());
+            roles.add(normalized);
+            loadPermissionsForRole(role, permissions);
 
-        if (Boolean.TRUE.equals(account.getAdmin())) {
-            roles.add(SpringRoleNames.normalize("ADMIN"));
-            grantAllPermissions(permissions);
+            if (normalized.contains("ADMIN")) {
+                grantAllPermissions(permissions);
+            } else if (normalized.contains("STAFF")) {
+                grantStaffPermissions(permissions);
+            }
         }
 
-        boolean panelUser = Boolean.TRUE.equals(account.getAdmin())
-                || roles.stream().anyMatch(this::isStaffOrAdminRole)
-                || !permissions.isEmpty();
-
+        boolean panelUser = roles.stream().anyMatch(this::isStaffOrAdminRole) || !permissions.isEmpty();
         return new AdminAccess(roles, permissions, panelUser);
     }
 
@@ -83,11 +83,32 @@ public class AdminAccessService {
         if (access == null || required == null) {
             return false;
         }
-        if (access.roles().contains(SpringRoleNames.normalize("ADMIN"))
-                || access.roles().contains(SpringRoleNames.normalize("SUPER_ADMIN"))) {
+        if (isAdminRole(access)) {
             return true;
         }
         return access.permissions().stream().anyMatch(p -> AdminPermissionCodes.matches(required, p));
+    }
+
+    public boolean isAdminRole(AdminAccess access) {
+        if (access == null) {
+            return false;
+        }
+        return access.roles().stream().anyMatch(r -> {
+            String normalized = SpringRoleNames.normalize(r).toUpperCase();
+            return normalized.contains("ADMIN") || normalized.contains("SUPER_ADMIN");
+        });
+    }
+
+    public boolean isStaffOnly(AdminAccess access) {
+        if (access == null || isAdminRole(access)) {
+            return false;
+        }
+        return access.roles().stream().anyMatch(r ->
+                SpringRoleNames.normalize(r).toUpperCase().contains("STAFF"));
+    }
+
+    public boolean canWriteCatalog(AdminAccess access) {
+        return isAdminRole(access);
     }
 
     public boolean canAccessPanel(AdminAccess access) {
@@ -115,10 +136,27 @@ public class AdminAccessService {
         permissions.add(AdminPermissionCodes.PRODUCT);
         permissions.add(AdminPermissionCodes.CATEGORY);
         permissions.add(AdminPermissionCodes.ORDER);
+        permissions.add(AdminPermissionCodes.ORDER_UPDATE);
         permissions.add(AdminPermissionCodes.USER);
+        permissions.add(AdminPermissionCodes.VOUCHER);
+        permissions.add(AdminPermissionCodes.VOUCHER_CREATE);
+        permissions.add(AdminPermissionCodes.VOUCHER_UPDATE);
+        permissions.add(AdminPermissionCodes.VOUCHER_DELETE);
         permissions.add("PRODUCT_CREATE");
         permissions.add("PRODUCT_UPDATE");
         permissions.add("PRODUCT_DELETE");
+    }
+
+    private void grantStaffPermissions(Set<String> permissions) {
+        permissions.add(AdminPermissionCodes.DASHBOARD);
+        permissions.add(AdminPermissionCodes.PRODUCT);
+        permissions.add(AdminPermissionCodes.CATEGORY);
+        permissions.add(AdminPermissionCodes.ORDER);
+        permissions.add(AdminPermissionCodes.ORDER_UPDATE);
+        permissions.add(AdminPermissionCodes.USER);
+        permissions.add(AdminPermissionCodes.VOUCHER);
+        permissions.add(AdminPermissionCodes.VOUCHER_CREATE);
+        permissions.add(AdminPermissionCodes.VOUCHER_UPDATE);
     }
 
     private boolean isStaffOrAdminRole(String role) {
@@ -127,21 +165,9 @@ public class AdminAccessService {
     }
 
     public List<String> roleNamesForAccount(Accounts account) {
-        if (account == null) {
+        if (account == null || account.getUsername() == null) {
             return List.of();
         }
-        Users user = usersRepository.findByAccount_Id(account.getId()).orElse(null);
-        if (user == null || user.getRoles() == null || user.getRoles().isEmpty()) {
-            if (Boolean.TRUE.equals(account.getAdmin())) {
-                return List.of(SpringRoleNames.normalize("ADMIN"));
-            }
-            return List.of();
-        }
-        return user.getRoles().stream()
-                .map(Roles::getName)
-                .filter(n -> n != null && !n.isBlank())
-                .map(SpringRoleNames::normalize)
-                .distinct()
-                .toList();
+        return resolve(account.getUsername()).roles().stream().toList();
     }
 }

@@ -1,13 +1,14 @@
 <template>
   <AdminLayout>
     <div class="admin-dashboard__intro">
+      <h1>Dashboard</h1>
       <p>Tổng quan hoạt động cửa hàng Sports4Life.</p>
     </div>
 
     <div v-if="err" class="alert alert-danger">{{ err }}</div>
 
     <div class="admin-stat-grid">
-      <div v-for="card in statCards" :key="card.label" class="admin-stat-card">
+      <div v-for="card in statCards" :key="card.label" class="admin-stat-card admin-stat-card--premium">
         <div class="admin-stat-card__icon" :class="`admin-stat-card__icon--${card.tone}`">
           <AdminIcon :name="card.icon" :size="24" />
         </div>
@@ -15,6 +16,21 @@
           <p class="admin-stat-card__value">{{ card.value }}</p>
           <p class="admin-stat-card__label">{{ card.label }}</p>
         </div>
+      </div>
+    </div>
+
+    <div class="admin-panel mb-4" v-if="revenueSummary.totalRevenue != null">
+      <div class="admin-panel__head">
+        <h2><AdminIcon name="chart" :size="18" /> Doanh thu tháng này</h2>
+      </div>
+      <div class="admin-panel__body d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+          <p class="display-6 fw-bold text-success mb-1">{{ formatMoney(revenueSummary.totalRevenue) }}</p>
+          <p class="text-muted mb-0">{{ revenueSummary.orderCount }} đơn hàng · TB {{ formatMoney(revenueSummary.averageOrderValue) }}/đơn</p>
+        </div>
+        <RouterLink to="/admin/invoices" class="btn btn-primary">
+          Xem báo cáo & biểu đồ →
+        </RouterLink>
       </div>
     </div>
 
@@ -63,6 +79,16 @@ const stats = ref({
   todayOrders: 0,
   newProducts: 0,
 });
+const revenueSummary = ref({});
+
+const formatMoney = (v) => `${Number(v || 0).toLocaleString("vi-VN")} ₫`;
+
+const monthRange = () => {
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  const to = now.toISOString().slice(0, 10);
+  return { from, to };
+};
 
 const statCards = computed(() => [
   { icon: "users", label: "Tài khoản", value: stats.value.totalUsers, tone: "blue" },
@@ -75,15 +101,19 @@ const statCards = computed(() => [
 const quickLinks = computed(() =>
   filterAdminMenu(store.state.user).map((item) => ({
     to: item.to,
-    label: `Quản lý ${item.label.toLowerCase()}`,
+    label: item.label === "Hóa đơn" ? "Báo cáo hóa đơn" : `Quản lý ${item.label.toLowerCase()}`,
     icon: item.icon,
   }))
 );
 
 onMounted(async () => {
   try {
-    const data = await apiFetch("/api/admin/dashboard");
-    stats.value = { ...stats.value, ...data };
+    const [dash, rev] = await Promise.all([
+      apiFetch("/api/admin/dashboard"),
+      apiFetch(`/api/admin/reports/summary?from=${monthRange().from}&to=${monthRange().to}`),
+    ]);
+    stats.value = { ...stats.value, ...dash };
+    revenueSummary.value = rev;
   } catch (e) {
     err.value = e?.message || "Không tải được thống kê dashboard.";
   }

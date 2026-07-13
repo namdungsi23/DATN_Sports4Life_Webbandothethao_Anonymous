@@ -5,30 +5,44 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Entity.Roles;
+import poly.edu.ASSM.Entity.Users;
+import poly.edu.ASSM.Repository.UsersRepository;
 import poly.edu.ASSM.dto.request.AccountRequest;
 import poly.edu.ASSM.dto.response.AccountResponse;
 import poly.edu.ASSM.dto.response.PageResponse;
+import poly.edu.ASSM.security.SpringRoleNames;
 
 @Component
 public class AccountMapper {
+
+    @Autowired
+    private UsersRepository usersRepository;
 
     public AccountResponse toResponse(Accounts entity) {
         if (entity == null) {
             return null;
         }
+
+        Users profile = usersRepository.findByAccount_Id(entity.getId()).orElse(null);
+        Roles role = entity.getRole();
+        String roleName = role != null ? SpringRoleNames.normalize(role.getName()) : "";
+        boolean admin = roleName.contains("ADMIN");
+
         return AccountResponse.builder()
                 .id(entity.getId())
                 .username(entity.getUsername())
-                .fullName(entity.getFullName())
+                .fullName(profile != null ? profile.getFullName() : null)
                 .email(entity.getEmail())
-                .avatar(entity.getAvatar())
+                .avatar(profile != null ? profile.getAvatar() : null)
                 .isActive(entity.getIsActive())
-                .admin(entity.getAdmin())
-                .superAdmin(entity.getSuperAdmin())
+                .admin(admin)
+                .superAdmin(false)
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
@@ -52,12 +66,8 @@ public class AccountMapper {
             return;
         }
         entity.setUsername(request.getUsername());
-        entity.setFullName(request.getFullName());
         entity.setEmail(request.getEmail());
-        entity.setAvatar(request.getAvatar());
         entity.setIsActive(request.getIsActive());
-        entity.setAdmin(request.getAdmin());
-        entity.setSuperAdmin(request.getSuperAdmin());
 
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             entity.setPasswordHash(request.getPassword());

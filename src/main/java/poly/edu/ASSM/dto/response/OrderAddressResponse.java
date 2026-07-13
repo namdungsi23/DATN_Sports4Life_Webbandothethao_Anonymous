@@ -13,14 +13,13 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserAddressResponse {
-    private Long id;
-    private Integer userId;
+public class OrderAddressResponse {
+    private Integer id;
+    private Integer orderId;
     private String receiverName;
     private String receiverPhone;
     private String province;
     private String ward;
     private String addressDetail;
-    private Boolean isDefault;
     private Instant createdAt;
 }

@@ -52,11 +52,7 @@ public class ProductMapper {
 
         boolean inStock = variants.stream().anyMatch(v -> Boolean.TRUE.equals(v.getInStock()));
 
-        String imageUrl = images.stream()
-                .filter(img -> Boolean.TRUE.equals(img.getIsDefault()))
-                .map(ProductImageResponse::getImageUrl)
-                .findFirst()
-                .orElse(images.isEmpty() ? null : images.get(0).getImageUrl());
+        String imageUrl = resolveProductThumbnail(entity);
 
         Category category = entity.getCategory();
 
@@ -77,6 +73,39 @@ public class ProductMapper {
                 .variants(variants)
                 .images(images)
                 .build();
+    }
+
+    public int totalQuantity(Products entity) {
+        if (entity == null || entity.getProductVariants() == null) {
+            return 0;
+        }
+        return entity.getProductVariants().stream()
+                .map(v -> v.getQuantity() != null ? v.getQuantity() : 0)
+                .mapToInt(Number::intValue)
+                .sum();
+    }
+
+    public String resolveProductThumbnail(Products entity) {
+        ProductVariants defaultVariant = findDefaultVariant(entity);
+        if (defaultVariant == null || defaultVariant.getProductImages() == null) {
+            return null;
+        }
+        return defaultVariant.getProductImages().stream()
+                .sorted(Comparator.comparing(
+                        img -> img.getSortOrder() != null ? img.getSortOrder() : Integer.MAX_VALUE))
+                .map(ProductImages::getImageUrl)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private ProductVariants findDefaultVariant(Products entity) {
+        if (entity.getProductVariants() == null || entity.getProductVariants().isEmpty()) {
+            return null;
+        }
+        return entity.getProductVariants().stream()
+                .filter(v -> Boolean.TRUE.equals(v.getIsDefault()))
+                .findFirst()
+                .orElse(entity.getProductVariants().iterator().next());
     }
 
     public List<ProductResponse> toResponseList(List<Products> entities) {
@@ -136,9 +165,8 @@ public class ProductMapper {
         return allImages.stream()
                 .map(this::toImageResponse)
                 .filter(Objects::nonNull)
-                .sorted(Comparator
-                        .comparing((ProductImageResponse img) -> Boolean.TRUE.equals(img.getIsDefault()) ? 0 : 1)
-                        .thenComparing(img -> img.getSortOrder() != null ? img.getSortOrder() : 0))
+                .sorted(Comparator.comparing(
+                        img -> img.getSortOrder() != null ? img.getSortOrder() : Integer.MAX_VALUE))
                 .collect(Collectors.toList());
     }
 
@@ -146,8 +174,11 @@ public class ProductMapper {
         if (entity == null) {
             return null;
         }
+        ProductVariants variant = entity.getVariant();
         return ProductImageResponse.builder()
                 .id(entity.getId())
+                .variantId(variant != null ? variant.getId() : null)
+                .productId(variant != null && variant.getProduct() != null ? variant.getProduct().getId() : null)
                 .imageUrl(entity.getImageUrl())
                 .isDefault(entity.getIsDefault())
                 .sortOrder(entity.getSortOrder())

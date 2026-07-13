@@ -11,16 +11,16 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity
-@Table(name = "UserAddresses")
-public class UserAddress {
+@Table(name = "OrderAddresses")
+public class OrderAddresses {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "Id", nullable = false)
-    private Long id;
+    private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "UserId", nullable = false)
-    private Users users;
+    @JoinColumn(name = "OrderId", nullable = false)
+    private Orders order;
 
     @Nationalized
     @Column(name = "ReceiverName", nullable = false, length = 100)
@@ -38,16 +38,14 @@ public class UserAddress {
     private String ward;
 
     @Nationalized
-    @Column(name = "AddressDetail", nullable = false)
+    @Column(name = "AddressDetail", nullable = false, length = 255)
     private String addressDetail;
 
-    @ColumnDefault("0")
-    @Column(name = "IsDefault")
-    private Boolean isDefault;
-
     @ColumnDefault("getdate()")
-    @Column(name = "CreatedAt")
+    @Column(name = "CreatedAt", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "UpdatedAt")
+    private Instant updatedAt;
 
 }

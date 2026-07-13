@@ -1,5 +1,6 @@
 <template>
     <AdminLayout>
+      <AdminReadOnlyNotice />
       <div class="container-fluid px-4 mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h4 class="fw-bold mb-0">Quản lý danh mục</h4>
@@ -36,6 +37,7 @@
                 <strong>{{ form.id ? "Cập nhật danh mục" : "Thêm danh mục" }}</strong>
               </div>
               <div class="card-body">
+                <fieldset :disabled="!canWrite">
                 <form @submit.prevent="saveCategory">
                   <div v-if="form.id" class="mb-2">
                     <label class="form-label fw-semibold">Mã danh mục</label>
@@ -56,6 +58,7 @@
                     Làm mới
                   </button>
                 </form>
+                </fieldset>
               </div>
             </div>
           </div>
@@ -77,6 +80,7 @@
                       <td>{{ c.id }}</td>
                       <td class="fw-semibold">{{ c.name }}</td>
                       <td>
+                        <template v-if="canWrite">
                         <button type="button" class="btn btn-sm btn-outline-warning me-1" @click="editRow(c)">
                           Sửa
                         </button>
@@ -87,6 +91,8 @@
                         >
                           Xóa
                         </button>
+                        </template>
+                        <span v-else class="text-muted small">Chỉ xem</span>
                       </td>
                     </tr>
                     <tr v-if="!categories.length">
@@ -120,9 +126,15 @@
     </AdminLayout>
   </template>
   <script setup>
-  import { onMounted, reactive, ref } from "vue";
+  import { computed, onMounted, reactive, ref } from "vue";
   import AdminLayout from "../../layouts/AdminLayout.vue";
+  import AdminReadOnlyNotice from "../../components/admin/AdminReadOnlyNotice.vue";
   import { apiFetch } from "../../services/http.js";
+  import { useAppStore } from "../../stores/appStore";
+  import { userCanWriteCatalog } from "../../utils/adminAccess";
+
+  const store = useAppStore();
+  const canWrite = computed(() => userCanWriteCatalog(store.state.user));
 
   const err = ref("");
   const flashOk = ref("");

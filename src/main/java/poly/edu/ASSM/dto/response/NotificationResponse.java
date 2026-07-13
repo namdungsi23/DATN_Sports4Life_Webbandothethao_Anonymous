@@ -15,7 +15,7 @@ import lombok.Setter;
 @Builder
 public class NotificationResponse {
     private Integer id;
-    private Integer userId;
+    private Long userId;
     private String title;
     private String message;
     private Boolean isRead;

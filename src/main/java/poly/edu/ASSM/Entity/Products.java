@@ -33,8 +33,8 @@ public class Products {
     @Column(name = "Brand", length = 200)
     private String brand;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "Category_Id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "CategoryId", nullable = false)
     private Category category;
 
     @ColumnDefault("1")
@@ -48,12 +48,10 @@ public class Products {
     @Column(name = "UpdatedAt")
     private Instant updatedAt;
 
-    @OneToMany
-    @JoinColumn(name = "ProductId")
+    @OneToMany(mappedBy = "product")
     private Set<CartItems> cartItems = new LinkedHashSet<>();
-    @OneToMany
-    @JoinColumn(name = "ProductId")
-    private Set<ProductVariants> productVariants = new LinkedHashSet<>();
 
+    @OneToMany(mappedBy = "product")
+    private Set<ProductVariants> productVariants = new LinkedHashSet<>();
 
 }

@@ -14,15 +14,18 @@ public class OrderDetails {
     @Column(name = "Id", nullable = false)
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "OrderId")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "OrderId", nullable = false)
     private Orders orders;
 
-    @Column(name = "Price")
+    @Column(name = "Price", nullable = false)
     private Double price;
 
-    @Column(name = "Quantity")
+    @Column(name = "Quantity", nullable = false)
     private Integer quantity;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "VariantId", nullable = false)
+    private ProductVariants variant;
 
 }

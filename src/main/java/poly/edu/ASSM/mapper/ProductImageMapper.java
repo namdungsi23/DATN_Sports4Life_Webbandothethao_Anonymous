@@ -9,7 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 import poly.edu.ASSM.Entity.ProductImages;
-import poly.edu.ASSM.Entity.Products;
+import poly.edu.ASSM.Entity.ProductVariants;
 import poly.edu.ASSM.dto.request.ProductImageRequest;
 import poly.edu.ASSM.dto.response.PageResponse;
 import poly.edu.ASSM.dto.response.ProductImageResponse;
@@ -21,8 +21,11 @@ public class ProductImageMapper {
         if (entity == null) {
             return null;
         }
+        ProductVariants variant = entity.getVariant();
         return ProductImageResponse.builder()
                 .id(entity.getId())
+                .variantId(variant != null ? variant.getId() : null)
+                .productId(variant != null && variant.getProduct() != null ? variant.getProduct().getId() : null)
                 .imageUrl(entity.getImageUrl())
                 .isDefault(entity.getIsDefault())
                 .sortOrder(entity.getSortOrder())
@@ -37,16 +40,17 @@ public class ProductImageMapper {
         return entities.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
-    public ProductImages toEntity(ProductImageRequest request, Products product) {
+    public ProductImages toEntity(ProductImageRequest request, ProductVariants variant) {
         ProductImages entity = new ProductImages();
-        applyRequest(entity, request, product);
+        applyRequest(entity, request, variant);
         return entity;
     }
 
-    public void applyRequest(ProductImages entity, ProductImageRequest request, Products product) {
+    public void applyRequest(ProductImages entity, ProductImageRequest request, ProductVariants variant) {
         if (entity == null || request == null) {
             return;
         }
+        entity.setVariant(variant);
         entity.setImageUrl(request.getImageUrl());
         entity.setIsDefault(request.getIsDefault() != null ? request.getIsDefault() : Boolean.FALSE);
         entity.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 1);

@@ -225,7 +225,16 @@ const displayPrice = computed(() => {
   );
   return match?.price ?? product.value?.price ?? 0;
 });
-
+const selectedVariant = computed(() => {
+  const variants = product.value?.variants ?? [];
+  return (
+      variants.find(
+          (v) =>
+              (!selectedSize.value || v.size === selectedSize.value) &&
+              (!selectedColor.value || v.color === selectedColor.value)
+      ) ?? null
+  );
+});
 const formatPrice = (price) => Number(price || 0).toLocaleString("vi-VN");
 
 const initSelections = () => {
@@ -256,10 +265,20 @@ const changeQty = (delta) => {
   quantity.value = Math.max(1, quantity.value + delta);
 };
 
-const buildCartProduct = () => ({
-  ...product.value,
-  price: displayPrice.value,
-});
+const buildCartProduct = () => {
+  const variant = selectedVariant.value;
+  if (!variant?.id) {
+    message.value = "Vui lòng chọn size/màu còn hàng.";
+    return null;
+  }
+  return {
+    ...product.value,
+    variantId: variant.id,
+    size: variant.size,
+    color: variant.color,
+    price: variant.price ?? displayPrice.value,
+  };
+};
 
 const onAddToCart = () => {
   if (!state.user) {
@@ -267,7 +286,9 @@ const onAddToCart = () => {
     setTimeout(() => { message.value = ""; }, 2500);
     return;
   }
-  addToCart(buildCartProduct(), quantity.value);
+  const cartProduct = buildCartProduct();
+  if (!cartProduct) return;
+  addToCart(cartProduct, quantity.value);
   message.value = "Đã thêm vào giỏ hàng.";
   setTimeout(() => { message.value = ""; }, 2000);
 };
@@ -277,7 +298,9 @@ const onBuyNow = () => {
     router.push("/login");
     return;
   }
-  addToCart(buildCartProduct(), quantity.value);
+  const cartProduct = buildCartProduct();
+  if (!cartProduct) return;
+  addToCart(cartProduct, quantity.value);
   router.push("/cart/checkout");
 };
 

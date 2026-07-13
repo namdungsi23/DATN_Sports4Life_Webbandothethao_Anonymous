@@ -70,18 +70,20 @@ public class CustomSuccessHandler implements AuthenticationSuccessHandler {
 		AdminAccessService.AdminAccess access = adminAccessService.resolve(user.getUsername());
 		
 		String accessToken = jwtService.create(user, 15 * 60);
-		
-		Map<String, Object> body = Map.of(
-					"status", 200,
-					"message", "Login successfully",
-					"username", user.getUsername(),
-					"role", roles,
-					"roles", roles,
-					"permissions", permissions,
-					"panelAccess", access.panelUser(),
-					"accessToken", accessToken,
-					"refreshToken", ""
-				);
+
+		Map<String, Object> body = new java.util.HashMap<>();
+		body.put("status", 200);
+		body.put("message", "Login successfully");
+		body.put("username", user.getUsername());
+		body.put("role", roles);
+		body.put("roles", roles);
+		body.put("permissions", permissions);
+		body.put("panelAccess", access.panelUser());
+		body.put("canWriteCatalog", adminAccessService.canWriteCatalog(access));
+		body.put("isAdmin", adminAccessService.isAdminRole(access));
+		body.put("isStaff", adminAccessService.isStaffOnly(access));
+		body.put("accessToken", accessToken);
+		body.put("refreshToken", "");
 		
 		response.setContentType("application/json");
 		response.setStatus(HttpServletResponse.SC_OK);

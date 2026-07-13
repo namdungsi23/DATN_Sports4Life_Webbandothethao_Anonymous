@@ -1,6 +1,7 @@
 package poly.edu.ASSM.Controller;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
+import java.time.Instant;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -12,8 +13,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Entity.OrderAddresses;
 import poly.edu.ASSM.Entity.OrderDetails;
 import poly.edu.ASSM.Entity.Orders;
+import poly.edu.ASSM.Repository.OrderAddressRepository;
 import poly.edu.ASSM.Services.core.AccountsServiceImpl;
 import poly.edu.ASSM.Services.core.InventoryServiceImpl;
 import poly.edu.ASSM.Services.core.OrderDetailsServiceImpl;
@@ -48,6 +52,9 @@ public class CheckoutController {
     @Autowired
     InventoryServiceImpl inventoryService;
 
+    @Autowired
+    OrderAddressRepository orderAddressRepository;
+
     @PostMapping("/pay")
     public String proceedPayment(@RequestParam PaymentMethod paymentMethod, RedirectAttributes redirect) {
         redirect.addAttribute("paymentMethod", paymentMethod);
@@ -57,13 +64,33 @@ public class CheckoutController {
     @Transactional
     @PostMapping("/confirm")
     public String confirm(@RequestParam String username, @RequestParam String address, Model model) {
+        Accounts account = accountService.findByUsername(username);
+        if (account == null) {
+            model.addAttribute("success", false);
+            model.addAttribute("erMsg", "Không tìm thấy tài khoản");
+            return "page/cart/checkout-success";
+        }
+
+        BigDecimal total = BigDecimal.valueOf(cartService.getAmount());
         Orders order = new Orders();
-        order.setAddress(address);
-        order.setUsername(username);
-        order.setCreateDate(LocalDate.now());
-        order.setStatus("NEW");
-        order.setTotalAmount(java.math.BigDecimal.valueOf(cartService.getAmount()));
-        orderService.create(order);
+        order.setAccount(account);
+        order.setOrderStatus("PENDING");
+        order.setPaymentStatus("UNPAID");
+        order.setSubTotal(total);
+        order.setDiscountAmount(BigDecimal.ZERO);
+        order.setTotalAmount(total);
+        order.setCreateDate(Instant.now());
+        order = orderService.create(order);
+
+        OrderAddresses shipping = new OrderAddresses();
+        shipping.setOrder(order);
+        shipping.setReceiverName(username);
+        shipping.setReceiverPhone("0000000000");
+        shipping.setProvince("N/A");
+        shipping.setWard("N/A");
+        shipping.setAddressDetail(address);
+        shipping.setCreatedAt(Instant.now());
+        orderAddressRepository.save(shipping);
 
         for (CartItem item : cartService.getItems()) {
             OrderDetails orderDetail = new OrderDetails();

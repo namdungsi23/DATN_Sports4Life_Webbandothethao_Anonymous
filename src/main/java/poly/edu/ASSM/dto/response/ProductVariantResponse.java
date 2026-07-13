@@ -2,6 +2,7 @@ package poly.edu.ASSM.dto.response;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,4 +29,5 @@ public class ProductVariantResponse {
     private Boolean inStock;
     private Instant createdAt;
     private Instant updatedAt;
+    private List<ProductImageResponse> images;
 }

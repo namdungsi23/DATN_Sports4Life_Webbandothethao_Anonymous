@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import poly.edu.ASSM.Repository.AccountRepository;
 import poly.edu.ASSM.Repository.OrdersRepository;
 import poly.edu.ASSM.Repository.ProductRepository;
+import poly.edu.ASSM.Services.core.OrdersService;
 
 @Controller
 public class AdminDashboard {
@@ -24,6 +25,9 @@ public class AdminDashboard {
 
 	    @Autowired
 	    OrdersRepository orderRepo;
+
+	    @Autowired
+	    OrdersService ordersService;
 	    @GetMapping("/admin/dashboard")
 	    public String dashboard(Model model) {
 
@@ -31,8 +35,7 @@ public class AdminDashboard {
 	        model.addAttribute("totalProducts", productRepo.count());
 	        model.addAttribute("totalOrders", orderRepo.count());
 
-	        model.addAttribute("todayOrders",
-	                orderRepo.countTodayOrders(LocalDate.now()));
+	        model.addAttribute("todayOrders", ordersService.countTodayOrders());
 
         model.addAttribute("newProducts",
                 productRepo.countNewProducts(

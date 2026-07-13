@@ -6,11 +6,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -19,6 +22,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import poly.edu.ASSM.Services.util.JwtAuthFilter;
 import poly.edu.ASSM.component.CustomAccessDeniedHandler;
 import poly.edu.ASSM.component.CustomAuthenticationEntryPoint;
+import poly.edu.ASSM.component.CustomFormLoginFailureHandler;
 import poly.edu.ASSM.component.CustomSuccessHandler;
 import poly.edu.ASSM.component.OAuth2LoginFailureHandler;
 import poly.edu.ASSM.component.OAuth2LoginSuccessHandler;
@@ -34,6 +38,9 @@ public class SecurityConfig {
 	OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
 	
 	@Autowired
+	CustomFormLoginFailureHandler customFormLoginFailureHandler;
+	
+	@Autowired
 	CustomSuccessHandler customSuccessHandler;
 	
 	@Autowired
@@ -44,6 +51,19 @@ public class SecurityConfig {
 	
 	@Autowired
 	JwtAuthFilter jwtAuthFilter;
+
+	@Autowired
+	private UserDetailsService userDetailsService;
+
+	@Autowired
+	private PasswordEncoder passwordEncoder;
+
+	@Bean
+	public AuthenticationManager authenticationManager() {
+		DaoAuthenticationProvider provider = new DaoAuthenticationProvider(passwordEncoder);
+		provider.setUserDetailsService(userDetailsService);
+		return new ProviderManager(provider);
+	}
 	
 	/*
 	@Bean
@@ -86,20 +106,19 @@ public class SecurityConfig {
 	        }))
 	        //Disable CSRF
 	        .csrf(csrf -> csrf.disable())
-	        //Enable stateless communication between backend server and frontend
-	        .sessionManagement(session -> {
-	        	session.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-	        })
-	        //
+	        // OAuth2 authorization code flow requires HTTP session to store auth request state.
+	        .sessionManagement(session -> session
+	        	.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+	        	.sessionFixation(fix -> fix.migrateSession())
+	        )
 	        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 	        // FORM LOGIN
 	        .formLogin(form -> form
 	        	//.disable()
 	            .loginPage("/")               
 	            .loginProcessingUrl("/login/validate")     
-	            //.defaultSuccessUrl("/product", true)
 	            .successHandler(customSuccessHandler)
-	            .failureUrl("/") 
+	            .failureHandler(customFormLoginFailureHandler)
 	            .usernameParameter("username")
 	            .passwordParameter("pwd")
 	        )

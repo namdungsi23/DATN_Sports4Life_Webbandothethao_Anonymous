@@ -1,5 +1,6 @@
 <template>
   <AdminLayout>
+    <AdminReadOnlyNotice />
     <div class="container-fluid">
       <h3 class="mb-4">👤 Quản lý người dùng</h3>
       <div v-if="err" class="alert alert-danger">{{ err }}</div>
@@ -20,9 +21,10 @@
           <div class="card shadow-sm">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
               <strong>Tạo | Cập nhật người dùng</strong>
-              <button type="button" class="btn btn-sm btn-light" @click="clearForm">+ Tạo mới</button>
+              <button v-if="canWrite" type="button" class="btn btn-sm btn-light" @click="clearForm">+ Tạo mới</button>
             </div>
             <div class="card-body">
+              <fieldset :disabled="!canWrite">
               <form @submit.prevent="saveUser">
                 <div class="mb-3">
                   <label class="form-label"><strong>Tên đăng nhập</strong></label>
@@ -75,6 +77,7 @@
                 </div>
                 <button type="submit" class="btn btn-success w-100">💾 Lưu</button>
               </form>
+              </fieldset>
             </div>
           </div>
         </div>
@@ -116,7 +119,7 @@
                       <span v-else class="badge bg-danger">Khóa</span>
                     </td>
                     <td class="text-center">
-                      <button type="button" class="btn btn-sm btn-warning" @click="loadEdit(u)">✏️</button>
+                      <button v-if="canWrite" type="button" class="btn btn-sm btn-warning" @click="loadEdit(u)">✏️</button>
                     </td>
                   </tr>
                 </tbody>
@@ -151,7 +154,13 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AdminLayout from "../../layouts/AdminLayout.vue";
+import AdminReadOnlyNotice from "../../components/admin/AdminReadOnlyNotice.vue";
 import { apiFetch } from "../../services/http.js";
+import { useAppStore } from "../../stores/appStore";
+import { userCanWriteCatalog } from "../../utils/adminAccess";
+
+const store = useAppStore();
+const canWrite = computed(() => userCanWriteCatalog(store.state.user));
 
 const route = useRoute();
 const router = useRouter();

@@ -18,7 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import poly.edu.ASSM.Entity.Accounts;
 import poly.edu.ASSM.Entity.Roles;
+import poly.edu.ASSM.Entity.Users;
 import poly.edu.ASSM.Repository.RoleRepository;
+import poly.edu.ASSM.Repository.UsersRepository;
 import poly.edu.ASSM.Services.core.AccountService;
 import poly.edu.ASSM.Services.core.AdminAccessService;
 import poly.edu.ASSM.security.SpringRoleNames;
@@ -33,6 +35,8 @@ public class AdminUserApiController {
     @Autowired
     private RoleRepository roleRepo;
     @Autowired
+    private UsersRepository usersRepository;
+    @Autowired
     private AdminAccessService adminAccessService;
 
     private List<String> loadAuthorities() {
@@ -43,15 +47,18 @@ public class AdminUserApiController {
     }
 
     private Map<String, Object> toUserRow(Accounts account) {
+        Users profile = usersRepository.findByAccount_Id(account.getId()).orElse(null);
+        String roleName = account.getRole() != null ? SpringRoleNames.normalize(account.getRole().getName()) : "";
+
         Map<String, Object> row = new HashMap<>();
         row.put("id", account.getId());
         row.put("username", account.getUsername());
-        row.put("fullname", account.getFullName());
+        row.put("fullname", profile != null ? profile.getFullName() : null);
         row.put("email", account.getEmail());
-        row.put("photo", account.getAvatar());
-        row.put("avatar", account.getAvatar());
+        row.put("photo", profile != null ? profile.getAvatar() : null);
+        row.put("avatar", profile != null ? profile.getAvatar() : null);
         row.put("activated", account.getIsActive());
-        row.put("admin", account.getAdmin());
+        row.put("admin", roleName.contains("ADMIN"));
         row.put("roleNames", adminAccessService.roleNamesForAccount(account));
         return row;
     }
@@ -103,17 +110,16 @@ public class AdminUserApiController {
         if (body == null || body.username() == null || body.username().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "Thiếu username"));
         }
-        Accounts acc = new Accounts();
-        acc.setUsername(body.username());
-        acc.setFullName(body.fullname());
-        acc.setEmail(body.email());
-        acc.setAvatar(body.photo());
-        acc.setIsActive(body.activated() != null ? body.activated() : true);
         Accounts target = accSer.findByUsername(body.username());
         if (target == null) {
             return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "Không tìm thấy người dùng"));
         }
-        accSer.update(acc);
+        accSer.updateCustomerProfile(
+                body.username(),
+                body.fullname(),
+                body.email(),
+                body.photo(),
+                body.activated() != null ? body.activated() : true);
         return ResponseEntity.ok(Map.of("ok", true, "message", "Cập nhật thành công"));
     }
 }

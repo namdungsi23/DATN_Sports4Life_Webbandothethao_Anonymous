@@ -86,16 +86,21 @@ const normalizeQty = (qty) => {
   if (!Number.isFinite(parsed) || parsed < 1) return 1;
   return Math.floor(parsed);
 };
+const cartLineKey = (item) => item.variantId ?? item.productId;
 
 const addToCart = (product, quantity = 1) => {
   if (!product?.id) return;
-  const existing = state.cartItems.find((it) => it.productId === product.id);
+  const lineKey = product.variantId ?? product.id;
+  const existing = state.cartItems.find((it) => cartLineKey(it) === lineKey);
   if (existing) {
     existing.quantity += normalizeQty(quantity);
     return;
   }
   state.cartItems.push({
     productId: product.id,
+    variantId: product.variantId ?? null,
+    size: product.size ?? null,
+    color: product.color ?? null,
     name: product.name || "Sản phẩm",
     price: Number(product.price || 0),
     quantity: normalizeQty(quantity),
@@ -103,12 +108,12 @@ const addToCart = (product, quantity = 1) => {
   });
 };
 
-const removeFromCart = (productId) => {
-  state.cartItems = state.cartItems.filter((item) => item.productId !== productId);
+const removeFromCart = (lineKey) => {
+  state.cartItems = state.cartItems.filter((item) => cartLineKey(item) !== lineKey);
 };
 
-const updateCartQuantity = (productId, quantity) => {
-  const item = state.cartItems.find((it) => it.productId === productId);
+const updateCartQuantity = (lineKey, quantity) => {
+  const item = state.cartItems.find((it) => cartLineKey(it) === lineKey);
   if (!item) return;
   item.quantity = normalizeQty(quantity);
 };
@@ -205,13 +210,16 @@ const login = (payload) => {
     return;
   }
 
-  const { accessToken, refreshToken, permissions, panelAccess, ...profile } = payload;
+  const { accessToken, refreshToken, permissions, panelAccess, canWriteCatalog, isAdmin, isStaff, ...profile } = payload;
   state.user =
     profile.username || profile.roles !== undefined || profile.email
       ? {
           ...profile,
           ...(Array.isArray(permissions) ? { permissions } : {}),
           ...(panelAccess !== undefined ? { panelAccess } : {}),
+          ...(canWriteCatalog !== undefined ? { canWriteCatalog } : {}),
+          ...(isAdmin !== undefined ? { isAdmin } : {}),
+          ...(isStaff !== undefined ? { isStaff } : {}),
         }
       : null;
   state.accessToken = accessToken || null;
@@ -254,6 +262,9 @@ const syncPanelAccess = (data) => {
     roles: data.roles ?? state.user.roles,
     permissions: data.permissions ?? state.user.permissions,
     panelAccess: data.panelAccess ?? state.user.panelAccess,
+    canWriteCatalog: data.canWriteCatalog ?? state.user.canWriteCatalog,
+    isAdmin: data.isAdmin ?? state.user.isAdmin,
+    isStaff: data.isStaff ?? state.user.isStaff,
   };
 };
 
@@ -291,4 +302,5 @@ export const useAppStore = () => ({
   updateUserProfile,
   syncPanelAccess,
   getRefreshToken,
+  cartLineKey,
 });

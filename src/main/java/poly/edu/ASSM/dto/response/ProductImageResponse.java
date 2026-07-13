@@ -15,6 +15,7 @@ import lombok.Setter;
 @Builder
 public class ProductImageResponse {
     private Long id;
+    private Long variantId;
     private Long productId;
     private String imageUrl;
     private Boolean isDefault;

@@ -21,11 +21,15 @@ public class ProductVariants {
     @Column(name = "Id", nullable = false)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "ProductId", nullable = false)
+    private Products product;
+
     @Column(name = "SKU", nullable = false, length = 100)
     private String sku;
 
     @Nationalized
-    @Column(name = "\"Size\"", length = 50)
+    @Column(name = "Size", length = 50)
     private String size;
 
     @Nationalized
@@ -35,11 +39,9 @@ public class ProductVariants {
     @Column(name = "Price", nullable = false, precision = 18, scale = 2)
     private BigDecimal price;
 
-    @ColumnDefault("0")
     @Column(name = "IsDefault")
     private Boolean isDefault;
 
-    @ColumnDefault("1")
     @Column(name = "DisplayOrder")
     private Integer displayOrder;
 
@@ -54,15 +56,17 @@ public class ProductVariants {
     @Column(name = "UpdatedAt")
     private Instant updatedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ProductId")
-    private Products product;
+    @Column(name = "Quantity")
+    private Short quantity;
 
-    @OneToOne(mappedBy = "variant", fetch = FetchType.LAZY)
-    private Inventory inventory;
+    @ColumnDefault("0")
+    @Column(name = "SoldCount", nullable = false)
+    private Integer soldCount;
 
-    @OneToMany
-    @JoinColumn(name = "VariantId")
+    @OneToMany(mappedBy = "variant", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ProductImages> productImages = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "variant")
+    private Set<OrderDetails> orderDetails = new LinkedHashSet<>();
 
 }

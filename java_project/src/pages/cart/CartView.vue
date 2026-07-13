@@ -15,20 +15,23 @@
 
       <div v-else class="cart-layout">
         <section class="cart-list">
-          <div v-for="item in cartItems" :key="item.productId" class="cart-item">
+          <div v-for="item in cartItems" :key="item.variantId || item.productId" class="cart-item">
             <div class="cart-item__img">
               <ProductImage :src="item.image" :alt="item.name" />
             </div>
             <div class="cart-item__info">
               <h3>{{ item.name }}</h3>
+              <p v-if="item.size || item.color" class="text-muted small mb-1">
+                {{ [item.color, item.size ? `Size ${item.size}` : null].filter(Boolean).join(" · ") }}
+              </p>
               <p class="cart-item__price">{{ formatPrice(item.price) }}đ</p>
               <div class="cart-item__actions">
                 <div class="cart-qty">
-                  <button type="button" aria-label="Giảm" @click="changeQty(item.productId, item.quantity - 1)">−</button>
+                  <button type="button" aria-label="Giảm" @click="changeQty(item.variantId || item.productId, item.quantity - 1)">−</button>
                   <span>{{ item.quantity }}</span>
-                  <button type="button" aria-label="Tăng" @click="changeQty(item.productId, item.quantity + 1)">+</button>
+                  <button type="button" aria-label="Tăng" @click="changeQty(item.variantId || item.productId, item.quantity + 1)">+</button>
                 </div>
-                <button type="button" class="cart-item__remove" @click="removeItem(item.productId)">Xóa</button>
+                <button type="button" class="cart-item__remove" @click="removeItem(item.variantId || item.productId)">Xóa</button>
               </div>
             </div>
             <div class="cart-item__subtotal">
@@ -48,8 +51,8 @@
             <span>Phí vận chuyển</span>
             <span class="cart-summary__free">{{ shippingFee ? formatPrice(shippingFee) + "đ" : "Miễn phí" }}</span>
           </div>
-          <div v-if="amount < 499000" class="cart-summary__hint">
-            Mua thêm <strong>{{ formatPrice(499000 - amount) }}đ</strong> để được freeship!
+          <div v-if="amount < FREE_SHIP_THRESHOLD" class="cart-summary__hint">
+            Mua thêm <strong>{{ formatPrice(FREE_SHIP_THRESHOLD - amount) }}đ</strong> để được freeship!
           </div>
           <div class="cart-summary__total">
             <span>Tổng cộng</span>
@@ -74,23 +77,24 @@ import { RouterLink } from "vue-router";
 import MainLayout from "../../layouts/MainLayout.vue";
 import ProductImage from "../../components/ProductImage.vue";
 import { useAppStore } from "../../stores/appStore";
+import { calcShippingFee, calcOrderTotal, FREE_SHIP_THRESHOLD } from "../../utils/shipping";
 
 const store = useAppStore();
 const cartItems = computed(() => store.state.cartItems);
 const cartCount = computed(() => store.cartCount.value);
 const amount = computed(() => store.cartAmount.value);
-const shippingFee = computed(() => (amount.value >= 499000 ? 0 : 30000));
-const total = computed(() => amount.value + shippingFee.value);
+const shippingFee = computed(() => calcShippingFee(amount.value));
+const total = computed(() => calcOrderTotal(amount.value));
 
 const formatPrice = (price) => Number(price || 0).toLocaleString("vi-VN");
 
-const removeItem = (id) => store.removeFromCart(id);
+const removeItem = (lineKey) => store.removeFromCart(lineKey);
 
-const changeQty = (id, qty) => {
+const changeQty = (lineKey, qty) => {
   if (qty < 1) {
-    removeItem(id);
+    removeItem(lineKey);
     return;
   }
-  store.updateCartQuantity(id, qty);
+  store.updateCartQuantity(lineKey, qty);
 };
 </script>

@@ -83,8 +83,12 @@ const submitRegister = async () => {
     });
     success.value = "Đăng ký thành công. Bạn có thể đăng nhập ngay.";
   } catch (registerError) {
-    console.warn("Register API not ready, fallback success message.", registerError);
-    success.value = "Đăng ký thành công.";
+    console.warn("Register failed", registerError);
+    error.value =
+      registerError?.response?.data?.message ||
+      registerError?.response?.data?.detail ||
+      registerError?.message ||
+      "Đăng ký thất bại. Vui lòng thử lại.";
   } finally {
     loading.value = false;
   }

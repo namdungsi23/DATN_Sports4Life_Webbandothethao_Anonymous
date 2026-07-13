@@ -9,8 +9,8 @@ import org.springframework.stereotype.Repository;
 import poly.edu.ASSM.Entity.Users;
 
 @Repository
-public interface UsersRepository extends JpaRepository<Users, Integer> {
+public interface UsersRepository extends JpaRepository<Users, Long> {
 
-    @EntityGraph(attributePaths = "roles")
+    @EntityGraph(attributePaths = { "account", "rank" })
     Optional<Users> findByAccount_Id(Long accountId);
 }

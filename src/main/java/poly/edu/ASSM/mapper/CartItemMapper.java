@@ -23,13 +23,12 @@ public class CartItemMapper {
         if (entity == null) {
             return null;
         }
-        Products product = entity.getProducts();
+        Products product = entity.getProduct();
         return CartItemResponse.builder()
                 .id(entity.getId())
                 .productId(product != null ? product.getId() : null)
                 .productName(product != null ? product.getName() : null)
                 .quantity(entity.getQuantity())
-                .createdAt(entity.getCreatedAt())
                 .build();
     }
 
@@ -50,11 +49,8 @@ public class CartItemMapper {
         if (entity == null || request == null) {
             return;
         }
-        entity.setProducts(product);
+        entity.setProduct(product);
         entity.setQuantity(request.getQuantity());
-        if (entity.getCreatedAt() == null) {
-            entity.setCreatedAt(Instant.now());
-        }
     }
 
     public PageResponse<CartItemResponse> toPageResponse(Page<CartItems> page) {

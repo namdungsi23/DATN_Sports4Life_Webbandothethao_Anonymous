@@ -10,12 +10,17 @@ import org.springframework.stereotype.Service;
 
 import poly.edu.ASSM.Entity.Accounts;
 import poly.edu.ASSM.Services.core.AccountService;
+import poly.edu.ASSM.Services.core.AdminAccessService;
 import poly.edu.ASSM.Services.web.SessionService;
+import poly.edu.ASSM.security.SpringRoleNames;
 
 @Service
 public class AuthServiceImpl implements AuthService {
     @Autowired
     AccountService accountService;
+
+    @Autowired
+    AdminAccessService adminAccessService;
 
     @Autowired
     SessionService sessionService;
@@ -38,13 +43,10 @@ public class AuthServiceImpl implements AuthService {
             return null;
         }
 
-        String[] authorities = Boolean.TRUE.equals(user.getAdmin())
-                ? new String[] { "ROLE_ADMIN" }
-                : new String[] { "ROLE_USER" };
-
+        AdminAccessService.AdminAccess access = adminAccessService.resolve(user);
         UserDetails userDetail = User.withUsername(username)
                 .password(password)
-                .authorities(authorities)
+                .authorities(adminAccessService.toAuthorities(access))
                 .build();
 
         Authentication authentication = new UsernamePasswordAuthenticationToken(
@@ -74,6 +76,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public boolean isAdmin() {
         Accounts user = getUser();
-        return user != null && Boolean.TRUE.equals(user.getAdmin());
+        return user != null
+                && adminAccessService.resolve(user).roles().contains(SpringRoleNames.normalize("ADMIN"));
     }
 }

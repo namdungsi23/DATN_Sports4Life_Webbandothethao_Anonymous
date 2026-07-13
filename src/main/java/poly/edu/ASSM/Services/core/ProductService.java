@@ -22,5 +22,7 @@ public interface ProductService {
 
     Page<Products> filterProducts(String cat, String keyword, Double min, Double max, Pageable pageable);
 
+    Page<Products> adminFilterProducts(String categoryId, String keyword, Pageable pageable);
+
     Products create(Products formProduct, int quantity);
 }

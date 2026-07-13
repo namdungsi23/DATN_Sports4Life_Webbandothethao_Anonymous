@@ -24,13 +24,13 @@ public class UserMapper {
         }
 
         Accounts account = entity.getAccount();
-        Ranks rank = entity.getRanks();
+        Ranks rank = entity.getRank();
 
         return UserResponse.builder()
                 .id(entity.getId())
                 .accountId(account != null ? account.getId() : null)
                 .username(account != null ? account.getUsername() : null)
-                .fullName(account != null ? account.getFullName() : null)
+                .fullName(entity.getFullName())
                 .email(account != null ? account.getEmail() : null)
                 .phone(entity.getPhone())
                 .dateOfBirth(entity.getDateOfBirth())
@@ -66,7 +66,7 @@ public class UserMapper {
         if (request.getTotalPoint() != null) {
             entity.setTotalPoint(request.getTotalPoint());
         }
-        entity.setRanks(rank);
+        entity.setRank(rank);
 
         if (entity.getCreatedAt() == null) {
             entity.setCreatedAt(Instant.now());

@@ -17,7 +17,7 @@ import lombok.Setter;
 @Builder
 public class CartResponse {
     private Integer id;
-    private Integer userId;
+    private Long userId;
     private Instant createdAt;
 
     @Builder.Default
