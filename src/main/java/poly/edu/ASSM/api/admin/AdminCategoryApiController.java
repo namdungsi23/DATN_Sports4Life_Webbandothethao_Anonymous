@@ -72,8 +72,9 @@ public class AdminCategoryApiController {
         }
     }
 
-    @PostMapping
-    public ResponseEntity<Map<String, Object>> create(@RequestBody Category category) {
+	@PostMapping
+	@PreAuthorize("@adminAuth.canWriteCatalog()")
+	public ResponseEntity<Map<String, Object>> create(@RequestBody Category category) {
         try {
             categoryService.create(category);
             return ResponseEntity.ok(Map.of("ok", true, "message", "Lưu thành công!"));
@@ -82,8 +83,9 @@ public class AdminCategoryApiController {
         }
     }
 
-    @PutMapping
-    public ResponseEntity<Map<String, Object>> update(@RequestBody Category category) {
+	@PutMapping
+	@PreAuthorize("@adminAuth.canWriteCatalog()")
+	public ResponseEntity<Map<String, Object>> update(@RequestBody Category category) {
         if (category.getId() == null || category.getId().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "Thiếu mã danh mục"));
         }
@@ -91,8 +93,9 @@ public class AdminCategoryApiController {
         return ResponseEntity.ok(Map.of("ok", true, "message", "Cập nhật thành công"));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> delete(@PathVariable String id) {
+	@DeleteMapping("/{id}")
+	@PreAuthorize("@adminAuth.canWriteCatalog()")
+	public ResponseEntity<Map<String, Object>> delete(@PathVariable String id) {
         try {
             categoryService.delete(id);
             return ResponseEntity.ok(Map.of("ok", true, "message", "Đã xóa thành công!"));

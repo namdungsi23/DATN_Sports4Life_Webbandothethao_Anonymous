@@ -64,7 +64,8 @@ public class AdminAccessService {
             }
         }
 
-        boolean panelUser = roles.stream().anyMatch(this::isStaffOrAdminRole) || !permissions.isEmpty();
+        // Chỉ ADMIN/STAFF vào panel — không dựa vào permissions (ROLE_USER từng bị gán nhầm quyền xem)
+        boolean panelUser = roles.stream().anyMatch(this::isStaffOrAdminRole);
         return new AdminAccess(roles, permissions, panelUser);
     }
 

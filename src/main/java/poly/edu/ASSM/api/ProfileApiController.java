@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 import poly.edu.ASSM.Services.core.ProfileService;
+import poly.edu.ASSM.dto.request.ChangePasswordRequest;
 import poly.edu.ASSM.dto.request.ProfileUpdateRequest;
 
 @RestController
@@ -41,5 +42,12 @@ public class ProfileApiController {
             Principal principal,
             @RequestParam("file") MultipartFile file) {
         return profileService.uploadAvatar(principal.getName(), file);
+    }
+
+    @PostMapping("/change-password")
+    public Map<String, Object> changePassword(
+            Principal principal,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        return profileService.changePassword(principal.getName(), request);
     }
 }

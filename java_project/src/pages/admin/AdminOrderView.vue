@@ -25,13 +25,27 @@
     <div class="card mb-4">
       <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
         <span class="fw-bold">{{ selectedOrderId ? `Đơn hàng #${selectedOrderId}` : "Danh sách đơn hàng" }}</span>
-        <div class="btn-group btn-group-sm">
-          <button type="button" class="btn btn-outline-secondary" :class="{ active: filterStatus === 'ALL' }" @click="setFilter('ALL')">
-            Tất cả
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <input
+            v-if="!selectedOrderId"
+            v-model="keyword"
+            type="search"
+            class="form-control form-control-sm"
+            style="min-width: 200px"
+            placeholder="Tìm mã đơn, user, SĐT..."
+            @keyup.enter="loadList"
+          />
+          <button v-if="!selectedOrderId" type="button" class="btn btn-sm btn-outline-primary" @click="loadList">
+            Tìm
           </button>
-          <button type="button" class="btn btn-outline-warning" :class="{ active: filterStatus === 'PENDING' }" @click="setFilter('PENDING')">
-            Chờ xác nhận
-          </button>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-secondary" :class="{ active: filterStatus === 'ALL' }" @click="setFilter('ALL')">
+              Tất cả
+            </button>
+            <button type="button" class="btn btn-outline-warning" :class="{ active: filterStatus === 'PENDING' }" @click="setFilter('PENDING')">
+              Chờ xác nhận
+            </button>
+          </div>
         </div>
       </div>
       <div class="card-body p-0">
@@ -96,6 +110,13 @@
             <h6 class="text-muted mb-2">Thông tin khách hàng</h6>
             <p class="mb-1"><strong>Tài khoản:</strong> {{ orderDetail.customer?.username || "—" }}</p>
             <p class="mb-1"><strong>Email:</strong> {{ orderDetail.customer?.email || "—" }}</p>
+            <p class="mb-1">
+              <strong>Hạng TV:</strong>
+              {{ orderDetail.customer?.rankName || "—" }}
+              <span v-if="orderDetail.customer?.totalPoint != null" class="text-muted">
+                ({{ orderDetail.customer.totalPoint }} điểm)
+              </span>
+            </p>
             <template v-if="orderDetail.shippingAddress">
               <p class="mb-1"><strong>Người nhận:</strong> {{ orderDetail.shippingAddress.receiverName }}</p>
               <p class="mb-1"><strong>SĐT:</strong> {{ orderDetail.shippingAddress.receiverPhone }}</p>
@@ -213,6 +234,7 @@ import { useRoute, useRouter } from "vue-router";
 import AdminLayout from "../../layouts/AdminLayout.vue";
 import { apiFetch } from "../../services/http.js";
 import { useAppStore } from "../../stores/appStore";
+import { useAdminNotify } from "../../utils/adminNotify";
 import {
   ORDER_STATUS_LABELS,
   PAYMENT_STATUS_LABELS,
@@ -224,12 +246,14 @@ import {
 const route = useRoute();
 const router = useRouter();
 const store = useAppStore();
+const notify = useAdminNotify();
 
 const err = ref("");
 const flashOk = ref("");
 const orders = ref([]);
 const pendingCount = ref(0);
 const filterStatus = ref("ALL");
+const keyword = ref("");
 const selectedOrderId = ref(null);
 const orderDetail = ref(null);
 const orderItems = ref([]);
@@ -296,7 +320,10 @@ function setFilter(status) {
 
 async function loadList() {
   err.value = "";
-  const data = await apiFetch("/api/admin/orders");
+  const params = new URLSearchParams();
+  if (keyword.value.trim()) params.set("keyword", keyword.value.trim());
+  const qs = params.toString();
+  const data = await apiFetch(`/api/admin/orders${qs ? `?${qs}` : ""}`);
   orders.value = data.orders || [];
   pendingCount.value = data.pendingCount ?? orders.value.filter((o) => o.orderStatus === "PENDING").length;
 }
@@ -353,12 +380,14 @@ async function quickConfirm(id) {
   try {
     await apiFetch(`/api/admin/orders/${id}/confirm`, { method: "POST" });
     flashOk.value = `Đã xác nhận đơn #${id}`;
+    notify.success(flashOk.value);
     await loadList();
     if (selectedOrderId.value === id) {
       await loadDetail(id);
     }
   } catch (e) {
     err.value = e.message || "Xác nhận thất bại";
+    notify.error(err.value);
   } finally {
     confirmingId.value = null;
   }
@@ -371,6 +400,27 @@ async function confirmCurrent() {
 
 async function saveOrder() {
   if (selectedOrderId.value == null || !canUpdate.value) return;
+
+  if (showShipmentSection.value) {
+    if (form.orderStatus === "SHIPPING" || form.shippingStatus === "SHIPPING") {
+      if (!form.carrierId) {
+        err.value = "Vui lòng chọn đơn vị vận chuyển khi giao hàng.";
+        notify.error(err.value);
+        return;
+      }
+      if (!String(form.trackingNumber || "").trim()) {
+        err.value = "Vui lòng nhập mã vận đơn khi giao hàng.";
+        notify.error(err.value);
+        return;
+      }
+    }
+    if (form.shippingFee != null && form.shippingFee !== "" && Number(form.shippingFee) < 0) {
+      err.value = "Phí vận chuyển không được âm.";
+      notify.error(err.value);
+      return;
+    }
+  }
+
   saving.value = true;
   err.value = "";
   flashOk.value = "";
@@ -392,9 +442,11 @@ async function saveOrder() {
     });
     applyDetail(data);
     flashOk.value = "Cập nhật đơn hàng thành công";
+    notify.success(flashOk.value);
     await loadList();
   } catch (e) {
     err.value = e.message || "Cập nhật thất bại";
+    notify.error(err.value);
   } finally {
     saving.value = false;
   }

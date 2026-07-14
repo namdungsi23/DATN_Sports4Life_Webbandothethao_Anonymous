@@ -150,10 +150,12 @@ import { RouterLink, useRoute } from "vue-router";
 import MainLayout from "../../layouts/MainLayout.vue";
 import AddressFormFields from "../../components/AddressFormFields.vue";
 import { confirmPaymentApi, fetchAddressesApi } from "../../services/api";
-import { useAppStore } from "../../stores/appStore";
+import { useAppStore, useToast } from "../../stores/appStore";
+import { firstError, getApiError, isValidPhone, runValidation } from "../../utils/validators";
 
 const route = useRoute();
 const store = useAppStore();
+const toast = useToast();
 
 const tab = ref("info");
 const proceeding = ref(true);
@@ -245,24 +247,33 @@ const validateAddress = () => {
     }
     if (!accountPhone.value?.trim()) {
       errors.general = "Vui lòng cập nhật số điện thoại trong hồ sơ trước khi đặt hàng";
+    } else if (!isValidPhone(accountPhone.value)) {
+      errors.general = "Số điện thoại trong hồ sơ không hợp lệ. Vui lòng cập nhật lại.";
     }
     formErrors.value = errors;
     return !errors.general;
   }
 
-  if (!shippingAddress.receiverName.trim()) errors.receiverName = "Vui lòng nhập họ và tên người nhận";
-  if (!shippingAddress.receiverPhone.trim()) errors.receiverPhone = "Vui lòng nhập số điện thoại người nhận";
-  if (!shippingAddress.province.trim()) errors.province = "Vui lòng nhập thành phố";
-  if (!shippingAddress.ward.trim()) errors.ward = "Vui lòng nhập phường";
-  if (!shippingAddress.addressDetail.trim()) errors.addressDetail = "Vui lòng nhập địa chỉ";
-  formErrors.value = errors;
-  return Object.keys(errors).length === 0;
+  const result = runValidation(shippingAddress, {
+    receiverName: [
+      "required",
+      { type: "min", min: 2, message: "Họ tên tối thiểu 2 ký tự." },
+      { type: "max", max: 100 },
+    ],
+    receiverPhone: ["required", "phone"],
+    province: ["required", { type: "max", max: 100 }],
+    ward: ["required", { type: "max", max: 100 }],
+    addressDetail: ["required", { type: "max", max: 255 }],
+  });
+  formErrors.value = result.errors;
+  return result.ok;
 };
 
 const goToPaymentTab = () => {
   error.value = "";
   if (!validateAddress()) {
-    error.value = formErrors.value.general || "Vui lòng điền đầy đủ thông tin giao hàng.";
+    error.value = formErrors.value.general || firstError(formErrors.value) || "Vui lòng điền đầy đủ thông tin giao hàng.";
+    toast.error(error.value);
     tab.value = "info";
     return;
   }
@@ -276,6 +287,7 @@ const buildCheckoutPayload = () => {
     addressMode: addressMode.value,
     items: store.state.cartItems.map((item) => ({
       productId: item.productId,
+      variantId: item.variantId ?? null,
       quantity: item.quantity,
     })),
   };
@@ -326,7 +338,10 @@ const confirmPayment = async () => {
     store.clearCart();
   } catch (err) {
     console.error("Xác nhận thanh toán thất bại", err);
-    error.value = err?.response?.data?.message || "Không thể hoàn tất đơn hàng. Vui lòng thử lại.";
+    const api = getApiError(err, "Không thể hoàn tất đơn hàng. Vui lòng thử lại.");
+    error.value = api.message;
+    Object.assign(formErrors.value, api.errors);
+    toast.error(error.value);
     success.value = false;
   } finally {
     if (success.value) {

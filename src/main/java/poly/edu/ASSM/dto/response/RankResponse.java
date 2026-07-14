@@ -20,4 +20,5 @@ public class RankResponse {
     private BigDecimal discountPercent;
     private String description;
     private Boolean isActive;
+    private Long memberCount;
 }

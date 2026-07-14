@@ -30,7 +30,7 @@ onMounted(async () => {
     store.loadFavorites();
   }
 
-  if (!store.state.user?.username || store.state.user?.photo) return;
+  if (!store.state.user?.username) return;
 
   try {
     const data = await fetchProfileApi();
@@ -40,6 +40,11 @@ onMounted(async () => {
         fullname: profile.fullname || profile.fullName,
         photo: profile.photo || profile.avatar,
         email: profile.email,
+        rankId: profile.rankId,
+        rankName: profile.rankName,
+        totalPoint: profile.totalPoint,
+        rankDiscountPercent: profile.rankDiscountPercent,
+        rankMinPoint: profile.rankMinPoint,
       });
     }
   } catch {

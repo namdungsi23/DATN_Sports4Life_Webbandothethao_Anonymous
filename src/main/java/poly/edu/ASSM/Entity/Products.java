@@ -49,9 +49,6 @@ public class Products {
     private Instant updatedAt;
 
     @OneToMany(mappedBy = "product")
-    private Set<CartItems> cartItems = new LinkedHashSet<>();
-
-    @OneToMany(mappedBy = "product")
     private Set<ProductVariants> productVariants = new LinkedHashSet<>();
 
 }

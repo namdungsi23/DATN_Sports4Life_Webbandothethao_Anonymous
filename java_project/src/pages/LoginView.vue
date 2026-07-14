@@ -13,17 +13,36 @@
 
       <label class="auth-form__field">
         <span>Tên đăng nhập</span>
-        <input v-model="form.username" type="text" placeholder="Nhập username" autocomplete="username" />
+        <input
+          v-model="form.username"
+          type="text"
+          placeholder="Nhập username"
+          autocomplete="username"
+          :class="{ 'is-invalid': fieldErrors.username }"
+          @input="clearFieldError('username')"
+        />
+        <small v-if="fieldErrors.username" class="auth-form__error">{{ fieldErrors.username }}</small>
       </label>
 
       <label class="auth-form__field">
         <span>Mật khẩu</span>
-        <input v-model="form.pwd" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password" />
+        <input
+          v-model="form.pwd"
+          type="password"
+          placeholder="Nhập mật khẩu"
+          autocomplete="current-password"
+          :class="{ 'is-invalid': fieldErrors.pwd }"
+          @input="clearFieldError('pwd')"
+        />
+        <small v-if="fieldErrors.pwd" class="auth-form__error">{{ fieldErrors.pwd }}</small>
       </label>
 
-      <label class="auth-form__check">
-        <input id="chk" v-model="form.remember" type="checkbox" />
-        <span>Ghi nhớ đăng nhập</span>
+      <label class="auth-form__check auth-form__check--row">
+        <span class="auth-form__remember">
+          <input id="chk" v-model="form.remember" type="checkbox" />
+          <span>Ghi nhớ đăng nhập</span>
+        </span>
+        <RouterLink to="/forgot-password" class="auth-form__forgot">Quên mật khẩu?</RouterLink>
       </label>
 
       <button type="submit" class="auth-form__submit" :disabled="loading">
@@ -40,17 +59,20 @@
 
 <script setup>
 import { onMounted, reactive, ref } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 import AuthLayout from "../layouts/AuthLayout.vue";
 import { loginApi } from "../services/api";
-import { useAppStore } from "../stores/appStore";
+import { useAppStore, useToast } from "../stores/appStore";
 import { resolveDefaultAdminRoute, userCanAccessPanel } from "../utils/adminAccess";
+import { firstError, runValidation } from "../utils/validators";
 
 const router = useRouter();
 const route = useRoute();
 const store = useAppStore();
+const toast = useToast();
 const loading = ref(false);
 const error = ref("");
+const fieldErrors = reactive({});
 const form = reactive({ username: "", pwd: "", remember: false });
 
 const resolveAfterLoginPath = () => {
@@ -64,9 +86,20 @@ const resolveAfterLoginPath = () => {
   return "/product";
 };
 
+const clearFieldError = (key) => {
+  delete fieldErrors[key];
+};
+
 const submitLogin = async () => {
-  if (!form.username.trim() || !form.pwd.trim()) {
-    error.value = "Vui lòng nhập đầy đủ thông tin đăng nhập.";
+  Object.keys(fieldErrors).forEach((k) => delete fieldErrors[k]);
+  const result = runValidation(form, {
+    username: ["required", "username"],
+    pwd: [{ type: "required", message: "Vui lòng nhập mật khẩu." }],
+  });
+  if (!result.ok) {
+    Object.assign(fieldErrors, result.errors);
+    error.value = firstError(result.errors);
+    toast.error(error.value);
     return;
   }
 
@@ -75,17 +108,19 @@ const submitLogin = async () => {
 
   try {
     const data = await loginApi({
-      username: form.username.trim(),
+      username: result.values.username,
       password: form.pwd,
       remember: form.remember,
     });
 
     if (typeof data !== "object" || data === null || !data.username) {
       error.value = "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.";
+      toast.error(error.value);
       return;
     }
     if (!data.accessToken) {
       error.value = "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.";
+      toast.error(error.value);
       return;
     }
 
@@ -105,13 +140,28 @@ const submitLogin = async () => {
       loginError?.response?.data?.message ||
       loginError?.message ||
       "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.";
+    toast.error(error.value);
   } finally {
     loading.value = false;
   }
 };
 
 onMounted(() => {
+  const parseHashParams = () => {
+    const hash = window.location.hash?.replace(/^#/, "") || "";
+    if (!hash) return {};
+    const out = {};
+    for (const part of hash.split("&")) {
+      const [k, ...rest] = part.split("=");
+      if (!k) continue;
+      out[decodeURIComponent(k)] = decodeURIComponent(rest.join("=") || "");
+    }
+    return out;
+  };
+
   const q = route.query;
+  const h = parseHashParams();
+
   if (q.oauth_error != null && q.oauth_error !== "") {
     error.value =
       typeof q.oauth_error === "string"
@@ -122,25 +172,33 @@ onMounted(() => {
     router.replace({ path: "/login" });
     return;
   }
-  if (q.oauth === "1" && q.accessToken && q.username) {
+
+  const oauth = h.oauth === "1" || q.oauth === "1";
+  const accessToken = h.accessToken || q.accessToken;
+  const username = h.username || q.username;
+  const refreshToken = h.refreshToken || q.refreshToken || "";
+  const rolesRaw = h.roles || q.roles;
+
+  if (oauth && accessToken && username) {
     let roles = [];
     try {
-      const raw = q.roles;
-      if (typeof raw === "string") roles = JSON.parse(raw);
-      else if (Array.isArray(raw)) roles = raw;
+      if (typeof rolesRaw === "string") roles = JSON.parse(rolesRaw);
+      else if (Array.isArray(rolesRaw)) roles = rolesRaw;
     } catch {
       roles = [];
     }
     store.login({
-      username: String(q.username),
+      username: String(username),
       roles,
-      accessToken: String(q.accessToken),
-      refreshToken: "",
+      accessToken: String(accessToken),
+      refreshToken: String(refreshToken || ""),
     });
+    if (window.location.hash) {
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
     store.loadFavorites().finally(() => {
       router.replace(resolveAfterLoginPath());
     });
-    return;
   }
 });
 </script>

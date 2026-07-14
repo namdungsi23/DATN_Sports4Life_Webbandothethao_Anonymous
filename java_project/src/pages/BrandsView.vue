@@ -1,23 +1,38 @@
 <template>
   <MainLayout>
-    <div class="brands-page">
-      <header class="brands-page__head">
-        <h1>Thương hiệu</h1>
-        <p>Chọn thương hiệu để xem sản phẩm chính hãng</p>
-      </header>
+    <template #full>
+      <div class="page-hero page-hero--brands">
+        <img
+          src="https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=1600&q=80"
+          alt="Thương hiệu thể thao Sports4Life"
+        />
+        <div class="page-hero__content site-container">
+          <p class="page-hero__brand">Sports4Life</p>
+          <p class="page-hero__eyebrow">Official partners</p>
+          <h1>Thương hiệu</h1>
+          <p>Nike, Adidas, Puma và hơn thế — chính hãng, sẵn sàng cho mọi trận đấu</p>
+          <RouterLink to="/product" class="page-hero__cta">Xem sản phẩm</RouterLink>
+        </div>
+      </div>
+    </template>
 
-      <BrandStrip :show-all-link="false" />
+    <section class="brands-page">
+      <header class="brands-page__intro">
+        <h2>Chọn thương hiệu</h2>
+        <p>Nhấn vào logo để lọc sản phẩm theo thương hiệu bạn yêu thích</p>
+      </header>
 
       <p v-if="loading" class="brands-page__status">Đang tải danh sách thương hiệu...</p>
 
-      <div v-else-if="brands.length" class="brands-simple-grid">
+      <div v-else-if="brands.length" class="brands-grid">
         <RouterLink
-          v-for="brand in brands"
+          v-for="(brand, index) in brands"
           :key="brand.name"
           :to="brandLink(brand.name)"
-          class="brands-simple-card"
+          class="brands-tile"
+          :style="{ '--delay': `${index * 40}ms` }"
         >
-          <div class="brands-simple-card__logo">
+          <div class="brands-tile__logo">
             <img
               v-if="brand.logo && !failedLogos.has(brand.name)"
               :src="brand.logo"
@@ -25,9 +40,9 @@
               loading="lazy"
               @error="onLogoError(brand.name)"
             />
-            <span v-else>{{ brand.name }}</span>
+            <span v-else class="brands-tile__fallback">{{ brand.name }}</span>
           </div>
-          <div class="brands-simple-card__meta">
+          <div class="brands-tile__meta">
             <strong>{{ brand.name }}</strong>
             <span>{{ brand.productCount }} sản phẩm</span>
           </div>
@@ -35,7 +50,7 @@
       </div>
 
       <p v-else class="brands-page__status">Chưa có thương hiệu trong hệ thống.</p>
-    </div>
+    </section>
   </MainLayout>
 </template>
 
@@ -43,7 +58,6 @@
 import { onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
-import BrandStrip from "../components/BrandStrip.vue";
 import { fetchBrandsApi } from "../services/api";
 import { DEFAULT_BRAND_NAMES, resolveBrandLogo } from "../utils/brandLogos";
 
@@ -63,7 +77,9 @@ const toBrandItem = (name, productCount = 0) => ({
 });
 
 const onLogoError = (name) => {
-  failedLogos.value.add(name);
+  const next = new Set(failedLogos.value);
+  next.add(name);
+  failedLogos.value = next;
 };
 
 const loadBrands = async () => {

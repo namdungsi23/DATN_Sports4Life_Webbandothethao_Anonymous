@@ -8,6 +8,8 @@ export const ADMIN_PERMS = {
   ORDER: "ORDER_VIEW",
   ORDER_UPDATE: "ORDER_UPDATE",
   USER: "USER_VIEW",
+  COMMENT: "PRODUCT_VIEW",
+  RANK: "USER_VIEW",
 };
 
 export const ADMIN_MENU = [
@@ -16,6 +18,13 @@ export const ADMIN_MENU = [
     label: "Dashboard",
     icon: "dashboard",
     tone: "orange",
+    permission: ADMIN_PERMS.DASHBOARD,
+  },
+  {
+    to: "/admin/revenue",
+    label: "Doanh thu",
+    icon: "chart",
+    tone: "green",
     permission: ADMIN_PERMS.DASHBOARD,
   },
   {
@@ -38,6 +47,20 @@ export const ADMIN_MENU = [
     icon: "order",
     tone: "green",
     permission: ADMIN_PERMS.ORDER,
+  },
+  {
+    to: "/admin/comments",
+    label: "Bình luận",
+    icon: "comment",
+    tone: "teal",
+    permission: ADMIN_PERMS.COMMENT,
+  },
+  {
+    to: "/admin/ranks",
+    label: "Hạng TV",
+    icon: "rank",
+    tone: "purple",
+    permission: ADMIN_PERMS.RANK,
   },
   {
     to: "/admin/user",

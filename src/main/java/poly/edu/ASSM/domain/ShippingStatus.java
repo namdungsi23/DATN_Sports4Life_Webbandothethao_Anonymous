@@ -1,18 +1,32 @@
 package poly.edu.ASSM.domain;
 
 public enum ShippingStatus {
-    PENDING,
-    PICKED_UP,
-    IN_TRANSIT,
-    OUT_FOR_DELIVERY,
-    DELIVERED,
-    FAILED,
-    RETURNED;
+    PENDING("Chờ lấy hàng"),
+    PICKED_UP("Đã lấy hàng"),
+    IN_TRANSIT("Đang vận chuyển"),
+    OUT_FOR_DELIVERY("Đang giao"),
+    DELIVERED("Đã giao hàng"),
+    FAILED("Giao thất bại"),
+    RETURNED("Hoàn trả");
+
+    private final String label;
+
+    ShippingStatus(String label) {
+        this.label = label;
+    }
+
+    public String getLabel() {
+        return label;
+    }
 
     public static ShippingStatus parse(String value) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Trạng thái vận chuyển không hợp lệ");
+            throw new IllegalArgumentException("Trạng thái vận chuyển không được để trống");
         }
-        return ShippingStatus.valueOf(value.trim().toUpperCase());
+        try {
+            return ShippingStatus.valueOf(value.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Trạng thái vận chuyển không hợp lệ: " + value.trim());
+        }
     }
 }

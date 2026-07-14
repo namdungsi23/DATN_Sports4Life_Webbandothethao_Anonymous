@@ -1,5 +1,6 @@
 package poly.edu.ASSM.Services.core;
 
+import java.util.List;
 import java.util.Map;
 
 public interface PublicProductService {
@@ -17,6 +18,5 @@ public interface PublicProductService {
 
     Map<String, Object> getBrands();
 
-    /** Gợi ý autocomplete khi gõ từ khóa (prefix / chứa). */
-    Map<String, Object> suggestProducts(String keyword, int limit);
+    List<Map<String, String>> getCategories();
 }

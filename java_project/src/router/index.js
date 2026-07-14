@@ -5,6 +5,8 @@ import ProductDetailView from "../pages/ProductDetailView.vue";
 
 import LoginView from "../pages/LoginView.vue";
 import RegisterView from "../pages/RegisterView.vue";
+import ForgotPasswordView from "../pages/ForgotPasswordView.vue";
+import ResetPasswordView from "../pages/ResetPasswordView.vue";
 import ProfileView from "../pages/ProfileView.vue";
 import FavoritesView from "../pages/FavoritesView.vue";
 import ContactView from "../pages/ContactView.vue";
@@ -19,7 +21,10 @@ import AdminProductView from "../pages/admin/AdminProductView.vue";
 import AdminCategoryView from "../pages/admin/AdminCategoryView.vue";
 import AdminUserView from "../pages/admin/AdminUserView.vue";
 import AdminOrderView from "../pages/admin/AdminOrderView.vue";
+import AdminCommentView from "../pages/admin/AdminCommentView.vue";
+import AdminRankView from "../pages/admin/AdminRankView.vue";
 import AdminDashboardView from "../pages/admin/AdminDashboardView.vue";
+import AdminRevenueView from "../pages/admin/AdminRevenueView.vue";
 import { STORAGE_KEYS } from "../stores/appStore";
 import { ADMIN_PERMS } from "../utils/adminAccess.js";
 import {
@@ -38,6 +43,8 @@ const routes = [
   { path: "/featured", component: FeaturedView },
   { path: "/login", component: LoginView, meta: { guestOnly: true } },
   { path: "/register", component: RegisterView, meta: { guestOnly: true } },
+  { path: "/forgot-password", component: ForgotPasswordView, meta: { guestOnly: true } },
+  { path: "/reset-password", component: ResetPasswordView, meta: { guestOnly: true } },
   { path: "/profile", component: ProfileView, meta: { requiresAuth: true } },
   { path: "/addresses", component: AddressBookView, meta: { requiresAuth: true } },
   { path: "/favorites", component: FavoritesView, meta: { requiresAuth: true } },
@@ -53,6 +60,11 @@ const routes = [
     meta: { ...panelMeta, permission: ADMIN_PERMS.DASHBOARD, pageTitle: "Dashboard", pageSubtitle: "Tổng quan hệ thống" },
   },
   {
+    path: "/admin/revenue",
+    component: AdminRevenueView,
+    meta: { ...panelMeta, permission: ADMIN_PERMS.DASHBOARD, pageTitle: "Doanh thu", pageSubtitle: "Báo cáo doanh thu" },
+  },
+  {
     path: "/admin/product",
     component: AdminProductView,
     meta: { ...panelMeta, permission: ADMIN_PERMS.PRODUCT, pageTitle: "Sản phẩm", pageSubtitle: "Quản lý sản phẩm" },
@@ -66,6 +78,17 @@ const routes = [
     path: "/admin/user",
     component: AdminUserView,
     meta: { ...panelMeta, permission: ADMIN_PERMS.USER, pageTitle: "Tài khoản", pageSubtitle: "Quản lý người dùng" },
+  },
+  
+  {
+    path: "/admin/comments",
+    component: AdminCommentView,
+    meta: { ...panelMeta, permission: ADMIN_PERMS.COMMENT, pageTitle: "Bình luận", pageSubtitle: "Quản lý đánh giá sản phẩm" },
+  },
+  {
+    path: "/admin/ranks",
+    component: AdminRankView,
+    meta: { ...panelMeta, permission: ADMIN_PERMS.RANK, pageTitle: "Hạng thành viên", pageSubtitle: "Quản lý hạng & điểm người mua" },
   },
   {
     path: "/admin/order",
@@ -87,10 +110,14 @@ const router = createRouter({
 router.beforeEach((to) => {
   const rawUser = localStorage.getItem(STORAGE_KEYS.user);
   const user = rawUser ? JSON.parse(rawUser) : null;
+  const accessToken = sessionStorage.getItem(STORAGE_KEYS.accessToken);
 
   const needsUser = Boolean(to.meta.requiresAuth || to.meta.requiresPanel || to.meta.permission);
 
-  if (needsUser && !user) return "/login";
+  // Lớp 1: yêu cầu cả profile + access token (không tin localStorage roles một mình)
+  if (needsUser && (!user || !accessToken)) {
+    return { path: "/login", query: { redirect: to.fullPath } };
+  }
 
   if (to.meta.requiresPanel && !userCanAccessPanel(user)) {
     return "/";
@@ -101,7 +128,7 @@ router.beforeEach((to) => {
     return fallback && fallback !== to.path ? fallback : "/";
   }
 
-  if (to.meta.guestOnly && user) return "/profile";
+  if (to.meta.guestOnly && user && accessToken) return "/profile";
   return true;
 });
 

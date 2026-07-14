@@ -149,6 +149,18 @@
   box-shadow: 0 0 0 3px rgba(26, 60, 52, 0.1);
 }
 
+.contact-form__field input.is-invalid,
+.contact-form__field textarea.is-invalid {
+  border-color: #dc3545;
+}
+
+.contact-form__error {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #dc3545;
+}
+
 .contact-form__row {
   display: grid;
   grid-template-columns: 1fr 1fr;

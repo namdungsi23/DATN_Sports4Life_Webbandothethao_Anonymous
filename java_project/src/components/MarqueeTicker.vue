@@ -25,7 +25,7 @@ defineProps({
       "FREESHIP đơn từ 499K toàn quốc",
       "GIẢM 20% khi mua 2 sản phẩm bất kỳ",
       "ĐỔI TRẢ MIỄN PHÍ trong 7 ngày",
-      "HOTLINE hỗ trợ 24/7: 1900 6750",
+      "HOTLINE hỗ trợ 24/7: 0336 694 988",
       "SẢN PHẨM CHÍNH HÃNG 100%",
       "THANH TOÁN COD — VNPAY — MOMO",
     ],

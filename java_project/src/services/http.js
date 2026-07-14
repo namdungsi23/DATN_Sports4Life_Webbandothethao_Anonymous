@@ -42,9 +42,20 @@ export async function apiFetch(path, opts = {}) {
     headers,
   });
 
-  if (res.status === 401 || res.status === 403) {
-    throw Object.assign(new Error("Không có quyền truy cập admin"), {
-      status: res.status,
+  if (res.status === 401) {
+    try {
+      useAppStore().logout();
+    } catch {
+      /* ignore */
+    }
+    throw Object.assign(new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."), {
+      status: 401,
+    });
+  }
+
+  if (res.status === 403) {
+    throw Object.assign(new Error("Không có quyền truy cập."), {
+      status: 403,
     });
   }
 
@@ -71,7 +82,16 @@ export async function apiFetch(path, opts = {}) {
         : typeof data === "string"
           ? data
           : res.statusText;
-    throw Object.assign(new Error(msg), { status: res.status, body: data });
+    const fieldErrors =
+      typeof data === "object" && data !== null && data.errors && typeof data.errors === "object"
+        ? data.errors
+        : {};
+    throw Object.assign(new Error(msg || "Yêu cầu thất bại"), {
+      status: res.status,
+      body: data,
+      errors: fieldErrors,
+      response: { status: res.status, data },
+    });
   }
   
   return data;

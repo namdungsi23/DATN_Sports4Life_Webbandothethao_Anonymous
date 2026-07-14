@@ -14,7 +14,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import jakarta.servlet.http.HttpSession;
 import poly.edu.ASSM.Services.util.AuthServiceImpl;
 import poly.edu.ASSM.Services.util.ShoppingCartServiceImpl;
-import poly.edu.ASSM.exception.OutOfStockException;
 
 @Controller
 @RequestMapping("/cart")
@@ -63,12 +62,7 @@ public class CartController {
 	public String update(@RequestParam int id,
 						 @RequestParam int qty,
 						 RedirectAttributes redirect) {
-		try {
-			cartService.update(id, qty);
-		}catch(OutOfStockException e) {
-			System.out.println(e.getMessage());
-			redirect.addFlashAttribute("errorMessage", e.getMessage());
-		}
+		cartService.update(id, qty);
 
 		return "redirect:/cart";
 	}

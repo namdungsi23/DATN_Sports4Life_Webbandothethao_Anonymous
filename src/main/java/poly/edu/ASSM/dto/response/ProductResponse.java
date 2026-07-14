@@ -27,8 +27,6 @@ public class ProductResponse {
     private Instant createdAt;
     private Instant updatedAt;
     private String imageUrl;
-    /** Giá biến thể mặc định (fallback biến thể đầu tiên). */
-    private BigDecimal defaultPrice;
     private BigDecimal minPrice;
     private BigDecimal maxPrice;
     private Boolean inStock;

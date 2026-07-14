@@ -25,7 +25,7 @@
           <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&q=80" alt="Văn phòng Sports4Life" />
           <div class="contact-map__info">
             <h3>Showroom TP.HCM</h3>
-            <p>123 Nguyễn Văn Linh, Quận 7, TP.HCM</p>
+            <p>{{ BRAND.address }}</p>
             <p>Thứ 2 – CN: 8:00 – 22:00</p>
           </div>
         </div>
@@ -40,21 +40,49 @@
           <form class="contact-form" @submit.prevent="submitContact">
             <label class="contact-form__field">
               <span>Họ và tên *</span>
-              <input v-model="form.name" type="text" placeholder="Nguyễn Văn A" required />
+              <input
+                v-model="form.name"
+                type="text"
+                placeholder="Nguyễn Văn A"
+                :class="{ 'is-invalid': fieldErrors.name }"
+                @input="clearFieldError('name')"
+              />
+              <small v-if="fieldErrors.name" class="contact-form__error">{{ fieldErrors.name }}</small>
             </label>
             <div class="contact-form__row">
               <label class="contact-form__field">
                 <span>Email *</span>
-                <input v-model="form.email" type="email" placeholder="email@example.com" required />
+                <input
+                  v-model="form.email"
+                  type="email"
+                  placeholder="email@example.com"
+                  :class="{ 'is-invalid': fieldErrors.email }"
+                  @input="clearFieldError('email')"
+                />
+                <small v-if="fieldErrors.email" class="contact-form__error">{{ fieldErrors.email }}</small>
               </label>
               <label class="contact-form__field">
                 <span>Số điện thoại</span>
-                <input v-model="form.phone" type="tel" placeholder="090x xxx xxx" />
+                <input
+                  v-model="form.phone"
+                  type="tel"
+                  placeholder="090x xxx xxx"
+                  :class="{ 'is-invalid': fieldErrors.phone }"
+                  @input="clearFieldError('phone')"
+                />
+                <small v-if="fieldErrors.phone" class="contact-form__error">{{ fieldErrors.phone }}</small>
               </label>
             </div>
             <label class="contact-form__field">
               <span>Nội dung *</span>
-              <textarea v-model="form.message" rows="5" placeholder="Bạn cần hỗ trợ gì?" required />
+              <textarea
+                v-model="form.message"
+                rows="5"
+                placeholder="Bạn cần hỗ trợ gì?"
+                :class="{ 'is-invalid': fieldErrors.message }"
+                @input="clearFieldError('message')"
+              />
+              <small v-if="fieldErrors.message" class="contact-form__error">{{ fieldErrors.message }}</small>
             </label>
             <button type="submit" class="contact-form__submit" :disabled="loading">
               {{ loading ? "Đang gửi..." : "Gửi liên hệ" }}
@@ -70,34 +98,79 @@
 import { reactive, ref } from "vue";
 import MainLayout from "../layouts/MainLayout.vue";
 import { sendContactApi } from "../services/api";
+import { useToast } from "../stores/appStore";
+import { firstError, getApiError, normalizePhone, runValidation } from "../utils/validators";
+import { BRAND } from "../utils/brand";
 
+const toast = useToast();
 const loading = ref(false);
 const error = ref("");
 const message = ref("");
+const fieldErrors = reactive({});
 const form = reactive({ name: "", email: "", phone: "", message: "" });
 
 const contactCards = [
-  { icon: "📞", title: "Hotline", lines: ["1900 6750", "Hỗ trợ 8:00 – 22:00 hàng ngày"] },
-  { icon: "✉", title: "Email", lines: ["support@sports4life.vn", "Phản hồi trong 24h"] },
-  { icon: "📍", title: "Địa chỉ", lines: ["123 Nguyễn Văn Linh, Q.7", "TP. Hồ Chí Minh"] },
+  { icon: "📞", title: "Hotline", lines: [BRAND.phone, "Hỗ trợ 8:00 – 22:00 hàng ngày"] },
+  { icon: "✉", title: "Email", lines: [BRAND.email, "Phản hồi trong 24h"] },
+  { icon: "📍", title: "Địa chỉ", lines: ["Lê Văn Lương, Q.7", "TP. Hồ Chí Minh"] },
   { icon: "💬", title: "Mạng xã hội", lines: ["Facebook / Instagram", "TikTok: @sports4life"] },
 ];
 
+const clearFieldError = (key) => {
+  delete fieldErrors[key];
+};
+
 const submitContact = async () => {
+  Object.keys(fieldErrors).forEach((k) => delete fieldErrors[k]);
+  const result = runValidation(form, {
+    name: [
+      "required",
+      { type: "min", min: 2, message: "Họ tên tối thiểu 2 ký tự." },
+      { type: "max", max: 100 },
+    ],
+    email: ["required", "email"],
+    phone: ["phone"],
+    message: [
+      "required",
+      { type: "min", min: 10, message: "Nội dung tối thiểu 10 ký tự." },
+      { type: "max", max: 2000 },
+    ],
+  });
+
+  if (!result.ok) {
+    Object.assign(fieldErrors, result.errors);
+    error.value = firstError(result.errors);
+    message.value = "";
+    toast.error(error.value);
+    return;
+  }
+
   loading.value = true;
   error.value = "";
   message.value = "";
 
   try {
-    await sendContactApi({ ...form });
+    await sendContactApi({
+      name: result.values.name,
+      email: result.values.email,
+      phone: form.phone ? normalizePhone(form.phone) : "",
+      message: result.values.message,
+    });
     message.value = "Gửi liên hệ thành công. Chúng tôi sẽ phản hồi sớm nhất!";
+    toast.success(message.value);
     form.name = "";
     form.email = "";
     form.phone = "";
     form.message = "";
   } catch (contactError) {
-    console.warn("Contact API not ready, fallback success.", contactError);
-    message.value = "Đã ghi nhận liên hệ. Chúng tôi sẽ phản hồi sớm!";
+    console.warn("Contact failed", contactError);
+    const api = getApiError(
+      contactError,
+      `Không gửi được liên hệ. Vui lòng thử lại hoặc gọi hotline ${BRAND.phone}.`
+    );
+    Object.assign(fieldErrors, api.errors);
+    error.value = api.message;
+    toast.error(error.value);
   } finally {
     loading.value = false;
   }

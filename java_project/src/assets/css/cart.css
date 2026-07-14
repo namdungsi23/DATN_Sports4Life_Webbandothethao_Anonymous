@@ -112,6 +112,15 @@
   margin: 0 0 14px;
 }
 
+.cart-item__meta {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #6b7280;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .cart-item__actions {
   display: flex;
   align-items: center;

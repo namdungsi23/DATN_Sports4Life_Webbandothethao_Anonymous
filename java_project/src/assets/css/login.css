@@ -162,6 +162,95 @@
   cursor: pointer;
 }
 
+.auth-form__check--row {
+  justify-content: space-between;
+  cursor: default;
+}
+
+.auth-form__remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.auth-form__forgot {
+  color: #dc2626;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.auth-form__forgot:hover {
+  color: #e8871e;
+  text-decoration: underline;
+}
+
+.auth-form__dev-link {
+  margin-top: 16px;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.auth-form__dev-link a {
+  color: #1a3c34;
+  font-weight: 600;
+}
+
+.auth-form__dev-link strong {
+  color: #dc2626;
+  letter-spacing: 0.12em;
+}
+
+.auth-otp-steps {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #aaa;
+}
+
+.auth-otp-steps span.active {
+  color: #1a3c34;
+}
+
+.auth-form__hint {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.auth-form__otp-input {
+  letter-spacing: 0.35em;
+  font-size: 20px !important;
+  font-weight: 700;
+  text-align: center;
+}
+
+.auth-form__link-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  color: #1a3c34;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.auth-form__link-btn:disabled {
+  color: #999;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
 .auth-form__upload span {
   display: block;
   font-size: 13px;
@@ -256,4 +345,15 @@
   .auth-form__row {
     grid-template-columns: 1fr;
   }
+}
+
+.auth-form__field input.is-invalid {
+  border-color: #dc3545;
+}
+
+.auth-form__error {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #dc3545;
 }

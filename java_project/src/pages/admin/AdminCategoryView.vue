@@ -184,17 +184,26 @@
     flashOk.value = "";
     flashErr.value = "";
     err.value = "";
+    const name = String(form.name || "").trim();
+    if (!name) {
+      flashErr.value = "Tên danh mục không được để trống.";
+      return;
+    }
+    if (name.length > 100) {
+      flashErr.value = "Tên danh mục tối đa 100 ký tự.";
+      return;
+    }
     try {
       if (form.id) {
         await apiFetch("/api/admin/categories", {
           method: "PUT",
-          body: JSON.stringify({ id: form.id, name: form.name }),
+          body: JSON.stringify({ id: form.id, name }),
         });
         flashOk.value = "Cập nhật thành công";
       } else {
         const res = await apiFetch("/api/admin/categories", {
           method: "POST",
-          body: JSON.stringify({ name: form.name }),
+          body: JSON.stringify({ name }),
         });
         flashOk.value = res.message || "Lưu thành công";
       }

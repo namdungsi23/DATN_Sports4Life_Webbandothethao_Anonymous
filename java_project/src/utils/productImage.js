@@ -4,10 +4,31 @@ export const FALLBACK_PRODUCT_IMAGE =
 const CLOUDINARY_PRODUCT_BASE =
   "https://res.cloudinary.com/pnam233/image/upload/product";
 
+/** URL Cloudinary tạm (1 ảnh) theo category + productId. */
 export function cloudinaryProductUrl(categoryId, productId) {
   if (!categoryId || productId == null) return null;
   const seq = ((Number(productId) - 1) % 10) + 1;
   return `${CLOUDINARY_PRODUCT_BASE}/${String(categoryId).toLowerCase()}_${seq}.jpg`;
+}
+
+function toUrlList(images) {
+  if (!Array.isArray(images)) return [];
+  return images
+    .map((img) => (typeof img === "string" ? img : img?.imageUrl || img?.url))
+    .filter(Boolean);
+}
+
+/** Tạm thời: ảnh DB của biến thể, hoặc 1 ảnh Cloudinary fallback. */
+export function resolveVariantImages(variant, product) {
+  if (!variant) return [];
+
+  const fromArray = toUrlList(variant.images);
+  if (fromArray.length) return fromArray;
+
+  if (variant.image) return [variant.image];
+
+  const temp = cloudinaryProductUrl(product?.categoryId, product?.id ?? variant.productId);
+  return temp ? [temp] : [];
 }
 
 export function resolveProductImage(product) {
@@ -16,8 +37,8 @@ export function resolveProductImage(product) {
   const direct =
     product.image ||
     product.imageUrl ||
-    product.images?.find((img) => img?.isDefault)?.imageUrl ||
-    product.images?.[0]?.imageUrl;
+    (typeof product.images?.[0] === "string" ? product.images[0] : product.images?.[0]?.imageUrl) ||
+    product.gallery?.[0];
 
   if (direct) return direct;
 
@@ -26,9 +47,36 @@ export function resolveProductImage(product) {
 
 export function normalizeProduct(product) {
   if (!product || typeof product !== "object") return product;
+
+  const variants = Array.isArray(product.variants)
+    ? product.variants.map((v) => {
+        const images = resolveVariantImages(v, product);
+        return {
+          ...v,
+          images,
+          image: images[0] || v.image || null,
+        };
+      })
+    : product.variants;
+
+  const gallery =
+    (Array.isArray(product.gallery) && product.gallery.length
+      ? product.gallery.filter(Boolean)
+      : null) ||
+    toUrlList(product.images) ||
+    [];
+
+  const uniqueGallery = [...new Set(gallery.filter(Boolean))];
+  if (!uniqueGallery.length) {
+    const one = resolveProductImage(product);
+    if (one) uniqueGallery.push(one);
+  }
+
   return {
     ...product,
-    image: resolveProductImage(product),
+    variants,
+    gallery: uniqueGallery,
+    image: uniqueGallery[0] || resolveProductImage(product),
   };
 }
 
@@ -40,7 +88,6 @@ export function normalizeProductsResponse(data) {
     return {
       ...data,
       products: { ...data.products, content },
-      suggestions: (data.suggestions ?? []).map(normalizeProduct),
     };
   }
 

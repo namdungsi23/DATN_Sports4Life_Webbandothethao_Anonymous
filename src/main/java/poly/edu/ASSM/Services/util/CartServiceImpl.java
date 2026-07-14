@@ -10,11 +10,9 @@ import org.springframework.stereotype.Service;
 
 import poly.edu.ASSM.Entity.ProductVariants;
 import poly.edu.ASSM.Entity.Products;
-import poly.edu.ASSM.Services.core.InventoryService;
 import poly.edu.ASSM.Services.core.ProductService;
 import poly.edu.ASSM.Services.web.SessionService;
 import poly.edu.ASSM.domain.CartItem;
-import poly.edu.ASSM.exception.OutOfStockException;
 
 @Service
 public class CartServiceImpl implements CartService {
@@ -23,9 +21,6 @@ public class CartServiceImpl implements CartService {
 
     @Autowired
     SessionService sessionService;
-
-    @Autowired
-    InventoryService inventoryService;
 
     static final String CART_KEY = "cart";
 
@@ -82,12 +77,11 @@ public class CartServiceImpl implements CartService {
         if (item == null) {
             return;
         }
-        try {
-            inventoryService.checkInventory(productId, quantity);
-            item.setQuantity(quantity);
-        } catch (OutOfStockException e) {
-            throw e;
+        if (quantity <= 0) {
+            getCart().remove(productId);
+            return;
         }
+        item.setQuantity(quantity);
     }
 
     @Override

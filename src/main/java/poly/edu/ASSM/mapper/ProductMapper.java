@@ -50,9 +50,6 @@ public class ProductMapper {
                 .max(Comparator.naturalOrder())
                 .orElse(null);
 
-        ProductVariants defaultVariant = findDefaultVariant(entity);
-        BigDecimal defaultPrice = defaultVariant != null ? defaultVariant.getPrice() : minPrice;
-
         boolean inStock = variants.stream().anyMatch(v -> Boolean.TRUE.equals(v.getInStock()));
 
         String imageUrl = resolveProductThumbnail(entity);
@@ -70,7 +67,6 @@ public class ProductMapper {
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .imageUrl(imageUrl)
-                .defaultPrice(defaultPrice)
                 .minPrice(minPrice)
                 .maxPrice(maxPrice)
                 .inStock(inStock)

@@ -77,17 +77,22 @@
 }
 
 .site-footer__logo {
-  font-family: "Playfair Display", Georgia, serif;
-  font-size: 26px;
-  font-weight: 700;
-  color: #e8a838;
+  display: inline-flex;
+  align-items: center;
   text-decoration: none;
-  display: inline-block;
   margin-bottom: 16px;
 }
 
-.site-footer__logo:hover {
-  color: #f5c563;
+.site-footer__logo-img {
+  display: block;
+  height: 46px;
+  width: auto;
+  max-width: 220px;
+}
+
+.site-footer__logo:hover .site-footer__logo-img {
+  opacity: 0.92;
+  filter: brightness(1.08);
 }
 
 .site-footer__desc {
@@ -140,7 +145,8 @@
   margin-bottom: 20px;
 }
 
-.site-footer__social a {
+.site-footer__social a,
+.site-footer__social-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -153,11 +159,31 @@
   font-weight: 700;
   text-decoration: none;
   transition: background 0.2s;
+  margin-bottom: 0;
 }
 
-.site-footer__social a:hover {
+.site-footer__social a:hover,
+.site-footer__social-btn:hover {
   background: #e8871e;
   color: #fff;
+}
+
+.site-footer__social-btn :deep(svg) {
+  display: block;
+}
+
+.site-footer__mail {
+  color: #aaa !important;
+  display: inline !important;
+  margin: 0 !important;
+}
+
+.site-footer__mail:hover {
+  color: #e8871e !important;
+}
+
+.site-footer__contact-ico {
+  flex-shrink: 0;
 }
 
 .site-footer__app-label {

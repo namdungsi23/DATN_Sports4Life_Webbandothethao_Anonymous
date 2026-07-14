@@ -15,6 +15,7 @@ import poly.edu.ASSM.Entity.Roles;
 import poly.edu.ASSM.Repository.RoleRepository;
 import poly.edu.ASSM.Services.core.AccountService;
 import poly.edu.ASSM.Services.util.AuthService;
+import poly.edu.ASSM.security.PasswordPolicy;
 
 @Controller
 public class AuthController {
@@ -45,37 +46,14 @@ public class AuthController {
 		return "redirect:/";
 	}
 */
-	/* ==Xử lý Register== */
+	/* register0 đã vô hiệu — tạo ADMIN + lưu mật khẩu thô là lỗ hổng nghiêm trọng */
 	@PostMapping("/register0")
-	public String register0(@RequestParam String username, @RequestParam String email, @RequestParam String password,
-			@RequestParam String confirm, Model model) {
-		if (account.findByUsername(username) != null) {
-		    model.addAttribute("error", "Tên đăng nhập đã tồn tại!");
-		    model.addAttribute("showRegister", true);
-		    return "page/login";
-		}
-
-		if (!password.equals(confirm)) {
-			model.addAttribute("error", "Mật khẩu không khớp!");
-			model.addAttribute("showRegister", true);
-			return "page/login";
-		}
-		
-		// Tạo tài khoản
-		Accounts acc = new Accounts();
-		acc.setUsername(username);
-		acc.setPasswordHash(password);
-		acc.setEmail(email);
-		acc.setIsActive(true);
-		acc.setRole(roleRepository.findByName("ROLE_ADMIN").orElseThrow());
-		account.update(acc);
-		model.addAttribute("sucess", "Đăng nhập thành công!Hãy đăng nhập");
-		model.addAttribute("showRegister", false);
+	public String register0Disabled(Model model) {
+		model.addAttribute("error", "Endpoint đăng ký này đã bị vô hiệu hóa.");
+		model.addAttribute("showRegister", true);
 		return "page/login";
-		// Logout
-
 	}
-	
+
 	@PostMapping("/register")
 	public String register(
 			@RequestParam String username,
@@ -85,22 +63,26 @@ public class AuthController {
 	        @RequestParam(required = false) MultipartFile photo,
 	        RedirectAttributes redirect,
 	        Model model){
+
+		String pwdError = PasswordPolicy.validate(password);
+		if (pwdError != null) {
+			redirect.addFlashAttribute("error", pwdError);
+			return "redirect:/login";
+		}
 		
 		if (account.findByUsername(username) != null) {
 		    redirect.addFlashAttribute("error", "Tên đăng nhập đã tồn tại!");
-		    //redirect.addFlashAttribute("showRegister", true); To be continue
-		    return "redirect:/login"; //To be continue
+		    return "redirect:/login";
 		}
-		// Tạo tài khoản
-			Accounts acc = new Accounts();
-			acc.setUsername(username);
-			acc.setPasswordHash(passwordEncoder.encode(password));
-			acc.setEmail(email);
-			acc.setIsActive(true);
-			acc.setRole(roleRepository.findByName("ROLE_USER").orElseThrow());
-			account.update(acc);
-			account.updateCustomerProfile(username, fullname, email, null, true);
-		return "page/login"; // To be continue
+		Accounts acc = new Accounts();
+		acc.setUsername(username);
+		acc.setPasswordHash(passwordEncoder.encode(password));
+		acc.setEmail(email);
+		acc.setIsActive(true);
+		acc.setRole(roleRepository.findByName("ROLE_USER").orElseThrow());
+		account.update(acc);
+		account.updateCustomerProfile(username, fullname, email, null, true);
+		return "page/login";
 		
 	}
 }

@@ -24,39 +24,25 @@ public interface ProductRepository extends JpaRepository<Products, Long> {
             "productVariants.productImages" })
     Page<Products> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
-    String PUBLIC_PRODUCT_FILTER = """
-            (COALESCE(p.status, true) = true)
-            AND ((:cat IS NULL OR :cat = '') OR (p.category IS NOT NULL AND p.category.name = :cat))
-            AND ((:keyword IS NULL OR :keyword = '')
-                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                    OR LOWER(COALESCE(p.brand, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))
-            AND (:min IS NULL OR EXISTS (
-                    SELECT 1 FROM ProductVariants v
-                    WHERE v.product = p AND v.price >= :min AND COALESCE(v.status, true) = true))
-            AND (:max IS NULL OR EXISTS (
-                    SELECT 1 FROM ProductVariants v
-                    WHERE v.product = p AND v.price <= :max AND COALESCE(v.status, true) = true))
-            """;
-
-    /** Giá dùng để sort public: biến thể mặc định, fallback MIN(price) nếu chưa có default. */
-    String PUBLIC_DEFAULT_PRICE_ORDER = """
-            (
-                SELECT COALESCE(
-                    (SELECT MIN(v.price) FROM ProductVariants v
-                     WHERE v.product = p AND v.isDefault = true AND COALESCE(v.status, true) = true),
-                    (SELECT MIN(v2.price) FROM ProductVariants v2
-                     WHERE v2.product = p AND COALESCE(v2.status, true) = true)
-                )
-            )
-            """;
-
     @EntityGraph(attributePaths = {
             "category",
             "productVariants",
             "productVariants.productImages" })
     @Query("""
             SELECT p FROM Products p
-            WHERE """ + PUBLIC_PRODUCT_FILTER)
+            WHERE (COALESCE(p.status, true) = true)
+            AND ((:cat IS NULL OR :cat = '')
+                    OR (p.category IS NOT NULL AND (p.category.name = :cat OR p.category.id = :cat)))
+            AND ((:keyword IS NULL OR :keyword = '')
+                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(COALESCE(p.brand, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            AND ((:min IS NULL AND :max IS NULL) OR EXISTS (
+                    SELECT 1 FROM ProductVariants v
+                    WHERE v.product = p
+                    AND COALESCE(v.status, true) = true
+                    AND (:min IS NULL OR v.price >= :min)
+                    AND (:max IS NULL OR v.price <= :max)))
+            """)
     Page<Products> filterProducts(
             @Param("cat") String cat,
             @Param("keyword") String keyword,
@@ -64,6 +50,21 @@ public interface ProductRepository extends JpaRepository<Products, Long> {
             @Param("max") Double max,
             Pageable pageable);
 
+    String GUEST_PRODUCT_FILTER = """
+            (COALESCE(p.status, true) = true)
+            AND ((:cat IS NULL OR :cat = '')
+                    OR (p.category IS NOT NULL AND (p.category.name = :cat OR p.category.id = :cat)))
+            AND ((:keyword IS NULL OR :keyword = '')
+                    OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(COALESCE(p.brand, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            AND ((:min IS NULL AND :max IS NULL) OR EXISTS (
+                    SELECT 1 FROM ProductVariants v
+                    WHERE v.product = p
+                    AND COALESCE(v.status, true) = true
+                    AND (:min IS NULL OR v.price >= :min)
+                    AND (:max IS NULL OR v.price <= :max)))
+            """;
+
     @EntityGraph(attributePaths = {
             "category",
             "productVariants",
@@ -71,14 +72,16 @@ public interface ProductRepository extends JpaRepository<Products, Long> {
     @Query(
             value = """
                     SELECT p FROM Products p
-                    WHERE """ + PUBLIC_PRODUCT_FILTER + """
-                    ORDER BY """ + PUBLIC_DEFAULT_PRICE_ORDER + """ 
-                    ASC
+                    WHERE """ + GUEST_PRODUCT_FILTER + """
+                    ORDER BY (
+                        SELECT MIN(v.price) FROM ProductVariants v
+                        WHERE v.product = p AND COALESCE(v.status, true) = true
+                    ) ASC
                     """,
             countQuery = """
                     SELECT count(p) FROM Products p
-                    WHERE """ + PUBLIC_PRODUCT_FILTER)
-    Page<Products> filterProductsOrderByDefaultPriceAsc(
+                    WHERE """ + GUEST_PRODUCT_FILTER)
+    Page<Products> filterProductsOrderByMinPriceAsc(
             @Param("cat") String cat,
             @Param("keyword") String keyword,
             @Param("min") Double min,
@@ -92,14 +95,16 @@ public interface ProductRepository extends JpaRepository<Products, Long> {
     @Query(
             value = """
                     SELECT p FROM Products p
-                    WHERE """ + PUBLIC_PRODUCT_FILTER + """
-                    ORDER BY """ + PUBLIC_DEFAULT_PRICE_ORDER + """ 
-                    DESC
+                    WHERE """ + GUEST_PRODUCT_FILTER + """
+                    ORDER BY (
+                        SELECT MIN(v.price) FROM ProductVariants v
+                        WHERE v.product = p AND COALESCE(v.status, true) = true
+                    ) DESC
                     """,
             countQuery = """
                     SELECT count(p) FROM Products p
-                    WHERE """ + PUBLIC_PRODUCT_FILTER)
-    Page<Products> filterProductsOrderByDefaultPriceDesc(
+                    WHERE """ + GUEST_PRODUCT_FILTER)
+    Page<Products> filterProductsOrderByMinPriceDesc(
             @Param("cat") String cat,
             @Param("keyword") String keyword,
             @Param("min") Double min,
@@ -111,64 +116,6 @@ public interface ProductRepository extends JpaRepository<Products, Long> {
             "productVariants",
             "productVariants.productImages" })
     Optional<Products> findDetailedById(Long id);
-
-    /** Gợi ý tìm kiếm: ưu tiên tên/thương hiệu bắt đầu bằng từ khóa, sau đó chứa từ khóa. */
-    @EntityGraph(attributePaths = {
-            "category",
-            "productVariants",
-            "productVariants.productImages" })
-    @Query("""
-            SELECT p FROM Products p
-            WHERE COALESCE(p.status, true) = true
-            AND (
-                LOWER(p.name) LIKE LOWER(CONCAT(:keyword, '%'))
-                OR LOWER(COALESCE(p.brand, '')) LIKE LOWER(CONCAT(:keyword, '%'))
-                OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(COALESCE(p.brand, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
-            )
-            ORDER BY
-                CASE
-                    WHEN LOWER(p.name) LIKE LOWER(CONCAT(:keyword, '%')) THEN 0
-                    WHEN LOWER(COALESCE(p.brand, '')) LIKE LOWER(CONCAT(:keyword, '%')) THEN 1
-                    WHEN LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) THEN 2
-                    ELSE 3
-                END,
-                p.name ASC
-            """)
-    List<Products> suggestByKeyword(@Param("keyword") String keyword, Pageable pageable);
-
-    @EntityGraph(attributePaths = {
-            "category",
-            "productVariants",
-            "productVariants.productImages" })
-    @Query("""
-            SELECT p FROM Products p
-            WHERE COALESCE(p.status, true) = true
-            AND LOWER(TRIM(p.name)) = LOWER(TRIM(:name))
-            """)
-    List<Products> findExactByNameIgnoreCase(@Param("name") String name, Pageable pageable);
-
-    @EntityGraph(attributePaths = {
-            "category",
-            "productVariants",
-            "productVariants.productImages" })
-    @Query("""
-            SELECT p FROM Products p
-            WHERE COALESCE(p.status, true) = true
-            AND p.id <> :excludeId
-            AND (
-                (:categoryName IS NOT NULL AND :categoryName <> ''
-                    AND p.category IS NOT NULL AND p.category.name = :categoryName)
-                OR (:brand IS NOT NULL AND :brand <> ''
-                    AND LOWER(TRIM(COALESCE(p.brand, ''))) = LOWER(TRIM(:brand)))
-            )
-            ORDER BY p.createdAt DESC
-            """)
-    List<Products> findRelatedByCategoryOrBrand(
-            @Param("excludeId") Long excludeId,
-            @Param("categoryName") String categoryName,
-            @Param("brand") String brand,
-            Pageable pageable);
 
     @Query("SELECT COUNT(p) FROM Products p WHERE p.createdAt >= :date")
     long countNewProducts(@Param("date") Instant date);

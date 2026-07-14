@@ -87,6 +87,8 @@ import { onMounted, reactive, ref } from "vue";
 import { RouterLink } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
 import AddressFormFields from "../components/AddressFormFields.vue";
+import { firstError, runValidation } from "../utils/validators";
+import { useToast } from "../stores/appStore";
 import {
   createAddressApi,
   deleteAddressApi,
@@ -102,6 +104,7 @@ const loading = ref(true);
 const saving = ref(false);
 const message = ref("");
 const error = ref("");
+const toast = useToast();
 const showForm = ref(false);
 const editingId = ref(null);
 const formErrors = ref({});
@@ -163,12 +166,17 @@ const closeForm = () => {
 };
 
 const validateForm = () => {
-  const errors = {};
-  if (!form.province.trim()) errors.province = "Vui lòng nhập thành phố";
-  if (!form.ward.trim()) errors.ward = "Vui lòng nhập phường";
-  if (!form.addressDetail.trim()) errors.addressDetail = "Vui lòng nhập địa chỉ";
-  formErrors.value = errors;
-  return Object.keys(errors).length === 0;
+  const result = runValidation(form, {
+    province: ["required", { type: "max", max: 100 }],
+    ward: ["required", { type: "max", max: 100 }],
+    addressDetail: ["required", { type: "max", max: 255 }],
+    label: [{ type: "max", max: 100 }],
+  });
+  formErrors.value = result.errors;
+  if (!result.ok) {
+    toast.error(firstError(result.errors));
+  }
+  return result.ok;
 };
 
 const buildPayload = () => ({

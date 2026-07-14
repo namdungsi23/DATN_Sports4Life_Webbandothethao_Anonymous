@@ -2,58 +2,32 @@
   <header class="site-header">
     <div class="header-top">
       <div class="site-container header-top__inner">
-        <RouterLink to="/" class="header-logo">Sports4Life</RouterLink>
+        <RouterLink to="/" class="header-logo" aria-label="Sports4Life trang chủ">
+          <img
+            :src="BRAND.logoUrl"
+            alt="Sports4Life"
+            class="header-logo__img"
+            width="180"
+            height="40"
+          />
+        </RouterLink>
 
-        <form class="header-search" @submit.prevent="onSearch" ref="searchWrapRef">
+        <form class="header-search" @submit.prevent="onSearch">
           <select v-model="searchCategory" class="header-search__category" aria-label="Danh mục">
             <option value="">Tất cả</option>
-            <option value="nam">Giày nam</option>
-            <option value="nu">Giày nữ</option>
-            <option value="tre-em">Trẻ em</option>
+            <option v-for="cat in categories" :key="cat.id || cat.name" :value="cat.name">
+              {{ cat.name }}
+            </option>
           </select>
-          <div class="header-search__field">
-            <input
-              v-model="searchKeyword"
-              type="search"
-              class="header-search__input"
-              placeholder="Tìm sản phẩm bạn mong muốn"
-              autocomplete="off"
-              @input="onKeywordInput"
-              @focus="onSearchFocus"
-              @keydown.down.prevent="highlightNext"
-              @keydown.up.prevent="highlightPrev"
-              @keydown.enter="onSearchEnter"
-              @keydown.esc="closeSuggestions"
-            />
-            <ul
-              v-if="showSuggestions && suggestions.length"
-              class="header-search-dropdown"
-              role="listbox"
-            >
-              <li
-                v-for="(item, index) in suggestions"
-                :key="item.id"
-                class="header-search-dropdown__item"
-                :class="{ 'is-active': index === highlightIndex }"
-                role="option"
-                @mousedown.prevent="goToProduct(item.id)"
-                @mouseenter="highlightIndex = index"
-              >
-                <img
-                  class="header-search-dropdown__img"
-                  :src="item.image || fallbackImage"
-                  :alt="item.name"
-                />
-                <div class="header-search-dropdown__meta">
-                  <span class="header-search-dropdown__name">{{ item.name }}</span>
-                  <span class="header-search-dropdown__sub">
-                    {{ item.brand || item.categoryName || "Sản phẩm" }}
-                    · {{ formatPrice(item.price) }}đ
-                  </span>
-                </div>
-              </li>
-            </ul>
-          </div>
+          <input
+            v-model="searchKeyword"
+            type="search"
+            class="header-search__input"
+            :class="{ 'is-invalid': searchError }"
+            :maxlength="KEYWORD_MAX"
+            placeholder="Tìm sản phẩm bạn mong muốn"
+            @input="searchError = ''"
+          />
           <button type="submit" class="header-search__btn" aria-label="Tìm kiếm">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <circle cx="11" cy="11" r="7" />
@@ -159,7 +133,7 @@
           <svg class="header-hotline__svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z" stroke-linejoin="round" />
           </svg>
-          Hotline: <strong>1900 6750</strong>
+          Hotline: <strong>0336 694 988</strong>
         </div>
       </div>
     </nav>
@@ -167,10 +141,12 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
-import { fetchProductSuggestionsApi } from "../services/api";
-import { FALLBACK_PRODUCT_IMAGE, resolveProductImage } from "../utils/productImage";
+import { fetchCategoriesApi } from "../services/api";
+import { useToast } from "../stores/appStore";
+import { KEYWORD_MAX, validateProductFilters } from "../utils/productFilter";
+import { BRAND } from "../utils/brand";
 
 const props = defineProps({
   user: { type: Object, default: null },
@@ -181,16 +157,11 @@ const props = defineProps({
 defineEmits(["logout"]);
 
 const router = useRouter();
+const toast = useToast();
 const searchKeyword = ref("");
 const searchCategory = ref("");
-const suggestions = ref([]);
-const showSuggestions = ref(false);
-const highlightIndex = ref(-1);
-const searchWrapRef = ref(null);
-const fallbackImage = FALLBACK_PRODUCT_IMAGE;
-
-let suggestTimer = null;
-let suggestRequestId = 0;
+const categories = ref([]);
+const searchError = ref("");
 
 const userDisplayName = computed(
   () => props.user?.fullname || props.user?.fullName || props.user?.username || "Tài khoản"
@@ -207,111 +178,32 @@ const userInitials = computed(() => {
   return name.slice(0, 2).toUpperCase();
 });
 
-const formatPrice = (value) => {
-  const n = Number(value) || 0;
-  return n.toLocaleString("vi-VN");
-};
-
-const closeSuggestions = () => {
-  showSuggestions.value = false;
-  highlightIndex.value = -1;
-};
-
-const fetchSuggestions = async (keyword) => {
-  const q = keyword?.trim() || "";
-  if (!q) {
-    suggestions.value = [];
-    showSuggestions.value = false;
-    return;
-  }
-
-  const requestId = ++suggestRequestId;
-  showSuggestions.value = true;
-  try {
-    const data = await fetchProductSuggestionsApi(q, 8);
-    if (requestId !== suggestRequestId) return;
-    suggestions.value = (data.suggestions ?? []).map((item) => ({
-      ...item,
-      image: resolveProductImage(item),
-    }));
-    highlightIndex.value = -1;
-  } catch (err) {
-    if (requestId !== suggestRequestId) return;
-    console.error("Header suggest error:", err);
-    suggestions.value = [];
-  }
-};
-
-const onKeywordInput = () => {
-  clearTimeout(suggestTimer);
-  highlightIndex.value = -1;
-  const q = searchKeyword.value?.trim() || "";
-  if (!q) {
-    suggestions.value = [];
-    showSuggestions.value = false;
-    return;
-  }
-  suggestTimer = setTimeout(() => fetchSuggestions(q), 220);
-};
-
-const onSearchFocus = () => {
-  if (searchKeyword.value?.trim() && suggestions.value.length) {
-    showSuggestions.value = true;
-  } else if (searchKeyword.value?.trim()) {
-    fetchSuggestions(searchKeyword.value);
-  }
-};
-
-const highlightNext = () => {
-  if (!suggestions.value.length) return;
-  showSuggestions.value = true;
-  highlightIndex.value = (highlightIndex.value + 1) % suggestions.value.length;
-};
-
-const highlightPrev = () => {
-  if (!suggestions.value.length) return;
-  showSuggestions.value = true;
-  highlightIndex.value =
-    highlightIndex.value <= 0 ? suggestions.value.length - 1 : highlightIndex.value - 1;
-};
-
-const goToProduct = (id) => {
-  closeSuggestions();
-  router.push(`/product/${id}`);
-};
-
-const onSearchEnter = (event) => {
-  if (showSuggestions.value && highlightIndex.value >= 0 && suggestions.value[highlightIndex.value]) {
-    event.preventDefault();
-    goToProduct(suggestions.value[highlightIndex.value].id);
-    return;
-  }
-  closeSuggestions();
-};
-
 const onSearch = () => {
-  closeSuggestions();
+  const validation = validateProductFilters({ keyword: searchKeyword.value });
+  if (!validation.ok) {
+    searchError.value = validation.errors.keyword || "Từ khóa không hợp lệ";
+    toast.error(searchError.value);
+    return;
+  }
+  searchError.value = "";
   router.push({
     path: "/product",
     query: {
-      keyword: searchKeyword.value.trim() || undefined,
+      keyword: validation.values.keyword || undefined,
       cat: searchCategory.value || undefined,
     },
   });
 };
 
-const onDocumentClick = (event) => {
-  if (!searchWrapRef.value?.contains(event.target)) {
-    closeSuggestions();
+onMounted(async () => {
+  try {
+    const data = await fetchCategoriesApi();
+    categories.value = (data || []).map((c) =>
+      typeof c === "string" ? { id: c, name: c } : { id: c.id || c.name, name: c.name || c.id }
+    );
+  } catch (err) {
+    console.warn("Không tải được danh mục header", err);
+    categories.value = [];
   }
-};
-
-onMounted(() => {
-  document.addEventListener("click", onDocumentClick);
-});
-
-onBeforeUnmount(() => {
-  clearTimeout(suggestTimer);
-  document.removeEventListener("click", onDocumentClick);
 });
 </script>

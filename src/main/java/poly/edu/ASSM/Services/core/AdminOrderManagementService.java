@@ -9,6 +9,8 @@ public interface AdminOrderManagementService {
 
     List<Map<String, Object>> listOrderSummaries();
 
+    List<Map<String, Object>> listOrderSummaries(String keyword);
+
     Map<String, Object> getOrderDetail(int orderId);
 
     Map<String, Object> getPendingAlerts();

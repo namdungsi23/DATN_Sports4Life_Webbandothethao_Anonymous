@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -19,14 +18,15 @@ import poly.edu.ASSM.Entity.OrderDetails;
 import poly.edu.ASSM.Entity.Orders;
 import poly.edu.ASSM.Repository.OrderAddressRepository;
 import poly.edu.ASSM.Services.core.AccountsServiceImpl;
-import poly.edu.ASSM.Services.core.InventoryServiceImpl;
 import poly.edu.ASSM.Services.core.OrderDetailsServiceImpl;
 import poly.edu.ASSM.Services.core.OrdersServiceImpl;
 import poly.edu.ASSM.Services.core.ProductServiceImpl;
 import poly.edu.ASSM.Services.util.AuthServiceImpl;
 import poly.edu.ASSM.Services.util.ShoppingCartServiceImpl;
 import poly.edu.ASSM.domain.CartItem;
+import poly.edu.ASSM.domain.OrderStatus;
 import poly.edu.ASSM.domain.PaymentMethod;
+import poly.edu.ASSM.domain.PaymentStatus;
 
 @Controller
 @RequestMapping("/checkout")
@@ -50,9 +50,6 @@ public class CheckoutController {
     OrderDetailsServiceImpl odService;
 
     @Autowired
-    InventoryServiceImpl inventoryService;
-
-    @Autowired
     OrderAddressRepository orderAddressRepository;
 
     @PostMapping("/pay")
@@ -74,8 +71,8 @@ public class CheckoutController {
         BigDecimal total = BigDecimal.valueOf(cartService.getAmount());
         Orders order = new Orders();
         order.setAccount(account);
-        order.setOrderStatus("PENDING");
-        order.setPaymentStatus("UNPAID");
+        order.setOrderStatus(OrderStatus.PENDING.name());
+        order.setPaymentStatus(PaymentStatus.UNPAID.name());
         order.setSubTotal(total);
         order.setDiscountAmount(BigDecimal.ZERO);
         order.setTotalAmount(total);
@@ -98,12 +95,6 @@ public class CheckoutController {
             orderDetail.setPrice(item.getPrice());
             orderDetail.setQuantity(item.getQuantity());
             odService.create(orderDetail);
-            try {
-                inventoryService.checkAndUpdateInventory(item.getProductId(), item.getQuantity());
-            } catch (DataAccessException e) {
-                model.addAttribute("success", false);
-                model.addAttribute("erMsg", e.getMessage());
-            }
         }
 
         cartService.clear();

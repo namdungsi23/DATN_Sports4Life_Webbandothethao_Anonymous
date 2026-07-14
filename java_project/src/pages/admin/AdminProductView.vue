@@ -558,10 +558,24 @@ function startNewProduct() {
 
 async function saveProduct() {
   clearFlash();
+  const name = String(productForm.name || "").trim();
+  if (!name) {
+    flashErr.value = "Tên sản phẩm không được để trống.";
+    return;
+  }
+  if (name.length > 200) {
+    flashErr.value = "Tên sản phẩm tối đa 200 ký tự.";
+    return;
+  }
+  if (!productForm.categoryId) {
+    flashErr.value = "Vui lòng chọn danh mục.";
+    return;
+  }
+
   savingProduct.value = true;
   const params = new URLSearchParams();
   if (productForm.id && productForm.id !== "new") params.set("id", String(productForm.id));
-  params.set("name", productForm.name);
+  params.set("name", name);
   if (productForm.categoryId) params.set("categoryId", productForm.categoryId);
   params.set("description", productForm.description || "");
   params.set("available", productForm.available ? "true" : "false");
@@ -594,17 +608,69 @@ async function saveVariant() {
     flashErr.value = "Lưu thông tin sản phẩm trước khi thêm biến thể.";
     return;
   }
+
+  const sku = String(variantForm.sku || "").trim();
+  const size = String(variantForm.size || "").trim();
+  const color = String(variantForm.color || "").trim();
+  const price = Number(variantForm.price);
+  const quantity = Number(variantForm.quantity);
+
+  if (!sku) {
+    flashErr.value = "SKU không được để trống.";
+    return;
+  }
+  if (!Number.isFinite(price) || price <= 0) {
+    flashErr.value = "Giá biến thể phải lớn hơn 0.";
+    return;
+  }
+  if (!Number.isFinite(quantity) || quantity < 0) {
+    flashErr.value = "Số lượng không được âm.";
+    return;
+  }
+
+  const isPlaceholder = (v) => {
+    const s = String(v || "").trim().toLowerCase();
+    return !s || s === "default" || s === "mặc định";
+  };
+
+  // Đã có ≥1 biến thể và đang thêm mới, hoặc SP đã ≥2 → bắt buộc màu/size
+  const requireAttrs =
+    (!variantForm.id && variants.value.length >= 1) || variants.value.length >= 2;
+  if (requireAttrs) {
+    if (isPlaceholder(size)) {
+      flashErr.value = "Kích cỡ không được để trống khi có nhiều biến thể.";
+      return;
+    }
+    if (isPlaceholder(color)) {
+      flashErr.value = "Màu sắc không được để trống khi có nhiều biến thể.";
+      return;
+    }
+  }
+
+  if (!isPlaceholder(size) && !isPlaceholder(color)) {
+    const dup = variants.value.find(
+      (v) =>
+        v.id !== variantForm.id &&
+        String(v.size || "").trim().toLowerCase() === size.toLowerCase() &&
+        String(v.color || "").trim().toLowerCase() === color.toLowerCase()
+    );
+    if (dup) {
+      flashErr.value = "Đã tồn tại biến thể với màu và size này.";
+      return;
+    }
+  }
+
   clearFlash();
   savingVariant.value = true;
   try {
     const payload = {
       id: variantForm.id,
       productId,
-      sku: variantForm.sku,
-      size: variantForm.size,
-      color: variantForm.color,
-      price: variantForm.price,
-      quantity: variantForm.quantity,
+      sku,
+      size,
+      color,
+      price,
+      quantity,
       isDefault: variantForm.isDefault,
       status: true,
     };

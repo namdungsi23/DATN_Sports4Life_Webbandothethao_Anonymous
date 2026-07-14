@@ -25,6 +25,9 @@ import poly.edu.ASSM.Repository.OrderAddressRepository;
 import poly.edu.ASSM.Repository.OrderDetailsRepository;
 import poly.edu.ASSM.Repository.OrdersRepository;
 import poly.edu.ASSM.Repository.ProductVariantRepository;
+import poly.edu.ASSM.domain.OrderStatus;
+import poly.edu.ASSM.domain.PaymentMethod;
+import poly.edu.ASSM.domain.PaymentStatus;
 import poly.edu.ASSM.dto.request.CheckoutCartItemRequest;
 import poly.edu.ASSM.dto.request.CheckoutConfirmRequest;
 import poly.edu.ASSM.dto.request.CustomerAddressRequest;
@@ -52,6 +55,9 @@ public class CheckoutServiceImpl implements CheckoutService {
     private OrderAddressRepository orderAddressRepository;
 
     @Autowired
+    private AdminNotificationService adminNotificationService;
+
+    @Autowired
     private CustomerAddressServiceImpl customerAddressService;
 
     @Autowired
@@ -70,7 +76,7 @@ public class CheckoutServiceImpl implements CheckoutService {
 
         Orders order = new Orders();
         order.setAccount(account);
-        order.setOrderStatus("PENDING");
+        order.setOrderStatus(OrderStatus.PENDING.name());
         order.setPaymentStatus(resolvePaymentStatus(request.getPaymentMethod()));
         order.setSubTotal(subTotal);
         order.setDiscountAmount(BigDecimal.ZERO);
@@ -111,6 +117,19 @@ public class CheckoutServiceImpl implements CheckoutService {
         if (savedAddressBook != null) {
             body.put("savedAddress", savedAddressBook);
         }
+
+        try {
+            adminNotificationService.notifyPanelUsers(
+                    "Đơn hàng mới #" + savedOrder.getId(),
+                    "Khách " + username + " vừa đặt đơn #" + savedOrder.getId()
+                            + " — tổng " + savedOrder.getTotalAmount() + "đ",
+                    "/admin/order/" + savedOrder.getId());
+        } catch (Exception ex) {
+            // Không chặn checkout nếu notify lỗi (thiếu bảng/cột Notifications, v.v.)
+            org.slf4j.LoggerFactory.getLogger(CheckoutServiceImpl.class)
+                    .warn("Gửi thông báo đơn mới #{} thất bại: {}", savedOrder.getId(), ex.getMessage());
+        }
+
         return body;
     }
 
@@ -131,7 +150,7 @@ public class CheckoutServiceImpl implements CheckoutService {
         List<OrderDetails> details = new ArrayList<>();
         for (CheckoutCartItemRequest item : items) {
             ProductVariants variant = resolveVariant(item);
-            ensureStock(variant, item.getQuantity());
+            deductStockAtomic(variant, item.getQuantity());
 
             OrderDetails detail = new OrderDetails();
             detail.setOrders(order);
@@ -139,8 +158,6 @@ public class CheckoutServiceImpl implements CheckoutService {
             detail.setPrice(variant.getPrice().doubleValue());
             detail.setQuantity(item.getQuantity());
             details.add(detail);
-
-            updateVariantStock(variant, item.getQuantity());
         }
         orderDetailsRepository.saveAll(details);
     }
@@ -169,22 +186,25 @@ public class CheckoutServiceImpl implements CheckoutService {
                         "Sản phẩm không có biến thể để đặt hàng"));
     }
 
-    private void ensureStock(ProductVariants variant, int quantity) {
-        Short stock = variant.getQuantity();
-        if (stock != null && stock < quantity) {
-            String label = variant.getSku() != null ? variant.getSku() : "Sản phẩm";
+    /**
+     * Trừ tồn kho atomic (UPDATE ... WHERE quantity >= qty).
+     * Hai khách cùng lúc chỉ một người được mua khi còn đúng 1 sp.
+     */
+    private void deductStockAtomic(ProductVariants variant, int quantity) {
+        if (quantity <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số lượng mua không hợp lệ");
+        }
+        String label = variant.getSku() != null ? variant.getSku() : "Sản phẩm";
+        int updated;
+        if (variant.getQuantity() == null) {
+            updated = productVariantRepository.incrementSoldWhenUnlimited(variant.getId(), quantity);
+        } else {
+            updated = productVariantRepository.tryDeductStock(variant.getId(), quantity);
+        }
+        if (updated == 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "\"" + label + "\" không đủ tồn kho");
         }
-    }
-
-    private void updateVariantStock(ProductVariants variant, int quantity) {
-        if (variant.getQuantity() != null) {
-            variant.setQuantity((short) (variant.getQuantity() - quantity));
-        }
-        int sold = variant.getSoldCount() != null ? variant.getSoldCount() : 0;
-        variant.setSoldCount(sold + quantity);
-        productVariantRepository.save(variant);
     }
 
     private ShippingSnapshot resolveShippingSnapshot(Accounts account, Users user, CheckoutConfirmRequest request) {
@@ -261,13 +281,10 @@ public class CheckoutServiceImpl implements CheckoutService {
     }
 
     private String resolvePaymentStatus(String paymentMethod) {
-        if (paymentMethod == null) {
-            return "UNPAID";
+        if (paymentMethod == null || paymentMethod.isBlank()) {
+            return PaymentStatus.UNPAID.name();
         }
-        return switch (paymentMethod.toUpperCase()) {
-            case "MOMO", "TECHCOMBANK" -> "PAID";
-            default -> "UNPAID";
-        };
+        return PaymentMethod.parse(paymentMethod).resolvePaymentStatus().name();
     }
 
     private Accounts requireAccount(String username) {

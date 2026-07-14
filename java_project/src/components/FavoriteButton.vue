@@ -5,10 +5,11 @@
     :class="[
       `favorite-btn--${variant}`,
       `favorite-btn--${size}`,
-      { 'is-active': liked, 'is-animating': animating },
+      { 'is-active': liked, 'is-animating': animating, 'is-busy': busy },
     ]"
     :aria-label="liked ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'"
     :title="liked ? 'Bỏ yêu thích' : 'Yêu thích'"
+    :disabled="busy"
     @click.stop.prevent="onToggle"
   >
     <span class="favorite-btn__icon" aria-hidden="true">
@@ -29,7 +30,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { useAppStore } from "../stores/appStore";
+import { useAppStore, useToast } from "../stores/appStore";
 
 const props = defineProps({
   product: { type: Object, required: true },
@@ -41,30 +42,43 @@ const emit = defineEmits(["login-required"]);
 
 const router = useRouter();
 const route = useRoute();
-const { isFavorite, toggleFavorite } = useAppStore();
+const store = useAppStore();
+const toast = useToast();
 const animating = ref(false);
+const busy = ref(false);
 
-const liked = computed(() => isFavorite(props.product?.id));
+const liked = computed(() => store.isFavorite(props.product?.id));
 
 const onToggle = async () => {
-  if (!props.product?.id) return;
+  if (busy.value || !props.product?.id) return;
 
-  const result = await toggleFavorite(props.product);
-  if (result.requiresLogin) {
-    emit("login-required");
-    router.push({
-      path: "/login",
-      query: { redirect: route.fullPath },
-    });
-    return;
+  busy.value = true;
+  try {
+    const result = await store.toggleFavorite(props.product);
+
+    if (result.requiresLogin) {
+      emit("login-required");
+      toast.warning(result.message || "Vui lòng đăng nhập để yêu thích sản phẩm.");
+      router.push({
+        path: "/login",
+        query: { redirect: route.fullPath },
+      });
+      return;
+    }
+
+    if (!result.success) {
+      toast.error(result.message || "Không thể cập nhật yêu thích.");
+      return;
+    }
+
+    toast.success(result.message || (result.added ? "Đã thêm vào yêu thích." : "Đã bỏ khỏi yêu thích."));
+    animating.value = true;
+    window.setTimeout(() => {
+      animating.value = false;
+    }, 350);
+  } finally {
+    busy.value = false;
   }
-
-  if (!result.success) return;
-
-  animating.value = true;
-  window.setTimeout(() => {
-    animating.value = false;
-  }, 350);
 };
 </script>
 
@@ -77,7 +91,13 @@ const onToggle = async () => {
   border: none;
   cursor: pointer;
   font-family: inherit;
+  pointer-events: auto;
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.favorite-btn:disabled {
+  cursor: wait;
+  opacity: 0.75;
 }
 
 .favorite-btn__icon {
@@ -85,6 +105,7 @@ const onToggle = async () => {
   align-items: center;
   justify-content: center;
   line-height: 0;
+  pointer-events: none;
 }
 
 .favorite-btn__icon svg {
@@ -111,16 +132,16 @@ const onToggle = async () => {
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 3;
+  z-index: 6;
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.96);
   color: #9ca3af;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
-.favorite-btn--icon:hover {
+.favorite-btn--icon:hover:not(:disabled) {
   transform: scale(1.08);
   color: #dc2626;
 }
@@ -152,6 +173,8 @@ const onToggle = async () => {
 
 /* Nút pill — trang danh sách sản phẩm */
 .favorite-btn--pill {
+  position: relative;
+  z-index: 2;
   flex: 1;
   min-width: 0;
   padding: 9px 12px;
@@ -163,7 +186,7 @@ const onToggle = async () => {
   font-weight: 600;
 }
 
-.favorite-btn--pill:hover {
+.favorite-btn--pill:hover:not(:disabled) {
   border-color: #dc2626;
   color: #dc2626;
   background: #fef2f2;
@@ -182,6 +205,8 @@ const onToggle = async () => {
 
 /* Detail page — icon + chữ dọc */
 .favorite-btn--stack {
+  position: relative;
+  z-index: 2;
   flex-direction: column;
   gap: 4px;
   min-width: 72px;
