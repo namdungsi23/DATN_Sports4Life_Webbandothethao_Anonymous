@@ -17,23 +17,43 @@
       </nav>
 
       <section class="pd-hero site-container">
-        <div class="pd-gallery">
-          <div class="pd-gallery__main product-img">
-            <ProductImage :src="activeImage" :alt="product.name" />
-            <FavoriteButton :product="product" variant="icon" size="lg" />
-          </div>
-          <div v-if="gallery.length > 1" class="pd-gallery__thumbs">
-            <button
-              v-for="(img, idx) in gallery"
-              :key="`${img}-${idx}`"
-              type="button"
-              class="pd-gallery__thumb"
-              :class="{ active: activeImage === img }"
-              @click="activeImage = img"
-            >
-              <img :src="img" :alt="`${product.name} ${idx + 1}`" loading="lazy" />
-            </button>
-          </div>
+        <div class="pd-gallery" :class="{ 'pd-gallery--grid': useGridGallery }">
+          <!-- Adidas-style 2×2 gallery -->
+          <template v-if="useGridGallery">
+            <div class="pd-gallery__grid-wrap product-img">
+              <div class="pd-gallery__grid">
+                <button
+                  v-for="(img, idx) in gallery.slice(0, 4)"
+                  :key="`${img}-${idx}`"
+                  type="button"
+                  class="pd-gallery__cell"
+                  :class="{ active: activeImage === img }"
+                  @click="activeImage = img"
+                >
+                  <img :src="img" :alt="`${product.name} ${idx + 1}`" loading="lazy" />
+                </button>
+              </div>
+              <FavoriteButton :product="product" variant="icon" size="lg" />
+            </div>
+          </template>
+          <template v-else>
+            <div class="pd-gallery__main product-img">
+              <ProductImage :src="activeImage" :alt="product.name" />
+              <FavoriteButton :product="product" variant="icon" size="lg" />
+            </div>
+            <div v-if="gallery.length > 1" class="pd-gallery__thumbs">
+              <button
+                v-for="(img, idx) in gallery"
+                :key="`${img}-${idx}`"
+                type="button"
+                class="pd-gallery__thumb"
+                :class="{ active: activeImage === img }"
+                @click="activeImage = img"
+              >
+                <img :src="img" :alt="`${product.name} ${idx + 1}`" loading="lazy" />
+              </button>
+            </div>
+          </template>
         </div>
 
         <div class="pd-info">
@@ -52,53 +72,73 @@
 
           <p class="pd-installment">Trả góp 0% · Giao hàng 2–4 ngày · Đổi trả 30 ngày</p>
 
-          <!-- ≥2 biến thể: chọn màu/size thật từ DB -->
-          <div v-if="realVariants && colorOptions.length" class="pd-option">
-            <p class="pd-option__label">
-              Màu sắc:
-              <strong>{{ selectedColor || "Chọn màu" }}</strong>
-            </p>
-            <div class="pd-swatches">
+          <!-- Biến thể kiểu Adidas: colorway + lưới size -->
+          <div v-if="realVariants && colorWays.length" class="pd-option pd-option--color">
+            <div class="pd-option__head">
+              <p class="pd-option__label">
+                Màu
+                <strong>{{ selectedColor || "—" }}</strong>
+              </p>
+              <span class="pd-option__meta">{{ colorWays.length }} tuỳ chọn</span>
+            </div>
+            <div class="pd-colorways" role="listbox" aria-label="Chọn màu">
               <button
-                v-for="color in colorOptions"
-                :key="color"
+                v-for="way in colorWays"
+                :key="way.color"
                 type="button"
-                class="pd-swatch"
+                class="pd-colorway"
                 :class="{
-                  active: selectedColor === color,
-                  disabled: !isColorAvailable(color),
+                  active: selectedColor === way.color,
+                  disabled: !way.available,
+                  'pd-colorway--swatch': !way.image,
                 }"
-                :disabled="!isColorAvailable(color)"
-                @click="onSelectColor(color)"
+                :disabled="!way.available"
+                :title="way.color"
+                :aria-label="way.color"
+                :aria-selected="selectedColor === way.color"
+                :style="way.swatchStyle"
+                @click="onSelectColor(way.color)"
               >
-                {{ color }}
+                <img v-if="way.image" :src="way.image" :alt="way.color" loading="lazy" />
+                <span v-else class="pd-colorway__label">{{ way.color }}</span>
               </button>
             </div>
             <p v-if="fieldErrors.color" class="pd-field-error">{{ fieldErrors.color }}</p>
           </div>
 
-          <div v-if="realVariants && sizeOptions.length" class="pd-option">
-            <p class="pd-option__label">Kích cỡ</p>
-            <div class="pd-sizes">
+          <div v-if="realVariants && sizeOptions.length" class="pd-option pd-option--size">
+            <div class="pd-option__head">
+              <p class="pd-option__label">
+                {{ selectedSize ? `Size — ${selectedSize}` : "Chọn size" }}
+              </p>
+              <button type="button" class="pd-size-guide" @click.prevent="showSizeGuide = !showSizeGuide">
+                Bảng size
+              </button>
+            </div>
+            <p v-if="showSizeGuide" class="pd-size-guide-hint">
+              Giày: EU 39–43 · Áo/quần/áo khoác: S–XL · Phụ kiện/balo/tất: Free · Đổi size trong 30 ngày.
+            </p>
+            <div class="pd-size-grid" role="listbox" aria-label="Chọn size">
               <button
                 v-for="size in sizeOptions"
                 :key="size"
                 type="button"
-                class="pd-size"
+                class="pd-size-tile"
                 :class="{
                   active: selectedSize === size,
-                  disabled: !isSizeAvailable(size),
+                  soldout: !isSizeAvailable(size),
                 }"
-                :disabled="!isSizeAvailable(size)"
+                :aria-selected="selectedSize === size"
+                :aria-disabled="!isSizeAvailable(size)"
                 @click="onSelectSize(size)"
               >
-                {{ size }}
+                <span>{{ size }}</span>
               </button>
             </div>
-            <p v-if="fieldErrors.size" class="pd-field-error">{{ fieldErrors.size }}</p>
+            <p v-if="fieldErrors.size" class="pd-field-error pd-field-error--box">{{ fieldErrors.size }}</p>
           </div>
 
-          <p v-if="fieldErrors.variant || fieldErrors.stock" class="pd-field-error">
+          <p v-if="fieldErrors.variant || fieldErrors.stock" class="pd-field-error pd-field-error--box">
             {{ fieldErrors.variant || fieldErrors.stock }}
           </p>
 
@@ -118,19 +158,17 @@
           <div class="pd-actions">
             <button
               type="button"
-              class="pd-btn pd-btn--outline"
-              :disabled="!canPurchase"
+              class="pd-btn pd-btn--primary"
               @click="onAddToCart"
             >
-              🛒 THÊM VÀO GIỎ
+              Thêm vào túi
             </button>
             <button
               type="button"
-              class="pd-btn pd-btn--primary"
-              :disabled="!canPurchase"
+              class="pd-btn pd-btn--dark"
               @click="onBuyNow"
             >
-              ⚡ MUA NGAY
+              Mua ngay
             </button>
             <div class="pd-favorite-action">
               <FavoriteButton :product="product" variant="stack" size="lg" />
@@ -138,9 +176,6 @@
           </div>
 
           <p v-if="message" class="pd-message">{{ message }}</p>
-          <p v-if="!canPurchase && product && !loading" class="pd-stock-warn">
-            {{ purchaseBlockReason }}
-          </p>
         </div>
       </section>
 
@@ -152,12 +187,12 @@
             type="button"
             class="pd-tab"
             :class="{ active: activeTab === tab.id }"
-            @click="activeTab = tab.id"
+            @click="toggleTab(tab.id)"
           >
             {{ tab.label }}
           </button>
         </div>
-        <div class="pd-tab-panel">
+        <div v-if="activeTab" class="pd-tab-panel">
           <div v-if="activeTab === 'desc'">
             <h3>Mô tả chi tiết</h3>
             <p>{{ product.description || "Sản phẩm thể thao chính hãng, chất liệu cao cấp, phù hợp tập luyện và sử dụng hàng ngày." }}</p>
@@ -174,14 +209,13 @@
               <li><span>Mã SP</span><strong>#{{ product.id }}</strong></li>
             </ul>
           </div>
-                    <div v-else-if="activeTab === 'comments'" class="pd-reviews">
+          <div v-else-if="activeTab === 'comments'" class="pd-reviews">
             <div class="pd-reviews__summary">
               <div class="pd-reviews__score">
                 <strong>{{ Number(avgRating || 0).toFixed(1) }}</strong>
                 <span class="pd-reviews__stars">{{ starsLabel(avgRating) }}</span>
                 <small>{{ ratingCount }} đánh giá</small>
               </div>
-              <p class="pd-reviews__hint">Đăng nhập để gửi bình luận và xếp hạng sản phẩm.</p>
             </div>
 
             <form v-if="isLoggedIn" class="pd-review-form" @submit.prevent="submitComment">
@@ -203,7 +237,9 @@
                 v-model="commentForm.content"
                 rows="3"
                 maxlength="1000"
-                placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
+                placeholder="Nội dung đánh giá"
+                :class="{ 'is-invalid': commentError }"
+                @input="commentError = ''"
               ></textarea>
               <p v-if="commentError" class="pd-review-form__error">{{ commentError }}</p>
               <button type="submit" class="pd-review-form__submit" :disabled="commentSaving">
@@ -211,7 +247,7 @@
               </button>
             </form>
             <p v-else class="pd-reviews__login">
-              <RouterLink to="/login">Đăng nhập</RouterLink> để bình luận và xếp hạng sản phẩm.
+              <RouterLink to="/login">Đăng nhập</RouterLink> để bình luận.
             </p>
 
             <ul v-if="comments.length" class="pd-review-list">
@@ -225,7 +261,7 @@
                 <small class="pd-review-item__time">{{ formatCommentTime(c.createdAt) }}</small>
               </li>
             </ul>
-            <p v-else class="pd-reviews__empty">Chưa có bình luận nào. Hãy là người đầu tiên!</p>
+            <p v-else class="pd-reviews__empty">Chưa có bình luận.</p>
           </div>
           <div v-else-if="activeTab === 'policy'">
             <h3>Chính sách</h3>
@@ -268,12 +304,14 @@ import {
   colorsForSize,
   findVariant,
   hasRealVariants,
+  isFreeSize,
   isVariantInStock,
+  selectableSizes,
   sizesForColor,
   uniqueColors,
-  uniqueSizes,
   validateVariantSelection,
 } from "../utils/variantSelection";
+import { firstError, getApiError, runValidation as validateFields } from "../utils/validators";
 
 const route = useRoute();
 const router = useRouter();
@@ -286,11 +324,16 @@ const loading = ref(true);
 const error = ref("");
 const message = ref("");
 const activeImage = ref("");
-const activeTab = ref("desc");
+const activeTab = ref("");
 const selectedColor = ref("");
 const selectedSize = ref("");
 const quantity = ref(1);
+const showSizeGuide = ref(false);
 const fieldErrors = reactive({});
+
+const toggleTab = (id) => {
+  activeTab.value = activeTab.value === id ? "" : id;
+};
 
 const comments = ref([]);
 const avgRating = ref(0);
@@ -369,8 +412,17 @@ const syncMemberRank = async () => {
 
 const submitComment = async () => {
   commentError.value = "";
-  if (!commentForm.content?.trim()) {
-    commentError.value = "Vui lòng nhập nội dung bình luận.";
+  const result = validateFields(commentForm, {
+    content: [
+      "required",
+      { type: "min", min: 5, message: "Nội dung tối thiểu 5 ký tự." },
+      { type: "max", max: 1000, message: "Nội dung tối đa 1000 ký tự." },
+    ],
+    rating: [{ type: "number", min: 1, max: 5, message: "Chọn xếp hạng từ 1 đến 5." }],
+  });
+  if (!result.ok) {
+    commentError.value = firstError(result.errors);
+    toast.error(commentError.value);
     return;
   }
   commentSaving.value = true;
@@ -385,12 +437,9 @@ const submitComment = async () => {
     await loadComments();
     toast.success(data.message || "Đã gửi đánh giá.");
   } catch (err) {
-    const msg =
-      err?.response?.data?.message ||
-      err?.message ||
-      "Gửi đánh giá thất bại.";
-    commentError.value = msg;
-    toast.error(msg);
+    const api = getApiError(err, "Gửi đánh giá thất bại.");
+    commentError.value = api.message;
+    toast.error(api.message);
   } finally {
     commentSaving.value = false;
   }
@@ -406,16 +455,87 @@ const tabs = [
 const variants = computed(() => product.value?.variants ?? []);
 const realVariants = computed(() => hasRealVariants(variants.value));
 
+/** Hex gợi ý theo tên màu — dùng khi ảnh colorway trùng / thiếu. */
+const colorSwatchHex = (color) => {
+  const c = String(color || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d");
+  if (c.includes("den") || c === "black") return "#111111";
+  if (c.includes("trang") || c === "white") return "#f5f5f5";
+  if (c.includes("navy")) return "#1b2a4a";
+  if (c.includes("do") || c === "red") return "#c8102e";
+  if (c.includes("xam") || c.includes("grey") || c.includes("gray")) return "#8a8a8a";
+  if (c.includes("xanh la") || c.includes("green")) return "#2d6a4f";
+  if (c.includes("xanh")) return "#1d4e89";
+  return "#d1d1d1";
+};
+
+/** Một biến thể đại diện cho màu — ưu tiên mặc định / có ảnh, không gộp nhiều size. */
+const colorRepresentative = (color) => {
+  const ofColor = variants.value.filter(
+    (v) => String(v.color || "").trim() === String(color || "").trim()
+  );
+  if (!ofColor.length) return null;
+  return (
+    ofColor.find((v) => v.isDefault && Array.isArray(v.images) && v.images.length) ||
+    ofColor.find((v) => Array.isArray(v.images) && v.images.length) ||
+    ofColor.find((v) => v.isDefault) ||
+    ofColor[0]
+  );
+};
+
 const colorOptions = computed(() =>
   realVariants.value ? uniqueColors(variants.value) : []
 );
 
+/**
+ * Colorway: mỗi màu 1 ảnh đại diện = góc 1 của biến thể đúng màu đó.
+ * Click màu → gallery = đúng 4 góc của màu đó.
+ */
+const imagesForColor = (color) => {
+  const takeFour = (imgs) =>
+    (Array.isArray(imgs) ? imgs : []).filter(Boolean).slice(0, 4);
+  const rep = colorRepresentative(color);
+  const fromRep = takeFour(rep?.images);
+  if (fromRep.length) return fromRep;
+  // Fallback: lấy ảnh từ bất kỳ BT cùng màu
+  const ofColor = variants.value.filter(
+    (v) => String(v.color || "").trim() === String(color || "").trim()
+  );
+  for (const v of ofColor) {
+    const imgs = takeFour(v.images);
+    if (imgs.length) return imgs;
+  }
+  return [];
+};
+
+const colorWays = computed(() => {
+  return colorOptions.value.map((color) => {
+    const imgs = imagesForColor(color);
+    const image = imgs[0] || "";
+    const hex = colorSwatchHex(color);
+    return {
+      color,
+      image,
+      images: imgs,
+      available: isColorAvailable(color),
+      hex,
+      swatchStyle: image
+        ? undefined
+        : {
+            backgroundColor: hex,
+            borderColor: hex === "#f5f5f5" ? "#ccc" : "#000",
+          },
+    };
+  });
+});
+
 const sizeOptions = computed(() => {
   if (!realVariants.value) return [];
-  if (selectedColor.value) {
-    return sizesForColor(variants.value, selectedColor.value);
-  }
-  return uniqueSizes(variants.value);
+  return selectableSizes(variants.value, selectedColor.value || "");
 });
 
 const selectedVariant = computed(() => {
@@ -429,19 +549,37 @@ const selectedVariant = computed(() => {
   return variants.value.find((v) => v.isDefault) || variants.value[0];
 });
 
+/** Gallery: luôn 4 góc của màu/biến thể đang chọn — không trộn màu khác. */
 const gallery = computed(() => {
-  const variantImgs = Array.isArray(selectedVariant.value?.images)
-    ? selectedVariant.value.images.filter(Boolean)
-    : [];
-  if (variantImgs.length) return variantImgs;
+  const takeFour = (imgs) =>
+    (Array.isArray(imgs) ? imgs : []).filter(Boolean).slice(0, 4);
 
-  const productGallery = Array.isArray(product.value?.gallery)
-    ? product.value.gallery.filter(Boolean)
-    : [];
-  if (productGallery.length) return productGallery;
+  // Ưu tiên biến thể khớp màu+size
+  if (selectedVariant.value) {
+    const own = takeFour(selectedVariant.value.images);
+    if (own.length) return own;
+  }
 
-  return product.value?.image ? [product.value.image] : [];
+  // Đã chọn màu → 4 góc đúng màu đó
+  if (selectedColor.value) {
+    const byColor = imagesForColor(selectedColor.value);
+    if (byColor.length) return byColor;
+  }
+
+  const def =
+    variants.value.find((v) => v.isDefault) || variants.value[0] || null;
+  const fromDefault = takeFour(def?.images);
+  if (fromDefault.length) return fromDefault;
+
+  return takeFour(product.value?.gallery).length
+    ? takeFour(product.value?.gallery)
+    : product.value?.image
+      ? [product.value.image]
+      : [];
 });
+
+/** Adidas-style 2×2 khi biến thể có đủ 4 góc. */
+const useGridGallery = computed(() => gallery.value.length >= 4);
 
 const displayPrice = computed(
   () => selectedVariant.value?.price ?? product.value?.price ?? 0
@@ -469,6 +607,7 @@ const canPurchase = computed(() => {
   if (!product.value) return false;
   if (realVariants.value) {
     if (colorOptions.value.length && !selectedColor.value) return false;
+    // Size Free: không bắt chọn trên UI
     if (sizeOptions.value.length && !selectedSize.value) return false;
     if (!selectedVariant.value) return false;
     return isVariantInStock(selectedVariant.value);
@@ -531,12 +670,27 @@ const onSelectColor = (color) => {
   delete fieldErrors.variant;
   delete fieldErrors.stock;
   const allowed = sizesForColor(variants.value, color);
-  if (selectedSize.value && !allowed.includes(selectedSize.value)) {
-    selectedSize.value = allowed[0] || "";
+  if (allowed.length && allowed.every(isFreeSize)) {
+    selectedSize.value = allowed[0];
+  } else if (selectedSize.value && !allowed.includes(selectedSize.value)) {
+    const stillOk = selectableSizes(variants.value, color).find((s) =>
+      isSizeAvailable(s)
+    );
+    selectedSize.value = stillOk || "";
+  } else if (allowed.length === 1) {
+    selectedSize.value = allowed[0];
   }
+  // Luôn nhảy về góc 1 của đúng màu vừa chọn
+  const imgs = imagesForColor(color);
+  activeImage.value = imgs[0] || product.value?.image || "";
 };
 
 const onSelectSize = (size) => {
+  if (!isSizeAvailable(size)) {
+    fieldErrors.size = "Size này đã hết hàng. Vui lòng chọn size khác.";
+    toast.warning(fieldErrors.size);
+    return;
+  }
   selectedSize.value = size;
   delete fieldErrors.size;
   delete fieldErrors.variant;
@@ -545,6 +699,16 @@ const onSelectSize = (size) => {
   if (selectedColor.value && !allowed.includes(selectedColor.value)) {
     selectedColor.value = allowed[0] || "";
   }
+  const v = findVariant(variants.value, {
+    color: selectedColor.value,
+    size,
+  });
+  const imgs = (Array.isArray(v?.images) ? v.images : []).filter(Boolean).slice(0, 4);
+  activeImage.value =
+    imgs[0] ||
+    imagesForColor(selectedColor.value)[0] ||
+    product.value?.image ||
+    "";
 };
 
 const syncGalleryToVariant = () => {
@@ -557,12 +721,25 @@ const syncGalleryToVariant = () => {
 
 const initSelections = () => {
   clearFieldErrors();
+  showSizeGuide.value = false;
   if (realVariants.value) {
-    selectedColor.value = colorOptions.value[0] || "";
-    const sizes = selectedColor.value
-      ? sizesForColor(variants.value, selectedColor.value)
-      : uniqueSizes(variants.value);
-    selectedSize.value = sizes[0] || "";
+    const def = variants.value.find((v) => v.isDefault);
+    const defColor = def && String(def.color || "").trim();
+    selectedColor.value =
+      (defColor && colorOptions.value.includes(defColor) ? defColor : "") ||
+      colorOptions.value[0] ||
+      "";
+
+    const sizesOfColor = sizesForColor(variants.value, selectedColor.value);
+    if (sizesOfColor.length && sizesOfColor.every(isFreeSize)) {
+      // Phụ kiện / balo / tất: tự gán Free
+      selectedSize.value = sizesOfColor[0];
+    } else if (sizesOfColor.length === 1) {
+      selectedSize.value = sizesOfColor[0];
+    } else {
+      // Giày / áo: user tự chọn size (không pre-select)
+      selectedSize.value = "";
+    }
   } else {
     selectedColor.value = "";
     selectedSize.value = "";
@@ -574,6 +751,8 @@ const initSelections = () => {
 const loadProduct = async (id) => {
   loading.value = true;
   error.value = "";
+  activeTab.value = "";
+  showSizeGuide.value = false;
   try {
     const data = await fetchProductByIdApi(id);
     product.value = data.product;
@@ -673,7 +852,7 @@ const onBuyNow = () => {
   router.push("/cart/checkout");
 };
 
-watch([selectedColor, selectedSize, selectedVariant], () => {
+watch([selectedColor, selectedSize, selectedVariant, gallery], () => {
   syncGalleryToVariant();
   if (maxStock.value != null && quantity.value > maxStock.value) {
     quantity.value = Math.max(1, maxStock.value);

@@ -15,15 +15,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
-import poly.edu.ASSM.Entity.Accounts;
-import poly.edu.ASSM.Entity.Roles;
-import poly.edu.ASSM.Entity.Users;
-import poly.edu.ASSM.Repository.RoleRepository;
-import poly.edu.ASSM.Repository.UsersRepository;
+import poly.edu.ASSM.entity.Accounts;
+import poly.edu.ASSM.entity.Roles;
+import poly.edu.ASSM.entity.Users;
+import poly.edu.ASSM.repository.RoleRepository;
+import poly.edu.ASSM.repository.UsersRepository;
 import poly.edu.ASSM.Services.core.AccountService;
 import poly.edu.ASSM.Services.core.AdminAccessService;
 import poly.edu.ASSM.Services.core.RankService;
+import poly.edu.ASSM.Services.util.CloudinaryService;
+import poly.edu.ASSM.exception.InvalidInputException;
 import poly.edu.ASSM.security.SpringRoleNames;
 
 @RestController
@@ -42,6 +45,9 @@ public class AdminUserApiController {
 
     @Autowired
     private RankService rankService;
+
+    @Autowired
+    private CloudinaryService cloudinaryService;
 
     private List<String> loadAuthorities() {
         return roleRepo.findAll().stream()
@@ -121,19 +127,69 @@ public class AdminUserApiController {
 	@PreAuthorize("@adminAuth.isAdmin()")
 	public ResponseEntity<?> save(@RequestBody UserSaveBody body) {
         if (body == null || body.username() == null || body.username().isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "Thiếu username"));
+            throw InvalidInputException.of("username", "Thiếu username");
         }
         Accounts target = accSer.findByUsername(body.username());
         if (target == null) {
-            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "Không tìm thấy người dùng"));
+            throw InvalidInputException.of("username", "Không tìm thấy người dùng");
         }
+
+        String photo = body.photo();
+        if (photo != null && !photo.isBlank() && !cloudinaryService.isOurCloudinaryUrl(photo)) {
+            try {
+                photo = cloudinaryService.uploadAvatarFromUrl(photo.trim(), body.username());
+            } catch (Exception e) {
+                throw InvalidInputException.of("photo", "Không đồng bộ được ảnh lên Cloudinary.");
+            }
+        }
+
         accSer.updateCustomerProfile(
                 body.username(),
                 body.fullname(),
                 body.email(),
-                body.photo(),
+                photo,
                 body.activated() != null ? body.activated() : true);
-        return ResponseEntity.ok(Map.of("ok", true, "message", "Cập nhật thành công"));
+        return ResponseEntity.ok(Map.of(
+                "ok", true,
+                "message", "Cập nhật thành công",
+                "user", toUserRow(accSer.findByUsername(body.username()))));
+    }
+
+    @PostMapping(value = "/{username}/avatar", consumes = "multipart/form-data")
+    @PreAuthorize("@adminAuth.isAdmin()")
+    public ResponseEntity<?> uploadAvatar(
+            @PathVariable String username,
+            @RequestParam("file") MultipartFile file) {
+        Accounts target = accSer.findByUsername(username);
+        if (target == null) {
+            throw InvalidInputException.of("username", "Không tìm thấy người dùng");
+        }
+        if (file == null || file.isEmpty()) {
+            throw InvalidInputException.of("file", "Vui lòng chọn ảnh đại diện.");
+        }
+        Users profile = usersRepository.findByAccount_Id(target.getId()).orElse(null);
+        String oldUrl = profile != null ? profile.getAvatar() : null;
+        String url;
+        try {
+            url = cloudinaryService.uploadAvatar(file, username);
+        } catch (IllegalArgumentException e) {
+            throw InvalidInputException.of("file", e.getMessage());
+        } catch (Exception e) {
+            throw InvalidInputException.of("file", "Upload Cloudinary thất bại.");
+        }
+        accSer.updateCustomerProfile(username, null, null, url, null);
+        if (oldUrl != null && !oldUrl.isBlank() && !oldUrl.equals(url)) {
+            try {
+                cloudinaryService.deleteByImageUrl(oldUrl);
+            } catch (Exception ignored) {
+                // best-effort
+            }
+        }
+        return ResponseEntity.ok(Map.of(
+                "ok", true,
+                "message", "Đã cập nhật ảnh đại diện (Cloudinary + SQL).",
+                "photo", url,
+                "user", toUserRow(accSer.findByUsername(username))));
     }
 
     public record MemberPointsBody(Integer totalPoint) {
@@ -143,7 +199,7 @@ public class AdminUserApiController {
     @PreAuthorize("@adminAuth.isAdmin()")
     public ResponseEntity<?> setPoints(@PathVariable Long accountId, @RequestBody MemberPointsBody body) {
         if (body == null || body.totalPoint() == null) {
-            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "Thiếu totalPoint"));
+            throw InvalidInputException.of("totalPoint", "Thiếu totalPoint");
         }
         rankService.setMemberPoints(accountId, body.totalPoint());
         Users user = usersRepository.findByAccount_Id(accountId).orElse(null);

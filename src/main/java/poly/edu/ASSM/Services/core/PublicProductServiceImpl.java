@@ -14,9 +14,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import poly.edu.ASSM.Entity.Category;
-import poly.edu.ASSM.Entity.Products;
-import poly.edu.ASSM.Repository.ProductRepository;
+import poly.edu.ASSM.entity.Category;
+import poly.edu.ASSM.entity.Products;
+import poly.edu.ASSM.repository.ProductRepository;
 import poly.edu.ASSM.dto.response.ProductImageResponse;
 import poly.edu.ASSM.dto.response.ProductResponse;
 import poly.edu.ASSM.dto.response.ProductVariantResponse;
@@ -160,9 +160,6 @@ public class PublicProductServiceImpl implements PublicProductService {
             if (!samplePage.isEmpty()) {
                 ProductResponse sample = productMapper.toResponse(samplePage.getContent().get(0));
                 image = sample.getImageUrl();
-                if (image == null || image.isBlank()) {
-                    image = fallbackImageUrl(sample.getCategoryId(), sample.getId());
-                }
             }
 
             Map<String, Object> brand = new HashMap<>();
@@ -197,9 +194,7 @@ public class PublicProductServiceImpl implements PublicProductService {
             }
 
             String image = response.getImageUrl();
-            if (image == null || image.isBlank()) {
-                image = fallbackImageUrl(response.getCategoryId(), response.getId());
-            }
+            // Chỉ lấy từ SQL (ProductImages)
 
             Map<String, Object> brandMap = new HashMap<>();
             brandMap.put("name", brand);
@@ -220,8 +215,11 @@ public class PublicProductServiceImpl implements PublicProductService {
         }
 
         String[] knownBrands = {
-                "New Balance", "Under Armour", "Nike", "Adidas", "Puma",
-                "Converse", "Asics", "Reebok", "Vans", "Mizuno"
+                "New Balance", "Under Armour", "The North Face", "Li-Ning",
+                "Nike", "Adidas", "Puma", "Converse", "Asics", "Reebok", "Vans",
+                "Mizuno", "Fila", "Jordan", "Hoka", "Brooks", "Salomon",
+                "Skechers", "Columbia", "Lululemon", "Champion", "Anta",
+                "Kappa", "Umbro", "Diadora", "Lotto"
         };
         String lowerName = productName.toLowerCase();
         for (String known : knownBrands) {
@@ -298,9 +296,7 @@ public class PublicProductServiceImpl implements PublicProductService {
         }
 
         String image = p.getImageUrl();
-        if (image == null || image.isBlank()) {
-            image = fallbackImageUrl(p.getCategoryId(), p.getId());
-        }
+        // Thumbnail từ SQL ProductImages (qua ProductMapper)
 
         m.put("id", p.getId());
         m.put("name", p.getName());
@@ -323,16 +319,9 @@ public class PublicProductServiceImpl implements PublicProductService {
     private Map<String, Object> toFePayloadDetail(ProductResponse p) {
         Map<String, Object> m = toFePayload(p);
 
-        List<String> gallery = new ArrayList<>();
-        if (p.getImages() != null) {
-            for (ProductImageResponse img : p.getImages()) {
-                if (img.getImageUrl() != null && !img.getImageUrl().isBlank()) {
-                    addUnique(gallery, img.getImageUrl().trim());
-                }
-            }
-        }
-
         List<Map<String, Object>> variants = new ArrayList<>();
+        List<String> defaultGallery = new ArrayList<>();
+
         if (p.getVariants() != null) {
             for (ProductVariantResponse v : p.getVariants()) {
                 Map<String, Object> variant = new HashMap<>();
@@ -345,18 +334,42 @@ public class PublicProductServiceImpl implements PublicProductService {
                 variant.put("inStock", Boolean.TRUE.equals(v.getInStock()));
                 variant.put("stock", v.getQuantity() != null ? v.getQuantity() : 0);
 
-                // Tạm thời: lấy ảnh DB của biến thể; không có thì dùng 1 ảnh Cloudinary tạm
-                List<String> imageUrls = resolveVariantImageUrlsTemp(v, p.getCategoryId(), p.getId());
+                // Mỗi biến thể tối đa 4 góc — chỉ từ SQL ProductImages của biến thể đó
+                List<String> imageUrls = resolveVariantImageUrlsFromSql(v);
+                if (imageUrls.size() > 4) {
+                    imageUrls = new ArrayList<>(imageUrls.subList(0, 4));
+                }
                 variant.put("images", imageUrls);
                 variant.put("image", imageUrls.isEmpty() ? null : imageUrls.get(0));
                 variants.add(variant);
 
-                for (String url : imageUrls) {
-                    addUnique(gallery, url);
+                if (Boolean.TRUE.equals(v.getIsDefault()) && defaultGallery.isEmpty()) {
+                    defaultGallery.addAll(imageUrls);
                 }
             }
         }
 
+        // Gallery SP = ảnh biến thể mặc định (không gộp tất cả biến thể), tối đa 4 góc
+        List<String> gallery = new ArrayList<>();
+        for (String url : defaultGallery) {
+            if (gallery.size() >= 4) {
+                break;
+            }
+            addUnique(gallery, url);
+        }
+        if (gallery.isEmpty() && !variants.isEmpty()) {
+            Object imgs = variants.get(0).get("images");
+            if (imgs instanceof List<?> list) {
+                for (Object o : list) {
+                    if (o != null) {
+                        addUnique(gallery, String.valueOf(o));
+                        if (gallery.size() >= 4) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
         if (gallery.isEmpty() && m.get("image") != null) {
             gallery.add(String.valueOf(m.get("image")));
         }
@@ -376,33 +389,17 @@ public class PublicProductServiceImpl implements PublicProductService {
         }
     }
 
-    /** Tạm thời: ảnh DB của biến thể, hoặc 1 URL Cloudinary fallback. */
-    private static List<String> resolveVariantImageUrlsTemp(
-            ProductVariantResponse variant,
-            String categoryId,
-            Long productId) {
+    /** Ảnh biến thể chỉ lấy từ bảng ProductImages (SQL) — không list Cloudinary. */
+    private static List<String> resolveVariantImageUrlsFromSql(ProductVariantResponse variant) {
         List<String> urls = new ArrayList<>();
-        if (variant != null && variant.getImages() != null) {
-            for (ProductImageResponse img : variant.getImages()) {
-                if (img != null && img.getImageUrl() != null && !img.getImageUrl().isBlank()) {
-                    addUnique(urls, img.getImageUrl().trim());
-                }
-            }
-        }
-        if (!urls.isEmpty()) {
+        if (variant == null || variant.getImages() == null) {
             return urls;
         }
-        String fallback = fallbackImageUrl(categoryId, productId);
-        return fallback != null ? List.of(fallback) : List.of();
-    }
-
-    /** URL Cloudinary tạm theo pattern: c001_1.jpg, c002_3.jpg, ... */
-    private static String fallbackImageUrl(String categoryId, Long productId) {
-        if (categoryId == null || categoryId.isBlank() || productId == null) {
-            return null;
+        for (ProductImageResponse img : variant.getImages()) {
+            if (img != null && img.getImageUrl() != null && !img.getImageUrl().isBlank()) {
+                addUnique(urls, img.getImageUrl().trim());
+            }
         }
-        int seq = (int) ((productId - 1) % 10 + 1);
-        return "https://res.cloudinary.com/pnam233/image/upload/product/"
-                + categoryId.toLowerCase().trim() + "_" + seq + ".jpg";
+        return urls;
     }
 }

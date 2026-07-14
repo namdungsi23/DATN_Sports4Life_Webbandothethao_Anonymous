@@ -1,16 +1,6 @@
 export const FALLBACK_PRODUCT_IMAGE =
   "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80";
 
-const CLOUDINARY_PRODUCT_BASE =
-  "https://res.cloudinary.com/pnam233/image/upload/product";
-
-/** URL Cloudinary tạm (1 ảnh) theo category + productId. */
-export function cloudinaryProductUrl(categoryId, productId) {
-  if (!categoryId || productId == null) return null;
-  const seq = ((Number(productId) - 1) % 10) + 1;
-  return `${CLOUDINARY_PRODUCT_BASE}/${String(categoryId).toLowerCase()}_${seq}.jpg`;
-}
-
 function toUrlList(images) {
   if (!Array.isArray(images)) return [];
   return images
@@ -18,17 +8,18 @@ function toUrlList(images) {
     .filter(Boolean);
 }
 
-/** Tạm thời: ảnh DB của biến thể, hoặc 1 ảnh Cloudinary fallback. */
-export function resolveVariantImages(variant, product) {
+/**
+ * Nghiệp vụ FE: chỉ dùng URL ảnh Backend đã trả từ SQL (ProductImages).
+ * Không tự ghép / list Cloudinary.
+ */
+export function resolveVariantImages(variant) {
   if (!variant) return [];
 
   const fromArray = toUrlList(variant.images);
-  if (fromArray.length) return fromArray;
+  if (fromArray.length) return fromArray.slice(0, 4);
 
   if (variant.image) return [variant.image];
-
-  const temp = cloudinaryProductUrl(product?.categoryId, product?.id ?? variant.productId);
-  return temp ? [temp] : [];
+  return [];
 }
 
 export function resolveProductImage(product) {
@@ -40,9 +31,7 @@ export function resolveProductImage(product) {
     (typeof product.images?.[0] === "string" ? product.images[0] : product.images?.[0]?.imageUrl) ||
     product.gallery?.[0];
 
-  if (direct) return direct;
-
-  return cloudinaryProductUrl(product.categoryId, product.id) || FALLBACK_PRODUCT_IMAGE;
+  return direct || FALLBACK_PRODUCT_IMAGE;
 }
 
 export function normalizeProduct(product) {
@@ -50,7 +39,7 @@ export function normalizeProduct(product) {
 
   const variants = Array.isArray(product.variants)
     ? product.variants.map((v) => {
-        const images = resolveVariantImages(v, product);
+        const images = resolveVariantImages(v);
         return {
           ...v,
           images,
@@ -59,14 +48,22 @@ export function normalizeProduct(product) {
       })
     : product.variants;
 
+  // Gallery SP ưu tiên biến thể mặc định (không gộp mọi biến thể)
+  const def =
+    (Array.isArray(variants) && variants.find((v) => v.isDefault)) ||
+    (Array.isArray(variants) && variants[0]) ||
+    null;
+  const fromDefault = resolveVariantImages(def);
+
   const gallery =
+    (fromDefault.length ? fromDefault : null) ||
     (Array.isArray(product.gallery) && product.gallery.length
-      ? product.gallery.filter(Boolean)
+      ? product.gallery.filter(Boolean).slice(0, 4)
       : null) ||
-    toUrlList(product.images) ||
+    toUrlList(product.images).slice(0, 4) ||
     [];
 
-  const uniqueGallery = [...new Set(gallery.filter(Boolean))];
+  const uniqueGallery = [...new Set(gallery.filter(Boolean))].slice(0, 4);
   if (!uniqueGallery.length) {
     const one = resolveProductImage(product);
     if (one) uniqueGallery.push(one);

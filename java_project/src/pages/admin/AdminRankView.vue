@@ -91,27 +91,54 @@
             <div class="card-body">
               <form @submit.prevent="save">
                 <div class="mb-3">
-                  <label class="form-label">Tên hạng</label>
-                  <input v-model="form.rankName" type="text" class="form-control" required maxlength="50" />
+                  <label class="form-label">Tên hạng <span class="text-danger">*</span></label>
+                  <input
+                    v-model="form.rankName"
+                    type="text"
+                    class="form-control"
+                    :class="{ 'is-invalid': fieldErrors.rankName }"
+                    maxlength="50"
+                    @input="delete fieldErrors.rankName"
+                  />
+                  <div v-if="fieldErrors.rankName" class="invalid-feedback d-block">{{ fieldErrors.rankName }}</div>
                 </div>
                 <div class="mb-3">
-                  <label class="form-label">Điểm tối thiểu</label>
-                  <input v-model.number="form.minPoint" type="number" class="form-control" min="0" required />
+                  <label class="form-label">Điểm tối thiểu <span class="text-danger">*</span></label>
+                  <input
+                    v-model.number="form.minPoint"
+                    type="number"
+                    class="form-control"
+                    :class="{ 'is-invalid': fieldErrors.minPoint }"
+                    min="0"
+                    @input="delete fieldErrors.minPoint"
+                  />
+                  <div v-if="fieldErrors.minPoint" class="invalid-feedback d-block">{{ fieldErrors.minPoint }}</div>
                 </div>
                 <div class="mb-3">
-                  <label class="form-label">Giảm giá (%)</label>
+                  <label class="form-label">Giảm giá (%) <span class="text-danger">*</span></label>
                   <input
                     v-model.number="form.discountPercent"
                     type="number"
                     class="form-control"
+                    :class="{ 'is-invalid': fieldErrors.discountPercent }"
                     min="0"
                     max="100"
                     step="0.01"
+                    @input="delete fieldErrors.discountPercent"
                   />
+                  <div v-if="fieldErrors.discountPercent" class="invalid-feedback d-block">{{ fieldErrors.discountPercent }}</div>
                 </div>
                 <div class="mb-3">
                   <label class="form-label">Mô tả</label>
-                  <textarea v-model="form.description" class="form-control" rows="2" maxlength="255" />
+                  <textarea
+                    v-model="form.description"
+                    class="form-control"
+                    :class="{ 'is-invalid': fieldErrors.description }"
+                    rows="2"
+                    maxlength="255"
+                    @input="delete fieldErrors.description"
+                  />
+                  <div v-if="fieldErrors.description" class="invalid-feedback d-block">{{ fieldErrors.description }}</div>
                 </div>
                 <div class="form-check mb-3">
                   <input id="rank-active" v-model="form.isActive" class="form-check-input" type="checkbox" />
@@ -135,6 +162,7 @@ import AdminLayout from "../../layouts/AdminLayout.vue";
 import { apiFetch } from "../../services/http.js";
 import { useAppStore, useToast } from "../../stores/appStore";
 import { userCanWriteCatalog } from "../../utils/adminAccess";
+import { firstError, getApiError, runValidation } from "../../utils/validators";
 
 const store = useAppStore();
 const toast = useToast();
@@ -147,11 +175,12 @@ const showForm = ref(false);
 const editingId = ref(null);
 const flashOk = ref("");
 const flashErr = ref("");
+const fieldErrors = reactive({});
 
 const form = reactive({
   rankName: "",
-  minPoint: 0,
-  discountPercent: 0,
+  minPoint: null,
+  discountPercent: null,
   description: "",
   isActive: true,
 });
@@ -164,10 +193,11 @@ const formatDiscount = (v) => {
 const resetForm = () => {
   editingId.value = null;
   form.rankName = "";
-  form.minPoint = 0;
-  form.discountPercent = 0;
+  form.minPoint = null;
+  form.discountPercent = null;
   form.description = "";
   form.isActive = true;
+  Object.keys(fieldErrors).forEach((k) => delete fieldErrors[k]);
 };
 
 const openCreate = () => {
@@ -205,13 +235,45 @@ const load = async () => {
 };
 
 const save = async () => {
-  saving.value = true;
   flashOk.value = "";
   flashErr.value = "";
+  Object.keys(fieldErrors).forEach((k) => delete fieldErrors[k]);
+  const result = runValidation(
+    {
+      rankName: form.rankName,
+      minPoint: form.minPoint,
+      discountPercent: form.discountPercent,
+      description: form.description,
+    },
+    {
+      rankName: [
+        "required",
+        { type: "min", min: 2, message: "Tên hạng tối thiểu 2 ký tự." },
+        { type: "max", max: 50 },
+      ],
+      minPoint: [
+        { type: "required", message: "Điểm tối thiểu là bắt buộc." },
+        { type: "number", min: 0, max: 1000000, message: "Điểm tối thiểu ≥ 0." },
+      ],
+      discountPercent: [
+        { type: "required", message: "Giảm giá % là bắt buộc." },
+        { type: "number", min: 0, max: 100, message: "Giảm giá từ 0 đến 100%." },
+      ],
+      description: [{ type: "max", max: 255 }],
+    }
+  );
+  if (!result.ok) {
+    Object.assign(fieldErrors, result.errors);
+    flashErr.value = firstError(result.errors);
+    toast.error(flashErr.value);
+    return;
+  }
+
+  saving.value = true;
   const payload = {
-    rankName: String(form.rankName || "").trim(),
-    minPoint: Number(form.minPoint) || 0,
-    discountPercent: Number(form.discountPercent) || 0,
+    rankName: String(result.values.rankName),
+    minPoint: Number(result.values.minPoint),
+    discountPercent: Number(result.values.discountPercent),
     description: String(form.description || "").trim() || null,
     isActive: !!form.isActive,
   };
@@ -224,7 +286,9 @@ const save = async () => {
     closeForm();
     await load();
   } catch (e) {
-    flashErr.value = e?.message || "Lưu thất bại.";
+    const api = getApiError(e, "Lưu thất bại.");
+    Object.assign(fieldErrors, api.errors || {});
+    flashErr.value = api.message;
     toast.error(flashErr.value);
   } finally {
     saving.value = false;

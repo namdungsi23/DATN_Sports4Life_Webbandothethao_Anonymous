@@ -44,7 +44,7 @@ export async function uploadProductImage(buffer, originalName) {
 }
 
 /**
- * Lấy đầy đủ URL ảnh trong folder Cloudinary (vd: product, product/c001).
+ * Lấy đầy đủ URL ảnh trong folder Cloudinary (kèm subfolder variant_*).
  * @param {string} [folder="product"]
  * @param {string} [prefix] — lọc theo prefix public_id (vd: "product/c001")
  * @returns {Promise<string[]>}
@@ -55,8 +55,8 @@ export async function listProductImageUrls(folder = "product", prefix) {
   }
 
   const expression = prefix
-    ? `folder:${folder} AND public_id:${prefix}*`
-    : `folder:${folder}`;
+    ? `folder:${folder}/* OR folder:"${folder}" AND public_id:${prefix}*`
+    : `folder:${folder}/* OR folder:"${folder}"`;
 
   const urls = [];
   let nextCursor;
@@ -77,6 +77,51 @@ export async function listProductImageUrls(folder = "product", prefix) {
   } while (nextCursor);
 
   return urls;
+}
+
+/**
+ * ArrayList URL theo folder tên sản phẩm: product/{productName} (+ variant_*)
+ * @param {string} productName
+ * @returns {Promise<string[]>}
+ */
+export async function listProductFolderImageUrls(productName) {
+  if (!productName) return [];
+  const name = String(productName).trim();
+  let urls = await listProductImageUrls(`product/${name}`);
+  if (!urls.length && /^sp\d+$/i.test(name)) {
+    urls = await listProductImageUrls(name.toLowerCase());
+  }
+  return urls;
+}
+
+/**
+ * ArrayList asset gốc / product/sp{id}
+ * @param {number|string} productId
+ * @returns {Promise<string[]>}
+ */
+export async function listProductAssetImageUrls(productId) {
+  if (productId == null || productId === "") return [];
+  const id = String(productId).trim();
+  let urls = await listProductImageUrls(`product/sp${id}`);
+  if (!urls.length) urls = await listProductImageUrls(`sp${id}`);
+  return urls;
+}
+
+/**
+ * Map folder con dưới product/ → ArrayList URL.
+ * @returns {Promise<Record<string, string[]>>}
+ */
+export async function listProductFoldersAsArrayMap() {
+  if (!ensure()) {
+    throw new Error("Cloudinary is not configured; set CLOUDINARY_* in .env");
+  }
+  const root = await cloudinary.api.sub_folders("product");
+  const map = {};
+  for (const folder of root.folders || []) {
+    const name = String(folder.path || "").replace(/^product\//, "");
+    map[name] = await listProductImageUrls(folder.path);
+  }
+  return map;
 }
 
 /**

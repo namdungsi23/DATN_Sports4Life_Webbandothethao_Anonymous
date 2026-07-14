@@ -11,8 +11,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
-import poly.edu.ASSM.Entity.Products;
-import poly.edu.ASSM.Repository.ProductRepository;
+import poly.edu.ASSM.entity.Products;
+import poly.edu.ASSM.repository.ProductRepository;
 import poly.edu.ASSM.exception.InvalidInputException;
 
 @Service

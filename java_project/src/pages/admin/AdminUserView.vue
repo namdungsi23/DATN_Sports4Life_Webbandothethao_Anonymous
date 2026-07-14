@@ -27,36 +27,78 @@
               <fieldset :disabled="!canWrite">
               <form @submit.prevent="saveUser">
                 <div class="mb-3">
-                  <label class="form-label"><strong>Tên đăng nhập</strong></label>
+                  <label class="form-label"><strong>Tên đăng nhập <span class="text-danger">*</span></strong></label>
                   <input
                     v-model="form.username"
                     type="text"
                     class="form-control"
+                    :class="{ 'is-invalid': fieldErrors.username }"
                     :readonly="isEditing"
-                    required
+                    @input="delete fieldErrors.username"
                   />
+                  <div v-if="fieldErrors.username" class="invalid-feedback d-block">{{ fieldErrors.username }}</div>
                 </div>
                 <div v-if="!isEditing" class="mb-3">
-                  <label class="form-label"><strong>Mật khẩu</strong></label>
+                  <label class="form-label"><strong>Mật khẩu <span class="text-danger">*</span></strong></label>
                   <input
                     v-model="form.password"
                     type="password"
                     class="form-control"
-                    placeholder="Mặc định: 123 nếu để trống"
+                    :class="{ 'is-invalid': fieldErrors.password }"
+                    placeholder="Tối thiểu 6 ký tự"
                     autocomplete="new-password"
+                    @input="delete fieldErrors.password"
                   />
+                  <div v-if="fieldErrors.password" class="invalid-feedback d-block">{{ fieldErrors.password }}</div>
                 </div>
                 <div class="mb-3">
-                  <label class="form-label"><strong>Họ tên</strong></label>
-                  <input v-model="form.fullname" type="text" class="form-control" />
+                  <label class="form-label"><strong>Họ tên <span class="text-danger">*</span></strong></label>
+                  <input
+                    v-model="form.fullname"
+                    type="text"
+                    class="form-control"
+                    :class="{ 'is-invalid': fieldErrors.fullname }"
+                    @input="delete fieldErrors.fullname"
+                  />
+                  <div v-if="fieldErrors.fullname" class="invalid-feedback d-block">{{ fieldErrors.fullname }}</div>
                 </div>
                 <div class="mb-3">
-                  <label class="form-label"><strong>Email</strong></label>
-                  <input v-model="form.email" type="email" class="form-control" />
+                  <label class="form-label"><strong>Email <span class="text-danger">*</span></strong></label>
+                  <input
+                    v-model="form.email"
+                    type="email"
+                    class="form-control"
+                    :class="{ 'is-invalid': fieldErrors.email }"
+                    @input="delete fieldErrors.email"
+                  />
+                  <div v-if="fieldErrors.email" class="invalid-feedback d-block">{{ fieldErrors.email }}</div>
                 </div>
                 <div class="mb-3">
-                  <label class="form-label"><strong>Ảnh đại diện (URL)</strong></label>
-                  <input v-model="form.photo" type="text" class="form-control" />
+                  <label class="form-label"><strong>Ảnh đại diện (Cloudinary)</strong></label>
+                  <div class="d-flex align-items-center gap-3 mb-2">
+                    <img
+                      v-if="form.photo"
+                      :src="form.photo"
+                      alt="Avatar"
+                      class="rounded border"
+                      style="width: 64px; height: 64px; object-fit: cover"
+                    />
+                    <span v-else class="text-muted small">Chưa có ảnh</span>
+                  </div>
+                  <input
+                    type="file"
+                    class="form-control mb-2"
+                    accept="image/*"
+                    :disabled="!canWrite || !isEditing"
+                    @change="onAvatarFile"
+                  />
+                  <input
+                    v-model="form.photo"
+                    type="text"
+                    class="form-control"
+                    placeholder="Hoặc dán URL — sẽ đồng bộ lên Cloudinary khi lưu"
+                  />
+                  <small class="text-muted">Tải file hoặc dán link; hệ thống lưu Cloudinary + SQL (Users.Avatar).</small>
                 </div>
                 <div v-if="isEditing" class="mb-3">
                   <label class="form-label"><strong>Hạng / Điểm</strong></label>
@@ -82,17 +124,18 @@
                   <small class="text-muted">Đổi điểm sẽ tự đồng bộ hạng theo MinPoint.</small>
                 </div>
                 <div class="mb-3">
-                  <label class="form-label d-block"><strong>Vai trò</strong></label>
+                  <label class="form-label d-block"><strong>Vai trò <span class="text-danger">*</span></strong></label>
                   <div v-for="role in roleOptions" :key="role" class="form-check">
                     <input
                       :id="'role-' + role"
                       class="form-check-input"
                       type="checkbox"
                       :checked="form.roles.includes(role)"
-                      @change="toggleRole(role, $event.target.checked)"
+                      @change="toggleRole(role, $event.target.checked); delete fieldErrors.roles"
                     />
                     <label class="form-check-label" :for="'role-' + role">{{ role }}</label>
                   </div>
+                  <div v-if="fieldErrors.roles" class="text-danger small mt-1">{{ fieldErrors.roles }}</div>
                 </div>
                 <div class="form-check mb-3">
                   <input id="act" v-model="form.activated" class="form-check-input" type="checkbox" />
@@ -112,6 +155,7 @@
               <table class="table table-bordered table-hover align-middle">
                 <thead class="table-light">
                   <tr>
+                    <th>Ảnh</th>
                     <th>Username</th>
                     <th>Họ tên</th>
                     <th>Email</th>
@@ -124,6 +168,16 @@
                 </thead>
                 <tbody>
                   <tr v-for="u in users" :key="u.username">
+                    <td>
+                      <img
+                        v-if="u.photo || u.avatar"
+                        :src="u.photo || u.avatar"
+                        alt=""
+                        class="rounded"
+                        style="width: 40px; height: 40px; object-fit: cover"
+                      />
+                      <span v-else class="text-muted">—</span>
+                    </td>
                     <td>{{ u.username }}</td>
                     <td>{{ u.fullname }}</td>
                     <td>{{ u.email }}</td>
@@ -188,6 +242,7 @@ import AdminReadOnlyNotice from "../../components/admin/AdminReadOnlyNotice.vue"
 import { apiFetch } from "../../services/http.js";
 import { useAppStore } from "../../stores/appStore";
 import { userCanWriteCatalog } from "../../utils/adminAccess";
+import { firstError, getApiError, runValidation } from "../../utils/validators";
 
 const store = useAppStore();
 const canWrite = computed(() => userCanWriteCatalog(store.state.user));
@@ -196,6 +251,7 @@ const route = useRoute();
 const router = useRouter();
 const err = ref("");
 const okMsg = ref("");
+const fieldErrors = reactive({});
 const keyword = ref("");
 const users = ref([]);
 const authorities = ref([]);
@@ -219,6 +275,7 @@ const form = reactive({
 });
 const editingUsername = ref(null);
 const pointsSaving = ref(false);
+const avatarUploading = ref(false);
 
 const isEditing = computed(() => editingUsername.value != null && editingUsername.value !== "");
 
@@ -250,6 +307,7 @@ function clearForm() {
   form.accountId = null;
   form.rankName = "";
   form.totalPoint = 0;
+  Object.keys(fieldErrors).forEach((k) => delete fieldErrors[k]);
 }
 
 async function load(page = 0) {
@@ -284,6 +342,34 @@ function loadEdit(u) {
   form.totalPoint = u.totalPoint ?? 0;
 }
 
+async function onAvatarFile(e) {
+  const file = e.target.files?.[0];
+  e.target.value = "";
+  if (!file || !form.username) return;
+  if (!isEditing.value) {
+    err.value = "Chọn người dùng trước khi tải ảnh.";
+    return;
+  }
+  avatarUploading.value = true;
+  err.value = "";
+  okMsg.value = "";
+  try {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await apiFetch(`/api/admin/users/${encodeURIComponent(form.username)}/avatar`, {
+      method: "POST",
+      body: fd,
+    });
+    form.photo = res.photo || res.user?.photo || form.photo;
+    okMsg.value = res.message || "Đã upload ảnh lên Cloudinary.";
+    await load(pages.number);
+  } catch (ex) {
+    err.value = ex?.message || "Upload ảnh thất bại.";
+  } finally {
+    avatarUploading.value = false;
+  }
+}
+
 async function savePoints() {
   if (!form.accountId) {
     err.value = "Không xác định được tài khoản.";
@@ -313,44 +399,51 @@ async function savePoints() {
 async function saveUser() {
   err.value = "";
   okMsg.value = "";
+  Object.keys(fieldErrors).forEach((k) => delete fieldErrors[k]);
   const creating = editingUsername.value == null;
-  const username = String(form.username || "").trim();
-  const fullname = String(form.fullname || "").trim();
-  const email = String(form.email || "").trim();
 
-  if (!username || username.length < 3) {
-    err.value = "Username tối thiểu 3 ký tự.";
-    return;
+  const schema = {
+    username: ["required", "username"],
+    fullname: [
+      "required",
+      { type: "min", min: 2, message: "Họ tên tối thiểu 2 ký tự." },
+      { type: "max", max: 100 },
+    ],
+    email: ["required", "email", { type: "max", max: 100 }],
+  };
+  if (creating) {
+    schema.password = [
+      { type: "required", message: "Mật khẩu là bắt buộc khi tạo tài khoản." },
+      { type: "min", min: 6, message: "Mật khẩu tối thiểu 6 ký tự." },
+    ];
+  } else if (String(form.password || "").trim()) {
+    schema.password = [{ type: "min", min: 6, message: "Mật khẩu mới tối thiểu 6 ký tự." }];
   }
-  if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
-    err.value = "Username chỉ gồm chữ, số, dấu . _ -";
-    return;
-  }
-  if (!fullname || fullname.length < 2) {
-    err.value = "Họ tên không được để trống (tối thiểu 2 ký tự).";
-    return;
-  }
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-    err.value = "Email không hợp lệ.";
-    return;
-  }
-  if (creating && (!form.password || String(form.password).trim().length < 6)) {
-    err.value = "Mật khẩu tối thiểu 6 ký tự khi tạo tài khoản.";
-    return;
-  }
-  if (!creating && form.password?.trim() && String(form.password).trim().length < 6) {
-    err.value = "Mật khẩu mới tối thiểu 6 ký tự.";
+
+  const result = runValidation(
+    {
+      username: form.username,
+      fullname: form.fullname,
+      email: form.email,
+      password: form.password,
+    },
+    schema
+  );
+  if (!result.ok) {
+    Object.assign(fieldErrors, result.errors);
+    err.value = firstError(result.errors);
     return;
   }
   if (!Array.isArray(form.roles) || !form.roles.length) {
-    err.value = "Vui lòng chọn ít nhất một vai trò.";
+    fieldErrors.roles = "Vui lòng chọn ít nhất một vai trò.";
+    err.value = fieldErrors.roles;
     return;
   }
 
   const payload = {
-    username,
-    fullname,
-    email,
+    username: String(result.values.username),
+    fullname: String(result.values.fullname),
+    email: String(result.values.email),
     photo: form.photo,
     activated: form.activated,
     roles: form.roles,
@@ -365,11 +458,13 @@ async function saveUser() {
     });
     okMsg.value = res.message || "Đã lưu";
     if (creating) {
-      editingUsername.value = username;
+      editingUsername.value = payload.username;
     }
     await load(pages.number);
   } catch (e) {
-    err.value = e.message || "Lỗi lưu";
+    const api = getApiError(e, "Lỗi lưu");
+    Object.assign(fieldErrors, api.errors || {});
+    err.value = api.message;
   }
 }
 

@@ -26,7 +26,7 @@ const validateForm = () =>{
 	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 	const fullnameRegex = /^[\p{L}\s]{3,50}$/u;
 	//const passwordRegex = /^[\W]{1}[A-Z]{1}.{6,}$/
-	const passwordRegex = /^(?=.*[\W_])(?=.*[A-Z])(?=.*\d).{8,}$/;
+	const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 	
 	// Clear previous errors
     const errorContainer = document.querySelector("#registerBox .alert-danger");
@@ -42,7 +42,7 @@ const validateForm = () =>{
     } else if (!emailRegex.test(email)) {
         errorMessage = "Email không hợp lệ.";
     } else if (!passwordRegex.test(password)) {
-        errorMessage = "Mật khẩu phải có ít nhất 1 ký tự đặc biệt, 1 chữ hoa, 1 số và tối thiểu 8 ký tự.";
+        errorMessage = "Mật khẩu phải có chữ hoa, chữ thường, số, ký tự đặc biệt và tối thiểu 8 ký tự.";
     } 
 
     if (errorMessage) {

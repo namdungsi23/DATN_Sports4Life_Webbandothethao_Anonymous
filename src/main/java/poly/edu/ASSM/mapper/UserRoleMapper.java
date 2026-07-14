@@ -6,10 +6,10 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.Entity.Roles;
-import poly.edu.ASSM.Entity.UserRole;
-import poly.edu.ASSM.Entity.UserRoleId;
-import poly.edu.ASSM.Entity.Users;
+import poly.edu.ASSM.entity.Roles;
+import poly.edu.ASSM.entity.UserRole;
+import poly.edu.ASSM.entity.UserRoleId;
+import poly.edu.ASSM.entity.Users;
 import poly.edu.ASSM.dto.request.UserRoleRequest;
 import poly.edu.ASSM.dto.response.UserRoleResponse;
 

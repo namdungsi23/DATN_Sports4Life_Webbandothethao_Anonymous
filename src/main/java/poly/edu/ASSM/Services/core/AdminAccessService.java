@@ -11,11 +11,11 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import poly.edu.ASSM.Entity.Accounts;
-import poly.edu.ASSM.Entity.Permissions;
-import poly.edu.ASSM.Entity.Roles;
-import poly.edu.ASSM.Repository.AccountRepository;
-import poly.edu.ASSM.Repository.PermissionRepository;
+import poly.edu.ASSM.entity.Accounts;
+import poly.edu.ASSM.entity.Permissions;
+import poly.edu.ASSM.entity.Roles;
+import poly.edu.ASSM.repository.AccountRepository;
+import poly.edu.ASSM.repository.PermissionRepository;
 import poly.edu.ASSM.security.AdminPermissionCodes;
 import poly.edu.ASSM.security.SpringRoleNames;
 

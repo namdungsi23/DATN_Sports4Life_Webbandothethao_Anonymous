@@ -108,7 +108,33 @@ export const loginApi = async (payload) => {
 };
 
 export const registerApi = async (payload) => {
-  const response = await clientApi.post("/register", payload);
+  // Có ảnh → multipart (Cloudinary + SQL); không ảnh → JSON
+  if (payload?.photo instanceof File || payload?.photo instanceof Blob) {
+    const formData = new FormData();
+    formData.append("username", payload.username ?? "");
+    formData.append("fullname", payload.fullname ?? "");
+    formData.append("email", payload.email ?? "");
+    formData.append("password", payload.password ?? "");
+    if (payload.verifyChannel) formData.append("verifyChannel", payload.verifyChannel);
+    if (payload.phone) formData.append("phone", payload.phone);
+    formData.append("photo", payload.photo);
+    const response = await clientApi.post("/register", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  }
+  const { photo, ...json } = payload || {};
+  const response = await clientApi.post("/register", json);
+  return response.data;
+};
+
+export const registerVerifyOtpApi = async (payload) => {
+  const response = await clientApi.post("/register/verify-otp", payload);
+  return response.data;
+};
+
+export const registerResendOtpApi = async (payload) => {
+  const response = await clientApi.post("/register/resend-otp", payload);
   return response.data;
 };
 

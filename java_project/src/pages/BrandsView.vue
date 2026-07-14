@@ -10,7 +10,7 @@
           <p class="page-hero__brand">Sports4Life</p>
           <p class="page-hero__eyebrow">Official partners</p>
           <h1>Thương hiệu</h1>
-          <p>Nike, Adidas, Puma và hơn thế — chính hãng, sẵn sàng cho mọi trận đấu</p>
+          <p>Nike, Adidas, Puma, Hoka, Jordan và hơn 20 thương hiệu — chính hãng, sẵn sàng cho mọi trận đấu</p>
           <RouterLink to="/product" class="page-hero__cta">Xem sản phẩm</RouterLink>
         </div>
       </div>
@@ -59,7 +59,7 @@ import { onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
 import { fetchBrandsApi } from "../services/api";
-import { DEFAULT_BRAND_NAMES, resolveBrandLogo } from "../utils/brandLogos";
+import { DEFAULT_BRAND_NAMES, mergeBrandNames, resolveBrandLogo } from "../utils/brandLogos";
 
 const brands = ref([]);
 const loading = ref(true);
@@ -86,13 +86,17 @@ const loadBrands = async () => {
   loading.value = true;
   try {
     const data = await fetchBrandsApi();
-    const fromApi = (data?.brands ?? [])
-      .map((item) => toBrandItem(item.name, item.productCount ?? 0))
-      .filter((item) => item.name);
-
-    brands.value = fromApi.length
-      ? fromApi
-      : DEFAULT_BRAND_NAMES.map((name) => toBrandItem(name));
+    const apiItems = data?.brands ?? [];
+    const countByName = new Map(
+      apiItems.map((item) => [
+        String(item?.name || "").trim().toLowerCase(),
+        Number(item?.productCount) || 0,
+      ])
+    );
+    const names = mergeBrandNames(apiItems.map((item) => item?.name));
+    brands.value = names.map((name) =>
+      toBrandItem(name, countByName.get(name.toLowerCase()) || 0)
+    );
   } catch (error) {
     console.warn("Load brands failed", error);
     brands.value = DEFAULT_BRAND_NAMES.map((name) => toBrandItem(name));

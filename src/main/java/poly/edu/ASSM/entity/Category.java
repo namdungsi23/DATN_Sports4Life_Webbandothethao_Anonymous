@@ -1,0 +1,30 @@
+package poly.edu.ASSM.entity;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.Nationalized;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+@Getter
+@Setter
+@Entity
+@Table(name = "Categories")
+public class Category {
+    @Id
+    @Column(name = "Id", nullable = false, length = 10)
+    private String id;
+
+    @Nationalized
+    @Column(name = "Name", nullable = false, length = 50)
+    private String name;
+
+   @JsonIgnore
+   @OneToMany(mappedBy = "category")
+   private Set<Products> products = new LinkedHashSet<>();
+
+}

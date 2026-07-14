@@ -24,4 +24,12 @@ public class PublicRegisterRequest {
 
 	@NotBlank(message = "Mật khẩu là bắt buộc.")
 	private String password;
+
+	/** EMAIL/GMAIL hoặc SMS — bước xác minh danh tính sau đăng ký */
+	@Size(max = 20, message = "Kênh xác minh không hợp lệ.")
+	private String verifyChannel;
+
+	/** Bắt buộc khi verifyChannel = SMS */
+	@Size(max = 20, message = "Số điện thoại tối đa 20 ký tự.")
+	private String phone;
 }

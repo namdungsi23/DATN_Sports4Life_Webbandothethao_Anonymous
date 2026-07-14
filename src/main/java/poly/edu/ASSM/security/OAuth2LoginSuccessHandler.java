@@ -23,8 +23,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.entity.Accounts;
 import poly.edu.ASSM.Services.core.AccountService;
+import poly.edu.ASSM.Services.util.CloudinaryService;
 import poly.edu.ASSM.Services.util.JwtService;
 
 @Component
@@ -38,6 +39,9 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
 	@Autowired
 	private JwtService jwtService;
+
+	@Autowired
+	private CloudinaryService cloudinaryService;
 
 	@Value("${app.frontend.url:http://localhost:5173}")
 	private String frontendUrl;
@@ -60,7 +64,18 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 			return;
 		}
 
-		Accounts account = accountService.saveOAuthLogin(email, name, picture);
+		// Đồng bộ ảnh Google → Cloudinary rồi mới ghi SQL
+		String avatarUrl = picture;
+		if (picture != null && !picture.isBlank() && !cloudinaryService.isOurCloudinaryUrl(picture)) {
+			try {
+				String usernameHint = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
+				avatarUrl = cloudinaryService.uploadAvatarFromUrl(picture, usernameHint);
+			} catch (Exception ignored) {
+				avatarUrl = picture; // fallback URL Google nếu Cloudinary lỗi
+			}
+		}
+
+		Accounts account = accountService.saveOAuthLogin(email, name, avatarUrl);
 
 		if (account == null || !Boolean.TRUE.equals(account.getIsActive())) {
 			redirectError(response, "Tài khoản bị khóa hoặc không hợp lệ.");

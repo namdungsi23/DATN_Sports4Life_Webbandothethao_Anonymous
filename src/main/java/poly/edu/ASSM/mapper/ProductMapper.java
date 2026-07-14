@@ -2,7 +2,6 @@ package poly.edu.ASSM.mapper;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -11,10 +10,10 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.Entity.Category;
-import poly.edu.ASSM.Entity.ProductImages;
-import poly.edu.ASSM.Entity.ProductVariants;
-import poly.edu.ASSM.Entity.Products;
+import poly.edu.ASSM.entity.Category;
+import poly.edu.ASSM.entity.ProductImages;
+import poly.edu.ASSM.entity.ProductVariants;
+import poly.edu.ASSM.entity.Products;
 import poly.edu.ASSM.dto.request.ProductRequest;
 import poly.edu.ASSM.dto.response.PageResponse;
 import poly.edu.ASSM.dto.response.ProductImageResponse;
@@ -151,22 +150,17 @@ public class ProductMapper {
     }
 
     private List<ProductImageResponse> toImageResponses(Products entity) {
-        if (entity.getProductVariants() == null || entity.getProductVariants().isEmpty()) {
+        ProductVariants defaultVariant = findDefaultVariant(entity);
+        if (defaultVariant == null || defaultVariant.getProductImages() == null) {
             return List.of();
         }
 
-        List<ProductImages> allImages = new ArrayList<>();
-        for (ProductVariants variant : entity.getProductVariants()) {
-            if (variant.getProductImages() != null) {
-                allImages.addAll(variant.getProductImages());
-            }
-        }
-
-        return allImages.stream()
-                .map(this::toImageResponse)
-                .filter(Objects::nonNull)
+        return defaultVariant.getProductImages().stream()
                 .sorted(Comparator.comparing(
                         img -> img.getSortOrder() != null ? img.getSortOrder() : Integer.MAX_VALUE))
+                .limit(4)
+                .map(this::toImageResponse)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 

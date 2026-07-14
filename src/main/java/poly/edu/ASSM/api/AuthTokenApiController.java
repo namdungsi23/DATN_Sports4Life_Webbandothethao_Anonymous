@@ -12,10 +12,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import io.jsonwebtoken.Claims;
 import poly.edu.ASSM.Services.core.AdminAccessService;
 import poly.edu.ASSM.Services.util.JwtService;
+import poly.edu.ASSM.exception.InvalidInputException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -36,12 +39,12 @@ public class AuthTokenApiController {
 	@PostMapping("/refresh")
 	public ResponseEntity<Map<String, Object>> refresh(@RequestBody RefreshBody body) {
 		if (body == null || body.refreshToken() == null || body.refreshToken().isBlank()) {
-			return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "Thiếu refresh token."));
+			throw InvalidInputException.of("refreshToken", "Thiếu refresh token.");
 		}
 		try {
 			Claims claims = jwtService.getBody(body.refreshToken().trim());
 			if (!jwtService.validate(claims) || !jwtService.isRefreshToken(claims)) {
-				return ResponseEntity.status(401).body(Map.of("ok", false, "message", "Refresh token không hợp lệ."));
+				throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token không hợp lệ.");
 			}
 			String username = claims.getSubject();
 			UserDetails user = userDetailsService.loadUserByUsername(username);
@@ -64,8 +67,10 @@ public class AuthTokenApiController {
 			payload.put("isAdmin", adminAccessService.isAdminRole(access));
 			payload.put("isStaff", adminAccessService.isStaffOnly(access));
 			return ResponseEntity.ok(payload);
+		} catch (ResponseStatusException | InvalidInputException e) {
+			throw e;
 		} catch (Exception e) {
-			return ResponseEntity.status(401).body(Map.of("ok", false, "message", "Refresh token không hợp lệ."));
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token không hợp lệ.");
 		}
 	}
 }

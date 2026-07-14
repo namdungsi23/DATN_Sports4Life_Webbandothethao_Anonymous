@@ -16,14 +16,14 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import poly.edu.ASSM.Entity.Accounts;
-import poly.edu.ASSM.Entity.Notification;
-import poly.edu.ASSM.Entity.Ranks;
-import poly.edu.ASSM.Entity.Users;
-import poly.edu.ASSM.Repository.AccountRepository;
-import poly.edu.ASSM.Repository.NotificationRepository;
-import poly.edu.ASSM.Repository.RankRepository;
-import poly.edu.ASSM.Repository.UsersRepository;
+import poly.edu.ASSM.entity.Accounts;
+import poly.edu.ASSM.entity.Notification;
+import poly.edu.ASSM.entity.Ranks;
+import poly.edu.ASSM.entity.Users;
+import poly.edu.ASSM.repository.AccountRepository;
+import poly.edu.ASSM.repository.NotificationRepository;
+import poly.edu.ASSM.repository.RankRepository;
+import poly.edu.ASSM.repository.UsersRepository;
 import poly.edu.ASSM.mapper.NotificationMapper;
 
 @Service

@@ -7,9 +7,9 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.Entity.Accounts;
-import poly.edu.ASSM.Entity.Addresses;
-import poly.edu.ASSM.Entity.Users;
+import poly.edu.ASSM.entity.Accounts;
+import poly.edu.ASSM.entity.Addresses;
+import poly.edu.ASSM.entity.Users;
 import poly.edu.ASSM.dto.request.CustomerAddressRequest;
 import poly.edu.ASSM.dto.response.CustomerAddressResponse;
 

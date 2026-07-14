@@ -9,8 +9,8 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.Entity.ProductVariants;
-import poly.edu.ASSM.Entity.Products;
+import poly.edu.ASSM.entity.ProductVariants;
+import poly.edu.ASSM.entity.Products;
 import poly.edu.ASSM.dto.request.ProductVariantRequest;
 import poly.edu.ASSM.dto.response.ProductImageResponse;
 import poly.edu.ASSM.dto.response.ProductVariantResponse;
@@ -37,6 +37,7 @@ public class ProductVariantMapper {
             images = entity.getProductImages().stream()
                     .sorted(Comparator.comparing(
                             img -> img.getSortOrder() != null ? img.getSortOrder() : Integer.MAX_VALUE))
+                    .limit(4)
                     .map(imageMapper::toResponse)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());

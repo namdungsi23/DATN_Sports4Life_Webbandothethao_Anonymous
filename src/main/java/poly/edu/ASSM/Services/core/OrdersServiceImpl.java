@@ -8,8 +8,8 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import poly.edu.ASSM.Entity.Orders;
-import poly.edu.ASSM.Repository.OrdersRepository;
+import poly.edu.ASSM.entity.Orders;
+import poly.edu.ASSM.repository.OrdersRepository;
 import poly.edu.ASSM.domain.OrderStatus;
 
 @Service

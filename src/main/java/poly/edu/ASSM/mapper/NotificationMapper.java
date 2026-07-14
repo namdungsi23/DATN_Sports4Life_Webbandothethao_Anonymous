@@ -8,8 +8,8 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.Entity.Notification;
-import poly.edu.ASSM.Entity.Users;
+import poly.edu.ASSM.entity.Notification;
+import poly.edu.ASSM.entity.Users;
 import poly.edu.ASSM.dto.request.NotificationRequest;
 import poly.edu.ASSM.dto.response.NotificationResponse;
 import poly.edu.ASSM.dto.response.PageResponse;

@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 
-import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.entity.Accounts;
 
 public interface AccountService {
 

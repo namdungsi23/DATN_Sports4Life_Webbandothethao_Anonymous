@@ -41,11 +41,11 @@
 
 .pd-gallery__main {
   position: relative;
-  background: #fff;
-  border: 1px solid #eee;
-  border-radius: 12px;
+  background: #eee;
+  border: none;
+  border-radius: 0;
   padding: 24px;
-  min-height: 420px;
+  min-height: 480px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -53,30 +53,79 @@
 
 .pd-gallery__main img {
   width: 100%;
-  max-height: 380px;
+  max-height: 460px;
   object-fit: contain;
+}
+
+/* Adidas 2×2 product gallery */
+.pd-gallery--grid {
+  width: 100%;
+}
+
+.pd-gallery__grid-wrap {
+  position: relative;
+}
+
+.pd-gallery__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  background: #eceff1;
+  min-height: 520px;
+}
+
+.pd-gallery__cell {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: #eceff1;
+  cursor: pointer;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  display: block;
+}
+
+.pd-gallery__cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.2s ease;
+}
+
+.pd-gallery__cell:hover img,
+.pd-gallery__cell.active img {
+  opacity: 0.92;
+}
+
+.pd-gallery__grid-wrap > .favorite-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
 }
 
 .pd-gallery__thumbs {
   display: flex;
-  gap: 10px;
-  margin-top: 14px;
+  gap: 8px;
+  margin-top: 12px;
   flex-wrap: wrap;
 }
 
 .pd-gallery__thumb {
-  width: 72px;
-  height: 72px;
-  border: 2px solid #eee;
-  border-radius: 8px;
+  width: 70px;
+  height: 70px;
+  border: 1.5px solid #e5e5e5;
+  border-radius: 0;
   padding: 4px;
-  background: #fff;
+  background: #f5f5f5;
   cursor: pointer;
   overflow: hidden;
 }
 
 .pd-gallery__thumb.active {
-  border-color: #dc2626;
+  border-color: #111;
 }
 
 .pd-gallery__thumb img {
@@ -89,16 +138,17 @@
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #888;
+  color: #707072;
   margin-bottom: 8px;
 }
 
 .pd-info__title {
-  font-size: clamp(24px, 3vw, 34px);
-  line-height: 1.2;
+  font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.15;
   color: #111;
-  font-weight: 800;
+  font-weight: 500;
   margin-bottom: 16px;
+  letter-spacing: -0.01em;
 }
 
 .pd-price-row {
@@ -110,14 +160,14 @@
 }
 
 .pd-price {
-  font-size: 28px;
-  font-weight: 800;
-  color: #dc2626;
+  font-size: 18px;
+  font-weight: 500;
+  color: #111;
 }
 
 .pd-price-old {
   font-size: 16px;
-  color: #999;
+  color: #707072;
   text-decoration: line-through;
 }
 
@@ -128,11 +178,11 @@
 }
 
 .pd-member-rank strong {
-  color: #1a3c34;
+  color: #111;
 }
 
 .pd-badge {
-  background: #dc2626;
+  background: #111;
   color: #fff;
   font-size: 12px;
   font-weight: 700;
@@ -141,68 +191,190 @@
 }
 
 .pd-installment {
-  color: #666;
+  color: #707072;
   font-size: 14px;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .pd-option {
-  margin-bottom: 20px;
+  margin-bottom: 28px;
+}
+
+.pd-option__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .pd-option__label {
+  font-size: 15px;
+  color: #111;
+  margin: 0;
+  font-weight: 500;
+}
+
+.pd-option__label strong {
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.pd-option__meta {
   font-size: 14px;
-  color: #444;
-  margin-bottom: 10px;
+  color: #707072;
+}
+
+.pd-size-guide {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #111;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.pd-size-guide-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #707072;
+  line-height: 1.45;
 }
 
 .pd-field-error {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: #dc2626;
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #d43f21;
+}
+
+.pd-field-error--box {
+  border: 1px solid #d43f21;
+  background: #fff5f3;
+  padding: 10px 12px;
+  border-radius: 4px;
 }
 
 .pd-stock-hint {
   margin-left: 10px;
   font-size: 13px;
-  color: #6b7280;
+  color: #707072;
 }
 
-.pd-swatch.disabled,
-.pd-size.disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  text-decoration: line-through;
-}
-
-.pd-swatches,
-.pd-sizes {
+/* Adidas-style colorway thumbnails */
+.pd-colorways {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.pd-swatch,
-.pd-size {
-  border: 1px solid #ddd;
+.pd-colorway {
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 1px solid #000;
+  border-radius: 0;
   background: #fff;
-  border-radius: 6px;
-  padding: 8px 14px;
-  font-size: 13px;
   cursor: pointer;
-  transition: 0.15s ease;
+  box-sizing: border-box;
 }
 
-.pd-swatch.active,
-.pd-size.active {
-  border-color: #dc2626;
-  color: #dc2626;
-  font-weight: 700;
+.pd-colorway img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #eee;
 }
 
-.pd-size.disabled {
-  opacity: 0.45;
+.pd-colorway--swatch {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 4px;
+}
+
+.pd-colorway__label {
+  font-size: 9px;
+  line-height: 1.1;
+  color: #fff;
+  text-shadow: 0 0 2px #000;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-colorway--swatch[style*="#f5f5f5"] .pd-colorway__label,
+.pd-colorway--swatch[style*="rgb(245"] .pd-colorway__label {
+  color: #111;
+  text-shadow: none;
+}
+
+.pd-colorway:hover:not(.disabled) {
+  outline: 1px solid #000;
+  outline-offset: 2px;
+}
+
+.pd-colorway.active {
+  outline: 2px solid #000;
+  outline-offset: 2px;
+}
+
+.pd-colorway.disabled {
+  opacity: 0.35;
   cursor: not-allowed;
+}
+
+/* Adidas-style size grid: sharp black/white */
+.pd-size-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 8px;
+}
+
+.pd-size-tile {
+  position: relative;
+  min-height: 48px;
+  border: 1px solid #000;
+  border-radius: 0;
+  background: #fff;
+  color: #000;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.pd-size-tile:hover:not(.soldout) {
+  background: #f2f2f2;
+}
+
+.pd-size-tile.active {
+  background: #000;
+  color: #fff;
+}
+
+.pd-size-tile.soldout {
+  color: #999;
+  border-color: #ccc;
+  cursor: not-allowed;
+}
+
+.pd-size-tile.soldout::after {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 50%;
+  height: 1px;
+  background: #999;
+  transform: rotate(-28deg);
+  pointer-events: none;
 }
 
 .pd-qty-row {
@@ -215,71 +387,74 @@
 .pd-qty {
   display: inline-flex;
   align-items: center;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid #000;
+  border-radius: 0;
   overflow: hidden;
 }
 
 .pd-qty button {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border: none;
-  background: #f5f5f5;
+  background: #fff;
   cursor: pointer;
   font-size: 18px;
+  color: #000;
 }
 
 .pd-qty span {
   min-width: 40px;
   text-align: center;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .pd-actions {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .pd-btn {
-  flex: 1;
-  min-width: 180px;
+  width: 100%;
+  min-height: 52px;
   padding: 14px 20px;
-  border-radius: 8px;
+  border-radius: 0;
   font-weight: 700;
   font-size: 14px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid #000;
   cursor: pointer;
-  transition: 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.pd-btn--primary {
+  background: #000;
+  color: #fff;
+}
+
+.pd-btn--primary:hover {
+  background: #222;
+}
+
+.pd-btn--dark {
+  background: #fff;
+  color: #000;
+}
+
+.pd-btn--dark:hover {
+  background: #f2f2f2;
 }
 
 .pd-btn--outline {
   background: #fff;
-  border: 2px solid #dc2626;
-  color: #dc2626;
-}
-
-.pd-btn--outline:hover:not(:disabled) {
-  background: #fef2f2;
-}
-
-.pd-btn--primary {
-  background: #dc2626;
-  border: 2px solid #dc2626;
-  color: #fff;
-}
-
-.pd-btn--primary:hover:not(:disabled) {
-  background: #b91c1c;
-}
-
-.pd-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  color: #000;
+  border: 1px solid #000;
 }
 
 .pd-favorite-action {
   display: flex;
+  justify-content: center;
   align-items: stretch;
 }
 
@@ -295,7 +470,7 @@
 
 .pd-stock-warn {
   margin-top: 8px;
-  color: #dc2626;
+  color: #d43f21;
   font-size: 14px;
 }
 
@@ -437,6 +612,14 @@
 
   .pd-gallery__main {
     min-height: 280px;
+  }
+
+  .pd-gallery__grid {
+    min-height: 0;
+  }
+
+  .pd-gallery__cell {
+    aspect-ratio: 1 / 1;
   }
 
   .pd-actions {

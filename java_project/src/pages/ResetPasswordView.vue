@@ -1,12 +1,12 @@
 <template>
   <AuthLayout
     title="Đặt lại mật khẩu"
-    subtitle="Nhập mật khẩu mới sau khi đã xác minh OTP"
+    subtitle="Nhập mật khẩu mới cho tài khoản"
     visual-title="Bảo mật tài khoản"
-    visual-subtitle="Chọn mật khẩu mạnh: tối thiểu 8 ký tự, có chữ và số."
+    visual-subtitle="Đặt mật khẩu mới để tiếp tục sử dụng Sports4Life."
     image="https://images.unsplash.com/photo-1606107557195-0f29cb4c6adc?w=1200&q=80"
     footer-text="Chưa có OTP?"
-    :footer-link="{ to: '/forgot-password', label: 'Gửi lại OTP' }"
+    :footer-link="{ to: '/forgot-password', label: 'Quên mật khẩu' }"
   >
     <form class="auth-form" @submit.prevent="submitReset">
       <div v-if="!token" class="auth-form__alert auth-form__alert--error">
@@ -22,7 +22,7 @@
           <input
             v-model="form.newPassword"
             type="password"
-            placeholder="Tối thiểu 8 ký tự, có chữ và số"
+            placeholder="Mật khẩu mới"
             autocomplete="new-password"
             :class="{ 'is-invalid': fieldErrors.newPassword }"
             @input="clearFieldError('newPassword')"
@@ -105,6 +105,7 @@ const submitReset = async () => {
   if (!result.ok) {
     Object.assign(fieldErrors, result.errors);
     error.value = firstError(result.errors);
+    toast.error(error.value);
     return;
   }
 

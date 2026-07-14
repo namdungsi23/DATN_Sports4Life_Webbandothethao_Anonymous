@@ -7,9 +7,9 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.Entity.CartItems;
-import poly.edu.ASSM.Entity.Products;
-import poly.edu.ASSM.Entity.ProductVariants;
+import poly.edu.ASSM.entity.CartItems;
+import poly.edu.ASSM.entity.Products;
+import poly.edu.ASSM.entity.ProductVariants;
 import poly.edu.ASSM.dto.request.CartItemRequest;
 import poly.edu.ASSM.dto.response.CartItemResponse;
 import poly.edu.ASSM.dto.response.PageResponse;

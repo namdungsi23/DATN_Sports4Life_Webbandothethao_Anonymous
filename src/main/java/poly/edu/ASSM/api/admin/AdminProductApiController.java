@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import poly.edu.ASSM.Entity.Products;
+import poly.edu.ASSM.entity.Products;
 import poly.edu.ASSM.Services.core.AdminProductCatalogService;
 import poly.edu.ASSM.Services.core.ProductService;
 import poly.edu.ASSM.dto.request.AdminVariantSaveRequest;
@@ -30,6 +30,10 @@ import poly.edu.ASSM.dto.response.ProductVariantResponse;
 import poly.edu.ASSM.exception.InvalidInputException;
 import poly.edu.ASSM.mapper.ProductMapper;
 
+/**
+ * Không catch InvalidInputException ở đây — để {@link poly.edu.ASSM.exception.ApiExceptionHandler}
+ * trả JSON chuẩn cho FE.
+ */
 @RestController
 @RequestMapping("/api/admin/products")
 @PreAuthorize("@adminAuth.has('PRODUCT_VIEW')")
@@ -88,47 +92,81 @@ public class AdminProductApiController {
             @RequestParam(required = false) String categoryId,
             @RequestParam(required = false) String description,
             @RequestParam(defaultValue = "true") Boolean available) {
-        try {
-            Products saved = catalogService.saveProduct(id, name, description, categoryId, available);
-            return ResponseEntity.ok(Map.of(
-                    "ok", true,
-                    "message", "Lưu sản phẩm thành công!",
-                    "productId", saved.getId()));
-        } catch (InvalidInputException e) {
-            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", e.getMessage()));
-        }
+        Products saved = catalogService.saveProduct(id, name, description, categoryId, available);
+        return ResponseEntity.ok(Map.of(
+                "ok", true,
+                "message", "Lưu sản phẩm thành công!",
+                "productId", saved.getId()));
     }
 
     @PostMapping("/variants/save")
     @PreAuthorize("@adminAuth.has('PRODUCT_UPDATE') or @adminAuth.has('PRODUCT_CREATE')")
     public ResponseEntity<Map<String, Object>> saveVariant(@RequestBody AdminVariantSaveRequest request) {
-        try {
-            ProductVariantResponse variant = catalogService.saveVariant(request);
-            return ResponseEntity.ok(Map.of(
-                    "ok", true,
-                    "message", "Lưu biến thể thành công!",
-                    "variant", variant));
-        } catch (InvalidInputException e) {
-            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", e.getMessage()));
-        }
+        ProductVariantResponse variant = catalogService.saveVariant(request);
+        return ResponseEntity.ok(Map.of(
+                "ok", true,
+                "message", "Lưu biến thể thành công!",
+                "variant", variant));
     }
 
     @PostMapping(value = "/variants/{variantId}/images", consumes = "multipart/form-data")
     @PreAuthorize("@adminAuth.has('PRODUCT_UPDATE')")
     public ResponseEntity<Map<String, Object>> uploadImages(
             @PathVariable Long variantId,
-            @RequestParam("files") MultipartFile[] files) {
-        try {
-            List<ProductImageResponse> images = catalogService.uploadImages(variantId, files);
-            return ResponseEntity.ok(Map.of(
-                    "ok", true,
-                    "message", "Tải ảnh thành công!",
-                    "images", images));
-        } catch (InvalidInputException e) {
-            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", e.getMessage()));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", e.getMessage()));
+            @RequestParam("files") MultipartFile[] files,
+            @RequestParam(value = "replace", defaultValue = "false") boolean replace) {
+        Map<String, Object> result = replace
+                ? catalogService.replaceImagesAndDetectColor(variantId, files)
+                : catalogService.uploadImagesAndDetectColor(variantId, files);
+        String detected = String.valueOf(result.getOrDefault("detectedColor", ""));
+        boolean colorUpdated = Boolean.TRUE.equals(result.get("colorUpdated"));
+        boolean replaced = Boolean.TRUE.equals(result.get("replaced"));
+        int synced = 0;
+        Object syncedObj = result.get("syncedSameColorCount");
+        if (syncedObj instanceof Number n) {
+            synced = n.intValue();
         }
+        StringBuilder message = new StringBuilder();
+        if (replaced) {
+            message.append(colorUpdated
+                    ? "Đã thay thế 4 góc ảnh! Đã tự gán màu: " + detected
+                    : "Đã thay thế ảnh biến thể với tên chuẩn Cloudinary!");
+        } else if (colorUpdated) {
+            message.append("Tải ảnh thành công! Đã tự gán màu biến thể: ").append(detected);
+        } else if (detected.isBlank()) {
+            message.append("Tải ảnh thành công!");
+        } else {
+            message.append("Tải ảnh thành công! Gợi ý màu: ").append(detected);
+        }
+        if (synced > 0) {
+            message.append(" Đã đồng bộ sang ").append(synced)
+                    .append(" biến thể cùng màu (user/admin).");
+        }
+        Map<String, Object> body = new HashMap<>();
+        body.put("ok", true);
+        body.put("message", message.toString());
+        body.put("images", result.get("images"));
+        body.put("detectedColor", detected);
+        body.put("colorUpdated", colorUpdated);
+        body.put("syncedSameColorCount", synced);
+        body.put("replaced", replaced);
+        body.put("variant", result.get("variant"));
+        return ResponseEntity.ok(body);
+    }
+
+    @PostMapping("/variants/{variantId}/images/resync")
+    @PreAuthorize("@adminAuth.has('PRODUCT_UPDATE')")
+    public ResponseEntity<Map<String, Object>> resyncImageNames(@PathVariable Long variantId) {
+        List<ProductImageResponse> images = catalogService.resyncImageNames(variantId);
+        return ResponseEntity.ok(Map.of(
+                "ok", true,
+                "message", "Đã đồng bộ tên ảnh Cloudinary (sp{id}_{biến_thể}_{1-4}).",
+                "images", images));
+    }
+
+    @GetMapping("/color-suggestions")
+    public Map<String, Object> colorSuggestions() {
+        return Map.of("colors", poly.edu.ASSM.Services.util.ImageColorUtils.suggestedColors());
     }
 
     @PostMapping("/variants/{variantId}/images/url")
@@ -136,15 +174,11 @@ public class AdminProductApiController {
     public ResponseEntity<Map<String, Object>> addImageUrl(
             @PathVariable Long variantId,
             @RequestBody ImageUrlRequest request) {
-        try {
-            ProductImageResponse image = catalogService.addImageFromUrl(variantId, request.getUrl());
-            return ResponseEntity.ok(Map.of(
-                    "ok", true,
-                    "message", "Thêm ảnh từ URL thành công!",
-                    "image", image));
-        } catch (InvalidInputException e) {
-            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", e.getMessage()));
-        }
+        ProductImageResponse image = catalogService.addImageFromUrl(variantId, request.getUrl());
+        return ResponseEntity.ok(Map.of(
+                "ok", true,
+                "message", "Thêm ảnh từ URL thành công! Đã nhận diện màu và đồng bộ biến thể cùng màu (nếu có).",
+                "image", image));
     }
 
     @PutMapping("/variants/{variantId}/images/reorder")
@@ -152,47 +186,31 @@ public class AdminProductApiController {
     public ResponseEntity<Map<String, Object>> reorderImages(
             @PathVariable Long variantId,
             @RequestBody ImageReorderRequest request) {
-        try {
-            List<ProductImageResponse> images = catalogService.reorderImages(variantId, request.getImageIds());
-            return ResponseEntity.ok(Map.of(
-                    "ok", true,
-                    "message", "Cập nhật thứ tự ảnh thành công!",
-                    "images", images));
-        } catch (InvalidInputException e) {
-            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", e.getMessage()));
-        }
+        List<ProductImageResponse> images = catalogService.reorderImages(variantId, request.getImageIds());
+        return ResponseEntity.ok(Map.of(
+                "ok", true,
+                "message", "Cập nhật thứ tự ảnh thành công!",
+                "images", images));
     }
 
     @DeleteMapping("/variants/images/{imageId}")
     @PreAuthorize("@adminAuth.has('PRODUCT_UPDATE')")
     public ResponseEntity<Map<String, Object>> deleteImage(@PathVariable Long imageId) {
-        try {
-            catalogService.deleteImage(imageId);
-            return ResponseEntity.ok(Map.of("ok", true, "message", "Xóa ảnh thành công!"));
-        } catch (InvalidInputException e) {
-            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", e.getMessage()));
-        }
+        catalogService.deleteImage(imageId);
+        return ResponseEntity.ok(Map.of("ok", true, "message", "Xóa ảnh thành công!"));
     }
 
     @DeleteMapping("/variants/{variantId}")
     @PreAuthorize("@adminAuth.has('PRODUCT_UPDATE')")
     public ResponseEntity<Map<String, Object>> deleteVariant(@PathVariable Long variantId) {
-        try {
-            catalogService.deleteVariant(variantId);
-            return ResponseEntity.ok(Map.of("ok", true, "message", "Xóa biến thể thành công!"));
-        } catch (InvalidInputException e) {
-            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", e.getMessage()));
-        }
+        catalogService.deleteVariant(variantId);
+        return ResponseEntity.ok(Map.of("ok", true, "message", "Xóa biến thể thành công!"));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("@adminAuth.has('PRODUCT_DELETE')")
     public ResponseEntity<Map<String, Object>> delete(@PathVariable Long id) {
-        try {
-            catalogService.deleteProduct(id);
-            return ResponseEntity.ok(Map.of("ok", true, "message", "Xóa sản phẩm thành công!"));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "Xóa thất bại!"));
-        }
+        catalogService.deleteProduct(id);
+        return ResponseEntity.ok(Map.of("ok", true, "message", "Xóa sản phẩm thành công!"));
     }
 }

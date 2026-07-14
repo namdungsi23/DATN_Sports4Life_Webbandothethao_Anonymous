@@ -5,7 +5,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import poly.edu.ASSM.Entity.Category;
+import poly.edu.ASSM.entity.Category;
 
 public interface CategoryService {
 

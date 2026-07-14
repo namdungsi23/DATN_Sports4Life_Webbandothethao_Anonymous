@@ -12,15 +12,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import poly.edu.ASSM.Entity.Accounts;
-import poly.edu.ASSM.Entity.Products;
-import poly.edu.ASSM.Entity.Users;
-import poly.edu.ASSM.Entity.Wishlist;
-import poly.edu.ASSM.Repository.AccountRepository;
-import poly.edu.ASSM.Repository.ProductRepository;
-import poly.edu.ASSM.Repository.UsersRepository;
-import poly.edu.ASSM.Repository.WishlistRepository;
-import poly.edu.ASSM.dto.response.ProductImageResponse;
+import poly.edu.ASSM.entity.Accounts;
+import poly.edu.ASSM.entity.Products;
+import poly.edu.ASSM.entity.Users;
+import poly.edu.ASSM.entity.Wishlist;
+import poly.edu.ASSM.repository.AccountRepository;
+import poly.edu.ASSM.repository.ProductRepository;
+import poly.edu.ASSM.repository.UsersRepository;
+import poly.edu.ASSM.repository.WishlistRepository;
 import poly.edu.ASSM.dto.response.ProductResponse;
 import poly.edu.ASSM.dto.response.ProductVariantResponse;
 import poly.edu.ASSM.mapper.ProductMapper;
@@ -152,9 +151,7 @@ public class WishlistServiceImpl implements WishlistService {
         }
 
         String image = p.getImageUrl();
-        if (image == null || image.isBlank()) {
-            image = fallbackImageUrl(p.getCategoryId(), p.getId());
-        }
+        // Chỉ lấy từ SQL ProductImages — không fallback Cloudinary pattern
 
         m.put("id", p.getId());
         m.put("name", p.getName());
@@ -171,14 +168,5 @@ public class WishlistServiceImpl implements WishlistService {
         m.put("minPrice", p.getMinPrice());
         m.put("maxPrice", p.getMaxPrice());
         return m;
-    }
-
-    private static String fallbackImageUrl(String categoryId, Long productId) {
-        if (categoryId == null || categoryId.isBlank() || productId == null) {
-            return null;
-        }
-        int seq = (int) ((productId - 1) % 10 + 1);
-        return "https://res.cloudinary.com/pnam233/image/upload/product/"
-                + categoryId.toLowerCase() + "_" + seq + ".jpg";
     }
 }

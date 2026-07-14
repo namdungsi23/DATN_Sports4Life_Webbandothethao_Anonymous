@@ -1,0 +1,14 @@
+${AnsiColor.BRIGHT_GREEN}
+  ╔══════════════════════════════════════════════════════════╗
+  ║                                                          ║
+  ║    ____                  __       __ __    _ ____        ║
+  ║   / __/___  ___  ____   / /______/ // /   (_) / _/___    ║
+  ║  _\ \/ _ \/ _ \/ __/  / __/ ___/ // /   / / / _/ -_)   ║
+  ║ /___/ .__/\___/_/     \__/_/  /_//_/   /_/_/_/ \__/    ║
+  ║    /_/                                                   ║
+  ║                                                          ║
+${AnsiColor.BRIGHT_YELLOW}  ║        :: Sports4Life :: Web bán đồ thể thao             ║
+${AnsiColor.GREEN}  ║        :: Powered by Spring Boot ${spring-boot.version} ::          ║
+${AnsiColor.BRIGHT_GREEN}  ║                                                          ║
+  ╚══════════════════════════════════════════════════════════╝
+${AnsiColor.DEFAULT}

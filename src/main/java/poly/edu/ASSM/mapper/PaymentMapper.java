@@ -8,10 +8,10 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.Entity.Orders;
-import poly.edu.ASSM.Entity.PaymentMethods;
-import poly.edu.ASSM.Entity.Payments;
-import poly.edu.ASSM.Entity.Users;
+import poly.edu.ASSM.entity.Orders;
+import poly.edu.ASSM.entity.PaymentMethods;
+import poly.edu.ASSM.entity.Payments;
+import poly.edu.ASSM.entity.Users;
 import poly.edu.ASSM.dto.request.PaymentRequest;
 import poly.edu.ASSM.dto.response.PageResponse;
 import poly.edu.ASSM.dto.response.PaymentResponse;

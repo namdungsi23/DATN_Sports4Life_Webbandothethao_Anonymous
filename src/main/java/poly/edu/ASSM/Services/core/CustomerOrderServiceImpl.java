@@ -11,15 +11,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import poly.edu.ASSM.Entity.OrderAddresses;
-import poly.edu.ASSM.Entity.OrderDetails;
-import poly.edu.ASSM.Entity.Orders;
-import poly.edu.ASSM.Entity.ProductVariants;
-import poly.edu.ASSM.Entity.Products;
-import poly.edu.ASSM.Entity.Shipments;
-import poly.edu.ASSM.Repository.OrderAddressRepository;
-import poly.edu.ASSM.Repository.OrdersRepository;
-import poly.edu.ASSM.Repository.ShipmentRepository;
+import poly.edu.ASSM.entity.OrderAddresses;
+import poly.edu.ASSM.entity.OrderDetails;
+import poly.edu.ASSM.entity.Orders;
+import poly.edu.ASSM.entity.ProductVariants;
+import poly.edu.ASSM.entity.Products;
+import poly.edu.ASSM.entity.Shipments;
+import poly.edu.ASSM.repository.OrderAddressRepository;
+import poly.edu.ASSM.repository.OrdersRepository;
+import poly.edu.ASSM.repository.ShipmentRepository;
 
 @Service
 public class CustomerOrderServiceImpl implements CustomerOrderService {

@@ -10,8 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.annotation.SessionScope;
 
-import poly.edu.ASSM.Entity.ProductVariants;
-import poly.edu.ASSM.Entity.Products;
+import poly.edu.ASSM.entity.ProductVariants;
+import poly.edu.ASSM.entity.Products;
 import poly.edu.ASSM.Services.core.ProductServiceImpl;
 import poly.edu.ASSM.domain.CartItem;
 

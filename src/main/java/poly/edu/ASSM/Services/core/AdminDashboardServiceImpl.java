@@ -17,10 +17,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import poly.edu.ASSM.Repository.AccountRepository;
-import poly.edu.ASSM.Repository.OrderDetailsRepository;
-import poly.edu.ASSM.Repository.OrdersRepository;
-import poly.edu.ASSM.Repository.ProductRepository;
+import poly.edu.ASSM.repository.AccountRepository;
+import poly.edu.ASSM.repository.OrderDetailsRepository;
+import poly.edu.ASSM.repository.OrdersRepository;
+import poly.edu.ASSM.repository.ProductRepository;
 import poly.edu.ASSM.domain.OrderStatus;
 
 @Service

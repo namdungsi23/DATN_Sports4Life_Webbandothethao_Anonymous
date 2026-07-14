@@ -42,7 +42,7 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import { fetchBrandsApi } from "../services/api";
-import { DEFAULT_BRAND_NAMES, resolveBrandLogo } from "../utils/brandLogos";
+import { DEFAULT_BRAND_NAMES, mergeBrandNames, resolveBrandLogo } from "../utils/brandLogos";
 
 defineProps({
   showAllLink: { type: Boolean, default: true },
@@ -62,7 +62,9 @@ const toBrandItem = (name) => ({
 });
 
 const onLogoError = (name) => {
-  failedLogos.value.add(name);
+  const next = new Set(failedLogos.value);
+  next.add(name);
+  failedLogos.value = next;
 };
 
 const brandLink = (name) => ({
@@ -74,18 +76,18 @@ const loopBrands = computed(() => {
   const base = brands.value.length
     ? brands.value
     : DEFAULT_BRAND_NAMES.map(toBrandItem);
-  return [...base, ...base];
+  // Nhân đôi / gấp 3 để dải chạy nổi liền mạch khi nhiều logo
+  return [...base, ...base, ...base];
 });
 
 const loadBrands = async () => {
   loading.value = true;
   try {
     const data = await fetchBrandsApi();
-    const fromApi = (data?.brands ?? [])
-      .map((item) => toBrandItem(item.name))
-      .filter((item) => item.name);
-
-    brands.value = fromApi.length ? fromApi : DEFAULT_BRAND_NAMES.map(toBrandItem);
+    const apiNames = (data?.brands ?? [])
+      .map((item) => String(item?.name || "").trim())
+      .filter(Boolean);
+    brands.value = mergeBrandNames(apiNames).map(toBrandItem);
   } catch (error) {
     console.warn("Load brands failed", error);
     brands.value = DEFAULT_BRAND_NAMES.map(toBrandItem);
@@ -97,7 +99,7 @@ const loadBrands = async () => {
 const tick = () => {
   const track = trackRef.value;
   if (track && !paused.value) {
-    track.scrollLeft += scrollDirection * 0.9;
+    track.scrollLeft += scrollDirection * 1.15;
 
     const maxScroll = track.scrollWidth / 2;
     if (track.scrollLeft >= maxScroll) {

@@ -11,12 +11,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import poly.edu.ASSM.Entity.Accounts;
-import poly.edu.ASSM.Entity.Ranks;
-import poly.edu.ASSM.Entity.Users;
-import poly.edu.ASSM.Repository.AccountRepository;
-import poly.edu.ASSM.Repository.RankRepository;
-import poly.edu.ASSM.Repository.UsersRepository;
+import poly.edu.ASSM.entity.Accounts;
+import poly.edu.ASSM.entity.Ranks;
+import poly.edu.ASSM.entity.Users;
+import poly.edu.ASSM.repository.AccountRepository;
+import poly.edu.ASSM.repository.RankRepository;
+import poly.edu.ASSM.repository.UsersRepository;
 import poly.edu.ASSM.Services.util.CloudinaryService;
 import poly.edu.ASSM.dto.request.ChangePasswordRequest;
 import poly.edu.ASSM.dto.request.ProfileUpdateRequest;
@@ -59,7 +59,8 @@ public class ProfileServiceImpl implements ProfileService {
             account.setEmail(request.getEmail().trim());
         }
         if (request.getPhoto() != null && !request.getPhoto().isBlank()) {
-            users.setAvatar(request.getPhoto().trim());
+            String cloudUrl = ensureCloudinaryAvatar(request.getPhoto().trim(), username, users.getAvatar());
+            users.setAvatar(cloudUrl);
         }
         if (request.getPhone() != null) {
             users.setPhone(request.getPhone().trim());
@@ -81,12 +82,14 @@ public class ProfileServiceImpl implements ProfileService {
 
         Accounts account = requireAccount(username);
         Users users = requireOrCreateUser(account);
-        String url = cloudinaryService.uploadAvatar(file);
+        String oldUrl = users.getAvatar();
+        String url = cloudinaryService.uploadAvatar(file, username);
         users.setAvatar(url);
         users.setUpdatedAt(Instant.now());
         account.setUpdatedAt(Instant.now());
         accountRepository.save(account);
         usersRepository.save(users);
+        deleteOldAvatarIfReplaced(oldUrl, url);
 
         return Map.of(
                 "profile", toProfileMap(account),
@@ -94,30 +97,56 @@ public class ProfileServiceImpl implements ProfileService {
                 "message", "Cập nhật ảnh đại diện thành công");
     }
 
+    /** Đảm bảo URL ảnh nằm trên Cloudinary trước khi ghi SQL. */
+    private String ensureCloudinaryAvatar(String photoUrl, String username, String oldUrl) {
+        if (cloudinaryService.isOurCloudinaryUrl(photoUrl)) {
+            return photoUrl;
+        }
+        String url = cloudinaryService.uploadAvatarFromUrl(photoUrl, username);
+        deleteOldAvatarIfReplaced(oldUrl, url);
+        return url;
+    }
+
+    private void deleteOldAvatarIfReplaced(String oldUrl, String newUrl) {
+        if (oldUrl == null || oldUrl.isBlank() || oldUrl.equals(newUrl)) {
+            return;
+        }
+        String oldId = CloudinaryService.extractPublicId(oldUrl);
+        String newId = CloudinaryService.extractPublicId(newUrl);
+        if (oldId != null && (newId == null || !oldId.equals(newId))) {
+            try {
+                cloudinaryService.deleteByImageUrl(oldUrl);
+            } catch (Exception ignored) {
+                // best-effort
+            }
+        }
+    }
+
     @Override
     public Map<String, Object> changePassword(String username, ChangePasswordRequest request) {
         Accounts account = requireAccount(username);
         String stored = account.getPasswordHash();
         if (stored == null || stored.isBlank()) {
-            throw new InvalidInputException(
-                    "Tài khoản đăng nhập bằng Google không có mật khẩu. Dùng Quên mật khẩu nếu muốn đặt mật khẩu.");
+            throw InvalidInputException.of(
+                    "currentPassword",
+                    "Tài khoản đăng nhập bằng Google chưa có mật khẩu. Dùng Quên mật khẩu để đặt mật khẩu.");
         }
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), stored)) {
-            throw new InvalidInputException("Mật khẩu hiện tại không đúng.");
+            throw InvalidInputException.of("currentPassword", "Mật khẩu hiện tại không đúng.");
         }
 
         if (request.getNewPassword() == null || !request.getNewPassword().equals(request.getConfirmPassword())) {
-            throw new InvalidInputException("Mật khẩu xác nhận không khớp.");
+            throw InvalidInputException.of("confirmPassword", "Mật khẩu xác nhận không khớp.");
         }
 
         String pwdError = PasswordPolicy.validate(request.getNewPassword());
         if (pwdError != null) {
-            throw new InvalidInputException(pwdError);
+            throw InvalidInputException.of("newPassword", pwdError);
         }
 
         if (passwordEncoder.matches(request.getNewPassword(), stored)) {
-            throw new InvalidInputException("Mật khẩu mới phải khác mật khẩu hiện tại.");
+            throw InvalidInputException.of("newPassword", "Mật khẩu mới phải khác mật khẩu hiện tại.");
         }
 
         account.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));

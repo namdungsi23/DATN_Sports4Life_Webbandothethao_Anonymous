@@ -44,14 +44,16 @@
                     <input v-model="form.id" type="text" class="form-control" readonly />
                   </div>
                   <div class="mb-3">
-                    <label class="form-label fw-semibold">Tên danh mục</label>
+                    <label class="form-label fw-semibold">Tên danh mục <span class="text-danger">*</span></label>
                     <input
                       v-model="form.name"
                       type="text"
                       class="form-control"
+                      :class="{ 'is-invalid': fieldErrors.name }"
                       placeholder="Nhập tên danh mục"
-                      required
+                      @input="delete fieldErrors.name"
                     />
+                    <div v-if="fieldErrors.name" class="invalid-feedback d-block">{{ fieldErrors.name }}</div>
                   </div>
                   <button type="submit" class="btn btn-success w-100 fw-semibold">Lưu danh mục</button>
                   <button v-if="form.id" type="button" class="btn btn-outline-secondary w-100 mt-2" @click="resetForm">
@@ -132,6 +134,7 @@
   import { apiFetch } from "../../services/http.js";
   import { useAppStore } from "../../stores/appStore";
   import { userCanWriteCatalog } from "../../utils/adminAccess";
+  import { firstError, getApiError, runValidation } from "../../utils/validators";
 
   const store = useAppStore();
   const canWrite = computed(() => userCanWriteCatalog(store.state.user));
@@ -139,6 +142,7 @@
   const err = ref("");
   const flashOk = ref("");
   const flashErr = ref("");
+  const fieldErrors = reactive({});
   const keyword = ref("");
   const size = ref("all");
   const currentPage = ref(0);
@@ -173,26 +177,36 @@
   function editRow(c) {
     form.id = c.id;
     form.name = c.name;
+    Object.keys(fieldErrors).forEach((k) => delete fieldErrors[k]);
   }
   
   function resetForm() {
     form.id = "";
     form.name = "";
+    Object.keys(fieldErrors).forEach((k) => delete fieldErrors[k]);
   }
   
   async function saveCategory() {
     flashOk.value = "";
     flashErr.value = "";
     err.value = "";
-    const name = String(form.name || "").trim();
-    if (!name) {
-      flashErr.value = "Tên danh mục không được để trống.";
+    Object.keys(fieldErrors).forEach((k) => delete fieldErrors[k]);
+    const result = runValidation(
+      { name: form.name },
+      {
+        name: [
+          "required",
+          { type: "min", min: 2, message: "Tên danh mục tối thiểu 2 ký tự." },
+          { type: "max", max: 100, message: "Tên danh mục tối đa 100 ký tự." },
+        ],
+      }
+    );
+    if (!result.ok) {
+      Object.assign(fieldErrors, result.errors);
+      flashErr.value = firstError(result.errors);
       return;
     }
-    if (name.length > 100) {
-      flashErr.value = "Tên danh mục tối đa 100 ký tự.";
-      return;
-    }
+    const name = String(result.values.name);
     try {
       if (form.id) {
         await apiFetch("/api/admin/categories", {
@@ -210,7 +224,9 @@
       resetForm();
       await fetchList();
     } catch (e) {
-      flashErr.value = e.message || "Lưu thất bại";
+      const api = getApiError(e, "Lưu thất bại");
+      Object.assign(fieldErrors, api.errors || {});
+      flashErr.value = api.message;
     }
   }
   

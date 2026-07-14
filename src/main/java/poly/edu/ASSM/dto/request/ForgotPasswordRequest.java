@@ -1,7 +1,6 @@
 package poly.edu.ASSM.dto.request;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -9,7 +8,12 @@ import lombok.Setter;
 @Setter
 public class ForgotPasswordRequest {
 
-	@NotBlank(message = "Email là bắt buộc.")
-	@Email(message = "Email không hợp lệ.")
+	/** EMAIL/GMAIL hoặc SMS */
+	@Size(max = 20)
+	private String verifyChannel;
+
 	private String email;
+
+	@Size(max = 20)
+	private String phone;
 }

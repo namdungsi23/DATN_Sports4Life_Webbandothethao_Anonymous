@@ -217,11 +217,79 @@
   color: #1a3c34;
 }
 
+.auth-channel {
+  margin: 0 0 16px;
+  padding: 0;
+  border: none;
+}
+
+.auth-channel legend {
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 8px;
+  padding: 0;
+}
+
+.auth-channel__options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.auth-channel__option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #fafafa;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.auth-channel__option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.auth-channel__option.active {
+  border-color: #1a3c34;
+  background: #f0f7f4;
+}
+
+.auth-channel__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a3c34;
+}
+
+.auth-channel__desc {
+  font-size: 12px;
+  color: #666;
+}
+
+@media (max-width: 480px) {
+  .auth-channel__options {
+    grid-template-columns: 1fr;
+  }
+}
+
 .auth-form__hint {
   margin: 0 0 14px;
   font-size: 14px;
   color: #555;
   line-height: 1.5;
+}
+
+.auth-form__otp-demo {
+  margin-top: 8px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.35em;
+  text-align: center;
 }
 
 .auth-form__otp-input {
@@ -262,6 +330,16 @@
 .auth-form__upload input {
   width: 100%;
   font-size: 13px;
+}
+
+.auth-form__avatar-preview {
+  display: block;
+  width: 88px;
+  height: 88px;
+  margin-top: 10px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e5e5e5;
 }
 
 .auth-form__alert {

@@ -3,7 +3,6 @@ package poly.edu.ASSM.Services.core;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,13 +20,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.transaction.Transactional;
-import poly.edu.ASSM.Entity.Category;
-import poly.edu.ASSM.Entity.ProductImages;
-import poly.edu.ASSM.Entity.ProductVariants;
-import poly.edu.ASSM.Entity.Products;
-import poly.edu.ASSM.Repository.ProductImageRepository;
-import poly.edu.ASSM.Repository.ProductRepository;
-import poly.edu.ASSM.Repository.ProductVariantRepository;
+import poly.edu.ASSM.entity.Category;
+import poly.edu.ASSM.entity.ProductImages;
+import poly.edu.ASSM.entity.ProductVariants;
+import poly.edu.ASSM.entity.Products;
+import poly.edu.ASSM.repository.ProductImageRepository;
+import poly.edu.ASSM.repository.ProductRepository;
+import poly.edu.ASSM.repository.ProductVariantRepository;
 import poly.edu.ASSM.dto.request.AdminVariantSaveRequest;
 import poly.edu.ASSM.dto.response.ProductImageResponse;
 import poly.edu.ASSM.dto.response.ProductResponse;
@@ -36,9 +35,12 @@ import poly.edu.ASSM.exception.InvalidInputException;
 import poly.edu.ASSM.mapper.ProductMapper;
 import poly.edu.ASSM.mapper.ProductVariantMapper;
 import poly.edu.ASSM.Services.util.CloudinaryService;
+import poly.edu.ASSM.Services.util.ImageColorUtils;
 
 @Service
 public class AdminProductCatalogServiceImpl implements AdminProductCatalogService {
+
+    private static final int MAX_IMAGES_PER_VARIANT = 4;
 
     private static final Pattern DRIVE_FILE_PATTERN =
             Pattern.compile("drive\\.google\\.com/file/d/([a-zA-Z0-9_-]+)");
@@ -142,49 +144,44 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
         }
 
         if (request.getSku() == null || request.getSku().isBlank()) {
-            throw new InvalidInputException("SKU không được để trống.");
+            throw InvalidInputException.of("sku", "SKU không được để trống.");
         }
         if (request.getPrice() == null || request.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidInputException("Giá biến thể phải lớn hơn 0.");
+            throw InvalidInputException.of("price", "Giá biến thể phải lớn hơn 0.");
         }
-        if (request.getQuantity() != null && request.getQuantity() < 0) {
-            throw new InvalidInputException("Số lượng không được âm.");
+        if (request.getQuantity() == null) {
+            throw InvalidInputException.of("quantity", "Số lượng là bắt buộc (nhập tay, không tự tăng).");
+        }
+        if (request.getQuantity() < 0 || request.getQuantity() > 9999) {
+            throw InvalidInputException.of("quantity", "Số lượng phải từ 0 đến 9999.");
         }
 
         String size = request.getSize() != null ? request.getSize().trim() : "";
         String color = request.getColor() != null ? request.getColor().trim() : "";
-        long variantCount = variantRepository.countByProduct_Id(product.getId());
-        // Thêm biến thể mới khi đã có ≥1, hoặc sửa khi SP đã có ≥2 → bắt buộc màu + size thật
-        boolean requireAttrs =
-                (request.getId() == null && variantCount >= 1) || variantCount >= 2;
-        if (requireAttrs) {
-            if (size.isBlank() || isPlaceholderAttr(size)) {
-                throw new InvalidInputException("Kích cỡ không được để trống khi có nhiều biến thể.");
-            }
-            if (color.isBlank() || isPlaceholderAttr(color)) {
-                throw new InvalidInputException("Màu sắc không được để trống khi có nhiều biến thể.");
-            }
+        if (size.isBlank() || isPlaceholderAttr(size)) {
+            throw InvalidInputException.of("size", "Kích cỡ không được để trống.");
+        }
+        if (color.isBlank() || isPlaceholderAttr(color)) {
+            throw InvalidInputException.of("color", "Màu sắc không được để trống.");
         }
 
-        if (!size.isBlank() && !color.isBlank()) {
-            for (ProductVariants existing : variantRepository
-                    .findByProduct_IdOrderByDisplayOrderAscIdAsc(product.getId())) {
-                if (request.getId() != null && request.getId().equals(existing.getId())) {
-                    continue;
-                }
-                String es = existing.getSize() != null ? existing.getSize().trim() : "";
-                String ec = existing.getColor() != null ? existing.getColor().trim() : "";
-                if (size.equalsIgnoreCase(es) && color.equalsIgnoreCase(ec)) {
-                    throw new InvalidInputException("Đã tồn tại biến thể với màu và size này.");
-                }
+        for (ProductVariants existing : variantRepository
+                .findByProduct_IdOrderByDisplayOrderAscIdAsc(product.getId())) {
+            if (request.getId() != null && request.getId().equals(existing.getId())) {
+                continue;
+            }
+            String es = existing.getSize() != null ? existing.getSize().trim() : "";
+            String ec = existing.getColor() != null ? existing.getColor().trim() : "";
+            if (size.equalsIgnoreCase(es) && color.equalsIgnoreCase(ec)) {
+                throw InvalidInputException.of("color", "Đã tồn tại biến thể với màu và size này.");
             }
         }
 
         variant.setSku(request.getSku().trim());
-        variant.setSize(size.isBlank() ? null : size);
-        variant.setColor(color.isBlank() ? null : color);
+        variant.setSize(size);
+        variant.setColor(color);
         variant.setPrice(request.getPrice());
-        variant.setQuantity(request.getQuantity() != null ? request.getQuantity().shortValue() : (short) 0);
+        variant.setQuantity(request.getQuantity().shortValue());
         variant.setStatus(request.getStatus() != null ? request.getStatus() : Boolean.TRUE);
         variant.setUpdatedAt(Instant.now());
 
@@ -198,8 +195,43 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
         ensureDefaultVariantExists(product.getId(), variant);
 
         ProductVariants saved = variantRepository.save(variant);
+        // Biến thể mới cùng màu → tự lấy 4 góc từ size đã có ảnh
+        copyImagesFromSameColorIfEmpty(saved);
         return variantMapper.toDetailResponse(
                 variantRepository.findDetailedById(saved.getId()).orElse(saved));
+    }
+
+    /** Khi thêm size mới cùng màu đã có ảnh — copy URL (không upload lại Cloudinary). */
+    private void copyImagesFromSameColorIfEmpty(ProductVariants target) {
+        if (target == null || target.getId() == null || target.getProduct() == null) {
+            return;
+        }
+        if (imageRepository.countByVariant_Id(target.getId()) > 0) {
+            return;
+        }
+        String color = target.getColor() != null ? target.getColor().trim() : "";
+        if (color.isBlank() || ImageColorUtils.isPlaceholder(color)) {
+            return;
+        }
+        for (ProductVariants other : variantRepository
+                .findByProduct_IdOrderByDisplayOrderAscIdAsc(target.getProduct().getId())) {
+            if (other.getId() == null || other.getId().equals(target.getId())) {
+                continue;
+            }
+            String otherColor = other.getColor() != null ? other.getColor().trim() : "";
+            if (!color.equalsIgnoreCase(otherColor)) {
+                continue;
+            }
+            List<ProductImages> sourceImages = imageRepository
+                    .findByVariant_IdOrderBySortOrderAscIdAsc(other.getId())
+                    .stream()
+                    .limit(MAX_IMAGES_PER_VARIANT)
+                    .toList();
+            if (!sourceImages.isEmpty()) {
+                replaceVariantImageUrlsOnly(target, sourceImages);
+                return;
+            }
+        }
     }
 
     @Transactional
@@ -209,8 +241,20 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
                 .orElseThrow(() -> new InvalidInputException("Không tìm thấy biến thể."));
         Long productId = variant.getProduct().getId();
 
-        imageRepository.deleteAll(imageRepository.findByVariant_IdOrderBySortOrderAscIdAsc(variantId));
+        List<ProductImages> images = imageRepository.findByVariant_IdOrderBySortOrderAscIdAsc(variantId);
+        List<String> urls = images.stream()
+                .map(ProductImages::getImageUrl)
+                .filter(u -> u != null && !u.isBlank())
+                .distinct()
+                .toList();
+        imageRepository.deleteAll(images);
         variantRepository.delete(variant);
+
+        for (String url : urls) {
+            if (!isImageUrlReferenced(url)) {
+                deleteCloudinaryAsset(url);
+            }
+        }
 
         if (variantRepository.countByProduct_Id(productId) == 0) {
             createDefaultVariant(productRepository.findById(productId).orElseThrow());
@@ -229,8 +273,12 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
     public void deleteProduct(Long id) {
         List<ProductVariants> variants = variantRepository.findByProduct_IdOrderByDisplayOrderAscIdAsc(id);
         for (ProductVariants variant : variants) {
-            imageRepository.deleteAll(
-                    imageRepository.findByVariant_IdOrderBySortOrderAscIdAsc(variant.getId()));
+            List<ProductImages> images =
+                    imageRepository.findByVariant_IdOrderBySortOrderAscIdAsc(variant.getId());
+            for (ProductImages image : images) {
+                deleteCloudinaryAsset(image.getImageUrl());
+            }
+            imageRepository.deleteAll(images);
         }
         variantRepository.deleteAll(variants);
         productRepository.deleteById(id);
@@ -239,19 +287,76 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
     @Transactional
     @Override
     public List<ProductImageResponse> uploadImages(Long variantId, MultipartFile[] files) {
+        Map<String, Object> result = uploadImagesAndDetectColor(variantId, files);
+        @SuppressWarnings("unchecked")
+        List<ProductImageResponse> images = (List<ProductImageResponse>) result.get("images");
+        return images != null ? images : List.of();
+    }
+
+    @Transactional
+    @Override
+    public Map<String, Object> uploadImagesAndDetectColor(Long variantId, MultipartFile[] files) {
+        return uploadImagesInternal(variantId, files, false);
+    }
+
+    @Transactional
+    @Override
+    public Map<String, Object> replaceImagesAndDetectColor(Long variantId, MultipartFile[] files) {
+        return uploadImagesInternal(variantId, files, true);
+    }
+
+    private Map<String, Object> uploadImagesInternal(Long variantId, MultipartFile[] files, boolean replaceAll) {
         ProductVariants variant = loadVariant(variantId);
         if (files == null || files.length == 0) {
             throw new InvalidInputException("Không có ảnh để tải lên.");
         }
 
+        List<String> pendingCloudinaryCleanup = List.of();
+        if (replaceAll) {
+            pendingCloudinaryCleanup = imageRepository.findByVariant_IdOrderBySortOrderAscIdAsc(variantId)
+                    .stream()
+                    .map(ProductImages::getImageUrl)
+                    .filter(u -> u != null && !u.isBlank())
+                    .distinct()
+                    .toList();
+            // Chỉ xóa bản ghi SQL trước; Cloudinary dọn sau khi đã upload + đồng bộ cùng màu
+            clearVariantImageRowsOnly(variantId);
+        }
+
+        int existingCount = (int) imageRepository.countByVariant_Id(variantId);
+        if (existingCount >= MAX_IMAGES_PER_VARIANT) {
+            throw new InvalidInputException(
+                    "Mỗi biến thể tối đa " + MAX_IMAGES_PER_VARIANT
+                            + " ảnh (4 góc). Hãy xóa ảnh cũ hoặc dùng «Thay thế 4 góc».");
+        }
+
+        String productName = variant.getProduct() != null ? variant.getProduct().getName() : null;
+        Long productId = variant.getProduct() != null ? variant.getProduct().getId() : null;
+        String colorHint = variant.getColor();
         int nextOrder = nextSortOrder(variantId);
+        int variantNo = resolveVariantNumber(variant);
         List<ProductImageResponse> uploaded = new ArrayList<>();
+        String detectedColor = null;
+
         for (MultipartFile file : files) {
             if (file == null || file.isEmpty()) {
                 continue;
             }
-            String url = cloudinaryService.uploadImage(file);
-            ProductImages image = persistImage(variant, url, nextOrder++);
+            if (existingCount + uploaded.size() >= MAX_IMAGES_PER_VARIANT) {
+                break;
+            }
+            int sortOrder = Math.min(nextOrder, MAX_IMAGES_PER_VARIANT);
+            CloudinaryService.VariantImageUpload up =
+                    cloudinaryService.uploadVariantImage(
+                            file, productName, colorHint, productId, variantNo, sortOrder);
+            if (detectedColor == null && up.detectedColor() != null && !up.detectedColor().isBlank()) {
+                detectedColor = up.detectedColor().trim();
+                if (ImageColorUtils.isPlaceholder(colorHint)) {
+                    colorHint = detectedColor;
+                }
+            }
+            ProductImages image = persistImage(variant, up.secureUrl(), sortOrder);
+            nextOrder++;
             uploaded.add(productMapper.toImageResponse(image));
         }
 
@@ -259,16 +364,218 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
             throw new InvalidInputException("Không có ảnh hợp lệ để tải lên.");
         }
 
-        return uploaded;
+        boolean colorUpdated = applyDetectedColorIfNeeded(variant, detectedColor);
+        // Đồng bộ 4 góc sang mọi size cùng màu → user/admin cùng thấy đúng theo màu
+        int synced = propagateImagesToSameColor(variant);
+
+        if (replaceAll) {
+            // Dọn file Cloudinary cũ không còn được trỏ từ SQL
+            for (String oldUrl : pendingCloudinaryCleanup) {
+                if (!isImageUrlReferenced(oldUrl)) {
+                    deleteCloudinaryAsset(oldUrl);
+                }
+            }
+        }
+
+        ProductVariants refreshed = variantRepository.findDetailedById(variant.getId()).orElse(variant);
+        Map<String, Object> body = new HashMap<>();
+        body.put("images",
+                imageRepository.findByVariant_IdOrderBySortOrderAscIdAsc(variantId).stream()
+                        .limit(MAX_IMAGES_PER_VARIANT)
+                        .map(productMapper::toImageResponse)
+                        .toList());
+        body.put("detectedColor", detectedColor != null ? detectedColor : "");
+        body.put("colorUpdated", colorUpdated);
+        body.put("syncedSameColorCount", synced);
+        body.put("replaced", replaceAll);
+        body.put("variant", variantMapper.toDetailResponse(refreshed));
+        return body;
+    }
+
+    @Transactional
+    @Override
+    public List<ProductImageResponse> resyncImageNames(Long variantId) {
+        ProductVariants variant = loadVariant(variantId);
+        Long productId = variant.getProduct() != null ? variant.getProduct().getId() : null;
+        if (productId == null) {
+            throw new InvalidInputException("Biến thể thiếu sản phẩm.");
+        }
+        int variantNo = resolveVariantNumber(variant);
+        renumberSortOrder(variantId);
+
+        List<ProductImages> images = imageRepository.findByVariant_IdOrderBySortOrderAscIdAsc(variantId);
+        if (images.isEmpty()) {
+            return List.of();
+        }
+        if (images.size() > MAX_IMAGES_PER_VARIANT) {
+            // Giữ tối đa 4 góc; xóa phần thừa
+            for (int i = MAX_IMAGES_PER_VARIANT; i < images.size(); i++) {
+                deleteCloudinaryAsset(images.get(i).getImageUrl());
+                imageRepository.delete(images.get(i));
+            }
+            images = imageRepository.findByVariant_IdOrderBySortOrderAscIdAsc(variantId);
+        }
+
+        List<ProductImageResponse> result = new ArrayList<>();
+        int order = 1;
+        for (ProductImages image : images) {
+            String oldUrl = image.getImageUrl();
+            CloudinaryService.VariantImageUpload up =
+                    cloudinaryService.uploadRemoteImageUrl(oldUrl, productId, variantNo, order);
+            image.setImageUrl(up.secureUrl());
+            image.setSortOrder(order);
+            image.setIsDefault(order == 1);
+            imageRepository.save(image);
+            // Xóa asset cũ nếu public_id khác (tránh rác Cloudinary)
+            if (oldUrl != null && !oldUrl.equals(up.secureUrl())) {
+                String oldId = CloudinaryService.extractPublicId(oldUrl);
+                String newId = CloudinaryService.extractPublicId(up.secureUrl());
+                if (oldId != null && newId != null && !oldId.equals(newId)) {
+                    deleteCloudinaryAsset(oldUrl);
+                }
+            }
+            result.add(productMapper.toImageResponse(image));
+            order++;
+        }
+        propagateImagesToSameColor(variant);
+        return result;
+    }
+
+    private boolean applyDetectedColorIfNeeded(ProductVariants variant, String detectedColor) {
+        if (detectedColor == null || detectedColor.isBlank()
+                || !ImageColorUtils.isPlaceholder(variant.getColor())) {
+            return false;
+        }
+        String size = variant.getSize() != null ? variant.getSize().trim() : "";
+        boolean dup = false;
+        if (!size.isBlank()) {
+            for (ProductVariants existing : variantRepository
+                    .findByProduct_IdOrderByDisplayOrderAscIdAsc(variant.getProduct().getId())) {
+                if (existing.getId().equals(variant.getId())) {
+                    continue;
+                }
+                String es = existing.getSize() != null ? existing.getSize().trim() : "";
+                String ec = existing.getColor() != null ? existing.getColor().trim() : "";
+                if (size.equalsIgnoreCase(es) && detectedColor.equalsIgnoreCase(ec)) {
+                    dup = true;
+                    break;
+                }
+            }
+        }
+        if (dup) {
+            return false;
+        }
+        variant.setColor(detectedColor.trim());
+        variant.setUpdatedAt(Instant.now());
+        variantRepository.save(variant);
+        return true;
+    }
+
+    /**
+     * Đồng bộ ảnh (cùng URL Cloudinary) sang mọi size cùng màu trong sản phẩm.
+     * User chọn màu → 4 góc giống nhau trên mọi size; admin list cũng thấy thumb đúng màu.
+     */
+    private int propagateImagesToSameColor(ProductVariants source) {
+        if (source == null || source.getProduct() == null || source.getId() == null) {
+            return 0;
+        }
+        String color = source.getColor() != null ? source.getColor().trim() : "";
+        if (color.isBlank() || ImageColorUtils.isPlaceholder(color)) {
+            return 0;
+        }
+        List<ProductImages> sourceImages = imageRepository
+                .findByVariant_IdOrderBySortOrderAscIdAsc(source.getId())
+                .stream()
+                .limit(MAX_IMAGES_PER_VARIANT)
+                .toList();
+        if (sourceImages.isEmpty()) {
+            return 0;
+        }
+
+        int synced = 0;
+        for (ProductVariants other : variantRepository
+                .findByProduct_IdOrderByDisplayOrderAscIdAsc(source.getProduct().getId())) {
+            if (other.getId() == null || other.getId().equals(source.getId())) {
+                continue;
+            }
+            String otherColor = other.getColor() != null ? other.getColor().trim() : "";
+            if (!color.equalsIgnoreCase(otherColor)) {
+                continue;
+            }
+            replaceVariantImageUrlsOnly(other, sourceImages);
+            synced++;
+        }
+        return synced;
+    }
+
+    /** Chỉ ghi đè bản ghi SQL — không xóa file Cloudinary (URL dùng chung theo màu). */
+    private void replaceVariantImageUrlsOnly(ProductVariants target, List<ProductImages> sourceImages) {
+        List<ProductImages> old = imageRepository.findByVariant_IdOrderBySortOrderAscIdAsc(target.getId());
+        if (!old.isEmpty()) {
+            imageRepository.deleteAll(old);
+        }
+        int order = 1;
+        for (ProductImages src : sourceImages) {
+            ProductImages copy = new ProductImages();
+            copy.setVariant(target);
+            copy.setImageUrl(src.getImageUrl());
+            copy.setSortOrder(order);
+            copy.setIsDefault(order == 1);
+            copy.setCreatedAt(Instant.now());
+            imageRepository.save(copy);
+            order++;
+        }
+    }
+
+    private void clearVariantImageRowsOnly(Long variantId) {
+        List<ProductImages> images = imageRepository.findByVariant_IdOrderBySortOrderAscIdAsc(variantId);
+        if (!images.isEmpty()) {
+            imageRepository.deleteAll(images);
+        }
+    }
+
+    private void clearVariantImages(Long variantId) {
+        List<ProductImages> images = imageRepository.findByVariant_IdOrderBySortOrderAscIdAsc(variantId);
+        for (ProductImages image : images) {
+            deleteCloudinaryAsset(image.getImageUrl());
+        }
+        imageRepository.deleteAll(images);
     }
 
     @Transactional
     @Override
     public ProductImageResponse addImageFromUrl(Long variantId, String url) {
         ProductVariants variant = loadVariant(variantId);
+        if (imageRepository.countByVariant_Id(variantId) >= MAX_IMAGES_PER_VARIANT) {
+            throw new InvalidInputException("Mỗi biến thể tối đa " + MAX_IMAGES_PER_VARIANT + " ảnh.");
+        }
         String normalized = normalizeExternalImageUrl(url);
-        ProductImages image = persistImage(variant, normalized, nextSortOrder(variantId));
+        Long productId = variant.getProduct() != null ? variant.getProduct().getId() : null;
+        int variantNo = resolveVariantNumber(variant);
+        int sortOrder = nextSortOrder(variantId);
+
+        // Nghiệp vụ: mọi ảnh phải nằm trên Cloudinary rồi mới lưu URL vào SQL
+        String cloudUrl = normalized;
+        if (!isOurCloudinaryUrl(normalized)) {
+            CloudinaryService.VariantImageUpload up =
+                    cloudinaryService.uploadRemoteImageUrl(normalized, productId, variantNo, sortOrder);
+            cloudUrl = up.secureUrl();
+        }
+
+        ProductImages image = persistImage(variant, cloudUrl, sortOrder);
+
+        String detectedColor = ImageColorUtils.fromImageUrl(cloudUrl).orElse(null);
+        if (detectedColor == null || detectedColor.isBlank()) {
+            detectedColor = ImageColorUtils.fromFilename(normalized).orElse(null);
+        }
+        applyDetectedColorIfNeeded(variant, detectedColor);
+        propagateImagesToSameColor(variant);
+
         return productMapper.toImageResponse(image);
+    }
+
+    private static boolean isOurCloudinaryUrl(String url) {
+        return url != null && url.contains("res.cloudinary.com/pnam233/");
     }
 
     @Transactional
@@ -291,6 +598,9 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
             }
         }
 
+        ProductVariants variant = loadVariant(variantId);
+        propagateImagesToSameColor(variant);
+
         return imageRepository.findByVariant_IdOrderBySortOrderAscIdAsc(variantId).stream()
                 .map(productMapper::toImageResponse)
                 .collect(Collectors.toList());
@@ -302,8 +612,36 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
         ProductImages image = imageRepository.findById(imageId)
                 .orElseThrow(() -> new InvalidInputException("Không tìm thấy ảnh."));
         Long variantId = image.getVariant().getId();
+        String removedUrl = image.getImageUrl();
         imageRepository.delete(image);
         renumberSortOrder(variantId);
+
+        ProductVariants variant = loadVariant(variantId);
+        propagateImagesToSameColor(variant);
+
+        // Chỉ xóa Cloudinary khi không còn biến thể nào trỏ URL (tránh gãy ảnh size cùng màu)
+        if (!isImageUrlReferenced(removedUrl)) {
+            deleteCloudinaryAsset(removedUrl);
+        }
+    }
+
+    private boolean isImageUrlReferenced(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return false;
+        }
+        return imageRepository.countByImageUrl(imageUrl) > 0;
+    }
+
+    /** Đồng bộ xóa file trên Cloudinary; URL ngoài Cloudinary thì bỏ qua. */
+    private void deleteCloudinaryAsset(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank() || cloudinaryService == null) {
+            return;
+        }
+        try {
+            cloudinaryService.deleteByImageUrl(imageUrl);
+        } catch (Exception ignored) {
+            // Best-effort: vẫn xóa SQL; file Cloudinary có thể dọn lại sau
+        }
     }
 
     @Override
@@ -436,6 +774,40 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
                 .orElseThrow(() -> new InvalidInputException("Không tìm thấy biến thể."));
     }
 
+    /**
+     * Số thứ tự biến thể trong SP: 1 = biến thể mặc định, sau đó theo displayOrder/id.
+     * Dùng cho public_id {@code sp{id}_{variantNo}_{sort}} — mỗi biến thể folder riêng,
+     * không gộp theo màu (tránh ghi đè ảnh giữa các size).
+     */
+    private int resolveVariantNumber(ProductVariants variant) {
+        Long productId = variant.getProduct().getId();
+        List<ProductVariants> all =
+                variantRepository.findByProduct_IdOrderByDisplayOrderAscIdAsc(productId);
+        all.sort((a, b) -> {
+            boolean aDef = Boolean.TRUE.equals(a.getIsDefault());
+            boolean bDef = Boolean.TRUE.equals(b.getIsDefault());
+            if (aDef != bDef) {
+                return aDef ? -1 : 1;
+            }
+            int ao = a.getDisplayOrder() != null ? a.getDisplayOrder() : Integer.MAX_VALUE;
+            int bo = b.getDisplayOrder() != null ? b.getDisplayOrder() : Integer.MAX_VALUE;
+            if (ao != bo) {
+                return Integer.compare(ao, bo);
+            }
+            long ai = a.getId() != null ? a.getId() : Long.MAX_VALUE;
+            long bi = b.getId() != null ? b.getId() : Long.MAX_VALUE;
+            return Long.compare(ai, bi);
+        });
+        int idx = 1;
+        for (ProductVariants v : all) {
+            if (v.getId() != null && v.getId().equals(variant.getId())) {
+                return idx;
+            }
+            idx++;
+        }
+        return Boolean.TRUE.equals(variant.getIsDefault()) ? 1 : Math.max(1, all.size());
+    }
+
     private Category resolveCategory(String categoryId) {
         if (categoryId == null || categoryId.isBlank()) {
             throw new InvalidInputException("Vui lòng chọn danh mục.");
@@ -469,7 +841,10 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
             return true;
         }
         String v = value.trim().toLowerCase();
-        return v.isEmpty() || "default".equals(v) || "mặc định".equals(v);
+        return v.isEmpty()
+                || "default".equals(v)
+                || "mặc định".equals(v)
+                || "mac dinh".equals(v);
     }
 
     private void clearDefaultVariant(Long productId) {
@@ -490,7 +865,7 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
     }
 
     private int nextSortOrder(Long variantId) {
-        return imageRepository.countByVariant_Id(variantId) + 1;
+        return (int) imageRepository.countByVariant_Id(variantId) + 1;
     }
 
     private ProductImages persistImage(ProductVariants variant, String url, int sortOrder) {

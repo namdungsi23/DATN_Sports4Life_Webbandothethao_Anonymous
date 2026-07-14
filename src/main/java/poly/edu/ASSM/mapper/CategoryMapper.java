@@ -7,7 +7,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.Entity.Category;
+import poly.edu.ASSM.entity.Category;
 import poly.edu.ASSM.dto.request.CategoryRequest;
 import poly.edu.ASSM.dto.response.CategoryResponse;
 import poly.edu.ASSM.dto.response.PageResponse;

@@ -16,7 +16,7 @@
         <input
           v-model="form.username"
           type="text"
-          placeholder="Nhập username"
+          placeholder="Tên đăng nhập"
           autocomplete="username"
           :class="{ 'is-invalid': fieldErrors.username }"
           @input="clearFieldError('username')"
@@ -29,7 +29,7 @@
         <input
           v-model="form.pwd"
           type="password"
-          placeholder="Nhập mật khẩu"
+          placeholder="Mật khẩu"
           autocomplete="current-password"
           :class="{ 'is-invalid': fieldErrors.pwd }"
           @input="clearFieldError('pwd')"
@@ -64,7 +64,7 @@ import AuthLayout from "../layouts/AuthLayout.vue";
 import { loginApi } from "../services/api";
 import { useAppStore, useToast } from "../stores/appStore";
 import { resolveDefaultAdminRoute, userCanAccessPanel } from "../utils/adminAccess";
-import { firstError, runValidation } from "../utils/validators";
+import { firstError, getApiError, runValidation } from "../utils/validators";
 
 const router = useRouter();
 const route = useRoute();
@@ -83,7 +83,7 @@ const resolveAfterLoginPath = () => {
   if (userCanAccessPanel(store.state.user)) {
     return resolveDefaultAdminRoute(store.state.user) || "/admin/dashboard";
   }
-  return "/product";
+  return "/";
 };
 
 const clearFieldError = (key) => {
@@ -136,10 +136,9 @@ const submitLogin = async () => {
     router.push(resolveAfterLoginPath());
   } catch (loginError) {
     console.warn("Login failed", loginError);
-    error.value =
-      loginError?.response?.data?.message ||
-      loginError?.message ||
-      "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.";
+    const api = getApiError(loginError, "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.");
+    Object.assign(fieldErrors, api.errors);
+    error.value = api.message;
     toast.error(error.value);
   } finally {
     loading.value = false;

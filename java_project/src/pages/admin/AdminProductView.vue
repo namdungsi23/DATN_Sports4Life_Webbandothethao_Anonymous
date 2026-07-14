@@ -22,19 +22,38 @@
         <fieldset :disabled="!canWrite">
         <div class="row mb-3">
           <div class="col-md-4 mb-2">
-            <label class="form-label">Tên sản phẩm</label>
-            <input v-model="productForm.name" class="form-control" required />
+            <label class="form-label">Tên sản phẩm <span class="text-danger">*</span></label>
+            <input
+              v-model="productForm.name"
+              class="form-control"
+              :class="{ 'is-invalid': productErrors.name }"
+              @input="clearProductError('name')"
+            />
+            <div v-if="productErrors.name" class="invalid-feedback d-block">{{ productErrors.name }}</div>
           </div>
           <div class="col-md-3 mb-2">
-            <label class="form-label">Danh mục</label>
-            <select v-model="productForm.categoryId" class="form-select">
+            <label class="form-label">Danh mục <span class="text-danger">*</span></label>
+            <select
+              v-model="productForm.categoryId"
+              class="form-select"
+              :class="{ 'is-invalid': productErrors.categoryId }"
+              @change="clearProductError('categoryId')"
+            >
               <option value="">-- Chọn danh mục --</option>
               <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
+            <div v-if="productErrors.categoryId" class="invalid-feedback d-block">{{ productErrors.categoryId }}</div>
           </div>
           <div class="col-md-3 mb-2">
             <label class="form-label">Mô tả</label>
-            <input v-model="productForm.description" class="form-control" />
+            <input
+              v-model="productForm.description"
+              class="form-control"
+              :class="{ 'is-invalid': productErrors.description }"
+              maxlength="500"
+              @input="clearProductError('description')"
+            />
+            <div v-if="productErrors.description" class="invalid-feedback d-block">{{ productErrors.description }}</div>
           </div>
           <div class="col-md-2 mb-2 d-flex align-items-end">
             <div class="form-check">
@@ -54,24 +73,81 @@
         <template v-if="numericProductId()">
         <div class="row">
           <div class="col-md-2 mb-2">
-            <label class="form-label">Màu</label>
-            <input v-model="variantForm.color" class="form-control" />
+            <label class="form-label">Màu <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <span
+                class="input-group-text color-swatch"
+                :title="variantForm.color || 'Chưa chọn'"
+                :style="{ background: colorSwatchHex(variantForm.color) }"
+              ></span>
+              <input
+                v-model="variantForm.color"
+                class="form-control"
+                :class="{ 'is-invalid': variantErrors.color }"
+                list="admin-color-suggestions"
+                placeholder="Vd: Đen"
+                @change="suggestSkuFromColorSize"
+                @input="clearVariantError('color')"
+              />
+            </div>
+            <datalist id="admin-color-suggestions">
+              <option v-for="c in colorSuggestions" :key="c" :value="c" />
+            </datalist>
+            <div v-if="variantErrors.color" class="invalid-feedback d-block">{{ variantErrors.color }}</div>
           </div>
           <div class="col-md-2 mb-2">
-            <label class="form-label">Size</label>
-            <input v-model="variantForm.size" class="form-control" />
+            <label class="form-label">Size <span class="text-danger">*</span></label>
+            <input
+              v-model="variantForm.size"
+              class="form-control"
+              :class="{ 'is-invalid': variantErrors.size }"
+              list="admin-size-suggestions"
+              placeholder="Vd: 39 / M"
+              @change="suggestSkuFromColorSize"
+              @input="clearVariantError('size')"
+            />
+            <datalist id="admin-size-suggestions">
+              <option v-for="s in sizeSuggestions" :key="s" :value="s" />
+            </datalist>
+            <div v-if="variantErrors.size" class="invalid-feedback d-block">{{ variantErrors.size }}</div>
           </div>
           <div class="col-md-3 mb-2">
-            <label class="form-label">SKU</label>
-            <input v-model="variantForm.sku" class="form-control" required />
+            <label class="form-label">SKU <span class="text-danger">*</span></label>
+            <input
+              v-model="variantForm.sku"
+              class="form-control"
+              :class="{ 'is-invalid': variantErrors.sku }"
+              @input="clearVariantError('sku')"
+            />
+            <div v-if="variantErrors.sku" class="invalid-feedback d-block">{{ variantErrors.sku }}</div>
           </div>
           <div class="col-md-2 mb-2">
-            <label class="form-label">Giá</label>
-            <input v-model.number="variantForm.price" type="number" step="0.01" class="form-control" />
+            <label class="form-label">Giá <span class="text-danger">*</span></label>
+            <input
+              v-model.number="variantForm.price"
+              type="number"
+              step="0.01"
+              min="0"
+              class="form-control"
+              :class="{ 'is-invalid': variantErrors.price }"
+              @input="clearVariantError('price')"
+            />
+            <div v-if="variantErrors.price" class="invalid-feedback d-block">{{ variantErrors.price }}</div>
           </div>
           <div class="col-md-2 mb-2">
-            <label class="form-label">Số lượng</label>
-            <input v-model.number="variantForm.quantity" type="number" min="0" class="form-control" />
+            <label class="form-label">Số lượng <span class="text-danger">*</span></label>
+            <input
+              v-model.number="variantForm.quantity"
+              type="number"
+              min="0"
+              max="9999"
+              step="1"
+              class="form-control"
+              :class="{ 'is-invalid': variantErrors.quantity }"
+              placeholder="Nhập tay (0–9999)"
+              @input="clearVariantError('quantity')"
+            />
+            <div v-if="variantErrors.quantity" class="invalid-feedback d-block">{{ variantErrors.quantity }}</div>
           </div>
           <div class="col-md-1 mb-2 d-flex align-items-end">
             <div class="form-check">
@@ -99,10 +175,7 @@
         </div>
 
         <div v-if="variantForm.id" class="border rounded p-3 bg-white">
-          <h6>Ảnh biến thể</h6>
-          <p class="text-muted small mb-2">
-            Kéo thả để sắp xếp. Ảnh đầu tiên (sort_order = 1) là ảnh chính của biến thể.
-          </p>
+          <h6>Ảnh biến thể (4 góc)</h6>
 
           <div class="d-flex flex-wrap gap-2 mb-3">
             <div
@@ -114,27 +187,41 @@
               @dragover.prevent
               @drop="onDrop(index)"
             >
-              <img :src="img.imageUrl" alt="" />
-              <span v-if="index === 0" class="badge bg-primary primary-badge">Chính</span>
+              <img :src="img.imageUrl" :alt="`Góc ${index + 1}`" />
+              <span class="badge bg-dark primary-badge">Góc {{ index + 1 }}</span>
               <button type="button" class="btn btn-sm btn-danger delete-btn" @click="removeImage(img.id)">×</button>
             </div>
-            <div v-if="!variantImages.length" class="text-muted small">Chưa có ảnh.</div>
+            <div v-if="!variantImages.length" class="text-muted small">Chưa có ảnh — tải tối đa 4 góc.</div>
           </div>
 
           <div class="row g-2 align-items-end">
             <div class="col-md-4">
-              <label class="form-label">Tải ảnh lên</label>
-              <input type="file" class="form-control" accept="image/*" multiple @change="onImageFiles" />
+              <label class="form-label">Thêm ảnh (không xóa ảnh cũ)</label>
+              <input type="file" class="form-control" accept="image/*" multiple @change="onImageFiles($event, false)" />
             </div>
-            <div class="col-md-5">
+            <div class="col-md-4">
+              <label class="form-label">Thay thế 4 góc (xóa cũ + tên chuẩn)</label>
+              <input type="file" class="form-control" accept="image/*" multiple @change="onImageFiles($event, true)" />
+            </div>
+            <div class="col-md-4">
               <label class="form-label">Link Google Drive / URL ảnh</label>
-              <input v-model="imageUrlInput" class="form-control" placeholder="https://drive.google.com/..." />
+              <div class="d-flex gap-2">
+                <input v-model="imageUrlInput" class="form-control" placeholder="https://drive.google.com/..." />
+                <button type="button" class="btn btn-secondary" :disabled="uploading" @click="addImageFromUrl">
+                  Thêm
+                </button>
+              </div>
             </div>
-            <div class="col-md-3">
-              <button type="button" class="btn btn-secondary w-100" :disabled="uploading" @click="addImageFromUrl">
-                Thêm từ URL
-              </button>
-            </div>
+          </div>
+          <div class="mt-2">
+            <button
+              type="button"
+              class="btn btn-outline-primary btn-sm"
+              :disabled="uploading || !variantImages.length"
+              @click="resyncImageNames"
+            >
+              Đồng bộ lại tên ảnh Cloudinary
+            </button>
           </div>
         </div>
         </template>
@@ -158,6 +245,7 @@
       <table class="table table-sm table-bordered text-center align-middle mb-0">
         <thead class="table-secondary">
           <tr>
+            <th>Ảnh</th>
             <th>Màu</th>
             <th>Size</th>
             <th>SKU</th>
@@ -174,6 +262,15 @@
             role="button"
             @click="selectVariant(v.id)"
           >
+            <td>
+              <img
+                v-if="variantThumb(v)"
+                :src="variantThumb(v)"
+                class="variant-list-thumb"
+                :alt="v.color || v.sku"
+              />
+              <span v-else class="text-muted">—</span>
+            </td>
             <td>{{ v.color || "—" }}</td>
             <td>{{ v.size || "—" }}</td>
             <td>{{ v.sku }}</td>
@@ -185,10 +282,10 @@
             </td>
           </tr>
           <tr v-if="numericProductId() && !variants.length">
-            <td colspan="6" class="text-muted">Sản phẩm chưa có biến thể.</td>
+            <td colspan="7" class="text-muted">Sản phẩm chưa có biến thể.</td>
           </tr>
           <tr v-if="!selectedProductId">
-            <td colspan="6" class="text-muted">Chưa chọn sản phẩm.</td>
+            <td colspan="7" class="text-muted">Chưa chọn sản phẩm.</td>
           </tr>
         </tbody>
       </table>
@@ -338,6 +435,7 @@ import AdminReadOnlyNotice from "../../components/admin/AdminReadOnlyNotice.vue"
 import { apiFetch } from "../../services/http.js";
 import { useAppStore } from "../../stores/appStore";
 import { userCanWriteCatalog } from "../../utils/adminAccess";
+import { firstError, getApiError, runValidation } from "../../utils/validators";
 
 const store = useAppStore();
 const canWrite = computed(() => userCanWriteCatalog(store.state.user));
@@ -345,6 +443,8 @@ const canWrite = computed(() => userCanWriteCatalog(store.state.user));
 const err = ref("");
 const flashOk = ref("");
 const flashErr = ref("");
+const productErrors = reactive({});
+const variantErrors = reactive({});
 const products = ref([]);
 const categories = ref([]);
 const variants = ref([]);
@@ -399,10 +499,91 @@ const variantForm = reactive({
   color: "",
   size: "",
   sku: "",
-  price: 0,
-  quantity: 0,
+  price: null,
+  quantity: null,
   isDefault: false,
 });
+
+const colorSuggestions = ref([
+  "Đen",
+  "Trắng",
+  "Xám",
+  "Xám đậm",
+  "Đỏ",
+  "Hồng",
+  "Cam",
+  "Vàng",
+  "Be",
+  "Nâu",
+  "Xanh Navy",
+  "Xanh Dương",
+  "Xanh Lá",
+  "Tím",
+  "Bạc",
+]);
+const sizeSuggestions = ["39", "40", "41", "42", "43", "S", "M", "L", "XL", "XXL", "Free"];
+
+const COLOR_HEX = {
+  đen: "#1a1a1a",
+  trắng: "#f5f5f5",
+  xám: "#8c8c8c",
+  "xám đậm": "#505050",
+  đỏ: "#c82828",
+  hồng: "#e678a0",
+  cam: "#e67828",
+  vàng: "#e6c832",
+  be: "#d2be96",
+  nâu: "#784b2d",
+  "xanh navy": "#192d5f",
+  "xanh dương": "#2864c8",
+  "xanh lá": "#2d8c46",
+  tím: "#783ca0",
+  bạc: "#c0c0c0",
+};
+
+function colorSwatchHex(name) {
+  const key = String(name || "")
+    .trim()
+    .toLowerCase();
+  return COLOR_HEX[key] || "#dee2e6";
+}
+
+function skuSlug(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "")
+    .slice(0, 12);
+}
+
+function suggestSkuFromColorSize() {
+  const pid = numericProductId();
+  if (!pid) return;
+  const color = String(variantForm.color || "").trim();
+  const size = String(variantForm.size || "").trim();
+  if (!color && !size) return;
+  const current = String(variantForm.sku || "").trim();
+  // Chỉ tự điền khi SKU trống hoặc đang theo pattern SKU-{id}-*
+  if (current && !/^SKU-\d+-/i.test(current)) return;
+  const parts = [`SKU-${pid}`];
+  if (color) parts.push(skuSlug(color) || "COLOR");
+  if (size) parts.push(skuSlug(size) || "SIZE");
+  variantForm.sku = parts.join("-");
+}
+
+async function loadColorSuggestions() {
+  try {
+    const data = await apiFetch("/api/admin/products/color-suggestions");
+    if (Array.isArray(data.colors) && data.colors.length) {
+      colorSuggestions.value = data.colors;
+    }
+  } catch {
+    /* giữ list mặc định */
+  }
+}
 
 function numericProductId() {
   const id = productForm.id ?? selectedProductId.value;
@@ -422,6 +603,22 @@ function formatDate(value) {
 function clearFlash() {
   flashOk.value = "";
   flashErr.value = "";
+}
+
+function clearProductError(key) {
+  delete productErrors[key];
+}
+
+function clearVariantError(key) {
+  delete variantErrors[key];
+}
+
+function clearProductErrors() {
+  Object.keys(productErrors).forEach((k) => delete productErrors[k]);
+}
+
+function clearVariantErrors() {
+  Object.keys(variantErrors).forEach((k) => delete variantErrors[k]);
 }
 
 function applyPageMeta(data, requestedPage) {
@@ -504,13 +701,14 @@ async function loadVariantDetail(variantId) {
 function resetVariantForm() {
   const pid = numericProductId();
   if (!pid) return;
+  clearVariantErrors();
   variantForm.id = null;
   variantForm.productId = pid;
   variantForm.color = "";
   variantForm.size = "";
   variantForm.sku = "";
-  variantForm.price = 0;
-  variantForm.quantity = 0;
+  variantForm.price = null;
+  variantForm.quantity = null; // bắt buộc nhập tay — không tự tăng/tự điền
   variantForm.isDefault = variants.value.length === 0;
   variantImages.value = [];
 }
@@ -558,25 +756,34 @@ function startNewProduct() {
 
 async function saveProduct() {
   clearFlash();
-  const name = String(productForm.name || "").trim();
-  if (!name) {
-    flashErr.value = "Tên sản phẩm không được để trống.";
-    return;
-  }
-  if (name.length > 200) {
-    flashErr.value = "Tên sản phẩm tối đa 200 ký tự.";
-    return;
-  }
-  if (!productForm.categoryId) {
-    flashErr.value = "Vui lòng chọn danh mục.";
+  clearProductErrors();
+  const result = runValidation(
+    {
+      name: productForm.name,
+      categoryId: productForm.categoryId,
+      description: productForm.description,
+    },
+    {
+      name: [
+        "required",
+        { type: "min", min: 2, message: "Tên sản phẩm tối thiểu 2 ký tự." },
+        { type: "max", max: 200, message: "Tên sản phẩm tối đa 200 ký tự." },
+      ],
+      categoryId: [{ type: "required", message: "Vui lòng chọn danh mục." }],
+      description: [{ type: "max", max: 500, message: "Mô tả tối đa 500 ký tự." }],
+    }
+  );
+  if (!result.ok) {
+    Object.assign(productErrors, result.errors);
+    flashErr.value = firstError(result.errors);
     return;
   }
 
   savingProduct.value = true;
   const params = new URLSearchParams();
   if (productForm.id && productForm.id !== "new") params.set("id", String(productForm.id));
-  params.set("name", name);
-  if (productForm.categoryId) params.set("categoryId", productForm.categoryId);
+  params.set("name", String(result.values.name));
+  params.set("categoryId", String(result.values.categoryId));
   params.set("description", productForm.description || "");
   params.set("available", productForm.available ? "true" : "false");
 
@@ -596,7 +803,9 @@ async function saveProduct() {
       resetVariantForm();
     }
   } catch (e) {
-    flashErr.value = e.message || "Lưu sản phẩm thất bại";
+    const api = getApiError(e, "Lưu sản phẩm thất bại");
+    Object.assign(productErrors, api.errors || {});
+    flashErr.value = api.message;
   } finally {
     savingProduct.value = false;
   }
@@ -609,67 +818,96 @@ async function saveVariant() {
     return;
   }
 
-  const sku = String(variantForm.sku || "").trim();
-  const size = String(variantForm.size || "").trim();
-  const color = String(variantForm.color || "").trim();
-  const price = Number(variantForm.price);
-  const quantity = Number(variantForm.quantity);
-
-  if (!sku) {
-    flashErr.value = "SKU không được để trống.";
-    return;
-  }
-  if (!Number.isFinite(price) || price <= 0) {
-    flashErr.value = "Giá biến thể phải lớn hơn 0.";
-    return;
-  }
-  if (!Number.isFinite(quantity) || quantity < 0) {
-    flashErr.value = "Số lượng không được âm.";
-    return;
-  }
+  clearFlash();
+  clearVariantErrors();
 
   const isPlaceholder = (v) => {
     const s = String(v || "").trim().toLowerCase();
-    return !s || s === "default" || s === "mặc định";
+    return !s || s === "default" || s === "mặc định" || s === "mac dinh";
   };
 
-  // Đã có ≥1 biến thể và đang thêm mới, hoặc SP đã ≥2 → bắt buộc màu/size
-  const requireAttrs =
-    (!variantForm.id && variants.value.length >= 1) || variants.value.length >= 2;
-  if (requireAttrs) {
-    if (isPlaceholder(size)) {
-      flashErr.value = "Kích cỡ không được để trống khi có nhiều biến thể.";
-      return;
+  const result = runValidation(
+    {
+      color: variantForm.color,
+      size: variantForm.size,
+      sku: variantForm.sku,
+      price: variantForm.price,
+      quantity: variantForm.quantity,
+    },
+    {
+      color: [
+        { type: "required", message: "Màu sắc là bắt buộc." },
+        { type: "max", max: 50, message: "Màu tối đa 50 ký tự." },
+      ],
+      size: [
+        { type: "required", message: "Kích cỡ là bắt buộc." },
+        { type: "max", max: 50, message: "Size tối đa 50 ký tự." },
+      ],
+      sku: [
+        "required",
+        { type: "min", min: 2, message: "SKU tối thiểu 2 ký tự." },
+        { type: "max", max: 100, message: "SKU tối đa 100 ký tự." },
+      ],
+      price: [
+        { type: "required", message: "Giá là bắt buộc." },
+        { type: "number", gt: 0, message: "Giá phải lớn hơn 0." },
+      ],
+      quantity: [
+        { type: "required", message: "Số lượng là bắt buộc (nhập tay, không tự tăng)." },
+        { type: "number", min: 0, max: 9999, message: "Số lượng từ 0 đến 9999." },
+      ],
     }
-    if (isPlaceholder(color)) {
-      flashErr.value = "Màu sắc không được để trống khi có nhiều biến thể.";
-      return;
-    }
+  );
+
+  if (!result.ok) {
+    Object.assign(variantErrors, result.errors);
+    flashErr.value = firstError(result.errors);
+    return;
   }
 
-  if (!isPlaceholder(size) && !isPlaceholder(color)) {
-    const dup = variants.value.find(
-      (v) =>
-        v.id !== variantForm.id &&
-        String(v.size || "").trim().toLowerCase() === size.toLowerCase() &&
-        String(v.color || "").trim().toLowerCase() === color.toLowerCase()
-    );
-    if (dup) {
-      flashErr.value = "Đã tồn tại biến thể với màu và size này.";
-      return;
-    }
+  if (isPlaceholder(result.values.color)) {
+    variantErrors.color = "Màu không được là mặc định/trống.";
+    flashErr.value = variantErrors.color;
+    return;
+  }
+  if (isPlaceholder(result.values.size)) {
+    variantErrors.size = "Size không được là mặc định/trống.";
+    flashErr.value = variantErrors.size;
+    return;
   }
 
-  clearFlash();
+  const size = String(result.values.size).trim();
+  const color = String(result.values.color).trim();
+  const dup = variants.value.find(
+    (v) =>
+      v.id !== variantForm.id &&
+      String(v.size || "").trim().toLowerCase() === size.toLowerCase() &&
+      String(v.color || "").trim().toLowerCase() === color.toLowerCase()
+  );
+  if (dup) {
+    variantErrors.color = "Đã tồn tại biến thể với màu và size này.";
+    variantErrors.size = variantErrors.color;
+    flashErr.value = variantErrors.color;
+    return;
+  }
+
+  // Số lượng phải là số nguyên (không tự tăng)
+  const quantity = Number(result.values.quantity);
+  if (!Number.isInteger(quantity)) {
+    variantErrors.quantity = "Số lượng phải là số nguyên.";
+    flashErr.value = variantErrors.quantity;
+    return;
+  }
+
   savingVariant.value = true;
   try {
     const payload = {
       id: variantForm.id,
       productId,
-      sku,
+      sku: String(result.values.sku).trim(),
       size,
       color,
-      price,
+      price: Number(result.values.price),
       quantity,
       isDefault: variantForm.isDefault,
       status: true,
@@ -686,36 +924,202 @@ async function saveVariant() {
       await loadVariantDetail(data.variant.id);
     }
   } catch (e) {
-    flashErr.value = e.message || "Lưu biến thể thất bại";
+    const api = getApiError(e, "Lưu biến thể thất bại");
+    Object.assign(variantErrors, api.errors || {});
+    flashErr.value = api.message;
   } finally {
     savingVariant.value = false;
   }
 } 
 
-function onImageFiles(e) {
-  imageFiles.value = Array.from(e.target.files || []);
-  if (imageFiles.value.length) {
-    uploadImages();
-  }
-}
-
-async function uploadImages() {
+async function uploadImages(replace = false) {
   if (!variantForm.id || !imageFiles.value.length) return;
   clearFlash();
   uploading.value = true;
-  const fd = new FormData();
-  imageFiles.value.forEach((f) => fd.append("files", f));
   try {
-    const data = await apiFetch(`/api/admin/products/variants/${variantForm.id}/images`, {
+    const fd = new FormData();
+    // Chỉ lấy tối đa 4 file khi thay thế
+    const files = replace ? imageFiles.value.slice(0, 4) : imageFiles.value;
+    files.forEach((f) => fd.append("files", f));
+    const qs = replace ? "?replace=true" : "";
+    const data = await apiFetch(`/api/admin/products/variants/${variantForm.id}/images${qs}`, {
       method: "POST",
       body: fd,
     });
     flashOk.value = data.message || "Tải ảnh thành công!";
-    await loadVariantDetail(variantForm.id);
-    await loadProducts(pageInfo.number);
+    if (data.detectedColor && (!variantForm.color || isPlaceholderColor(variantForm.color))) {
+      variantForm.color = data.detectedColor;
+      suggestSkuFromColorSize();
+    }
+    if (data.variant) {
+      variantForm.color = data.variant.color || variantForm.color;
+      variantForm.size = data.variant.size || variantForm.size;
+      variantForm.sku = data.variant.sku || variantForm.sku;
+    }
     imageFiles.value = [];
+    await loadVariantDetail(variantForm.id);
+    await loadVariants(numericProductId());
+    await loadProducts(pageInfo.number);
   } catch (e) {
     flashErr.value = e.message || "Tải ảnh thất bại";
+  } finally {
+    uploading.value = false;
+  }
+}
+
+function variantThumb(v) {
+  const imgs = v?.images;
+  if (Array.isArray(imgs) && imgs.length && imgs[0]?.imageUrl) {
+    return imgs[0].imageUrl;
+  }
+  return null;
+}
+
+function isPlaceholderColor(v) {
+  const s = String(v || "").trim().toLowerCase();
+  return !s || s === "default" || s === "mặc định" || s === "mac dinh";
+}
+
+/** Đọc màu từ file ảnh trên trình duyệt (trước khi upload) để điền form. */
+async function detectColorFromLocalFile(file) {
+  if (!file || !file.type?.startsWith("image/")) return null;
+  // Ưu tiên tên file có chứa màu
+  const nameHint = detectColorFromFilename(file.name);
+  if (nameHint) return nameHint;
+
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        const size = 64;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        ctx.drawImage(img, 0, 0, size, size);
+        const data = ctx.getImageData(0, 0, size, size).data;
+        let r = 0,
+          g = 0,
+          b = 0,
+          n = 0;
+        for (let i = 0; i < data.length; i += 16) {
+          const rr = data[i];
+          const gg = data[i + 1];
+          const bb = data[i + 2];
+          const aa = data[i + 3];
+          if (aa < 128) continue;
+          const max = Math.max(rr, gg, bb);
+          const min = Math.min(rr, gg, bb);
+          if (max > 245 && min > 230) continue;
+          if (max < 20) continue;
+          r += rr;
+          g += gg;
+          b += bb;
+          n++;
+        }
+        URL.revokeObjectURL(url);
+        if (!n) {
+          resolve("Đen");
+          return;
+        }
+        resolve(nearestColorName(Math.round(r / n), Math.round(g / n), Math.round(b / n)));
+      } catch {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
+    img.src = url;
+  });
+}
+
+function detectColorFromFilename(filename) {
+  const base = String(filename || "").toLowerCase();
+  const rules = [
+    [/đen|den|black|blk/, "Đen"],
+    [/trắng|trang|white|wht/, "Trắng"],
+    [/xám\s*đậm|xam\s*dam|charcoal/, "Xám đậm"],
+    [/xám|xam|gr[ae]y/, "Xám"],
+    [/đỏ|(^|[^a-z])do([^a-z]|$)|red/, "Đỏ"],
+    [/hồng|hong|pink/, "Hồng"],
+    [/cam|orange/, "Cam"],
+    [/vàng|vang|yellow|gold/, "Vàng"],
+    [/beige|cream|(^|[^a-z])be([^a-z]|$)/, "Be"],
+    [/nâu|nau|brown/, "Nâu"],
+    [/navy|xanh\s*navy/, "Xanh Navy"],
+    [/xanh\s*dương|blue/, "Xanh Dương"],
+    [/xanh\s*lá|xanh\s*la|green/, "Xanh Lá"],
+    [/tím|tim|purple|violet/, "Tím"],
+    [/bạc|bac|silver/, "Bạc"],
+  ];
+  for (const [re, name] of rules) {
+    if (re.test(base)) return name;
+  }
+  return null;
+}
+
+function nearestColorName(r, g, b) {
+  const palette = [
+    ["Đen", 25, 25, 25],
+    ["Trắng", 245, 245, 245],
+    ["Xám", 140, 140, 140],
+    ["Xám đậm", 80, 80, 80],
+    ["Đỏ", 200, 40, 40],
+    ["Hồng", 230, 120, 160],
+    ["Cam", 230, 120, 40],
+    ["Vàng", 230, 200, 50],
+    ["Be", 210, 190, 150],
+    ["Nâu", 120, 75, 45],
+    ["Xanh Navy", 25, 45, 95],
+    ["Xanh Dương", 40, 100, 200],
+    ["Xanh Lá", 45, 140, 70],
+    ["Tím", 120, 60, 160],
+    ["Bạc", 192, 192, 192],
+  ];
+  let best = palette[0][0];
+  let bestD = Infinity;
+  for (const [name, pr, pg, pb] of palette) {
+    const d = (r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2;
+    if (d < bestD) {
+      bestD = d;
+      best = name;
+    }
+  }
+  return best;
+}
+
+function onImageFiles(e, replace = false) {
+  imageFiles.value = Array.from(e.target.files || []);
+  if (!imageFiles.value.length) return;
+  // Tự điền màu trên form trước khi/ trong lúc upload
+  detectColorFromLocalFile(imageFiles.value[0]).then((color) => {
+    if (color && isPlaceholderColor(variantForm.color)) {
+      variantForm.color = color;
+      suggestSkuFromColorSize();
+    }
+  });
+  uploadImages(replace);
+  e.target.value = "";
+}
+
+async function resyncImageNames() {
+  if (!variantForm.id) return;
+  if (!confirm("Đồng bộ lại tên Cloudinary theo chuẩn sp{id}_{biến_thể}_{1-4}?")) return;
+  clearFlash();
+  uploading.value = true;
+  try {
+    const data = await apiFetch(`/api/admin/products/variants/${variantForm.id}/images/resync`, {
+      method: "POST",
+    });
+    flashOk.value = data.message || "Đã đồng bộ tên ảnh!";
+    variantImages.value = data.images || [];
+    await loadVariantDetail(variantForm.id);
+  } catch (e) {
+    flashErr.value = e.message || "Đồng bộ tên ảnh thất bại";
   } finally {
     uploading.value = false;
   }
@@ -734,6 +1138,7 @@ async function addImageFromUrl() {
     flashOk.value = data.message || "Thêm ảnh thành công!";
     imageUrlInput.value = "";
     await loadVariantDetail(variantForm.id);
+    await loadVariants(numericProductId());
     await loadProducts(pageInfo.number);
   } catch (e) {
     flashErr.value = e.message || "Thêm ảnh thất bại";
@@ -857,6 +1262,7 @@ function showFlashErr(message) {
 }
 
 onMounted(() => {
+  loadColorSuggestions();
   loadProducts(0).catch((e) => {
     err.value = e.message || "Lỗi tải";
   });
@@ -864,11 +1270,25 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.color-swatch {
+  width: 2.25rem;
+  padding: 0;
+  border: 1px solid #ced4da;
+}
+
 .product-thumb {
   width: 48px;
   height: 48px;
   object-fit: cover;
   border-radius: 4px;
+}
+
+.variant-list-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
 }
 
 .image-card {

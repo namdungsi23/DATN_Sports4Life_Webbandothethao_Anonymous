@@ -1,7 +1,5 @@
 package poly.edu.ASSM.Services.core;
 
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -10,8 +8,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import poly.edu.ASSM.Entity.Accounts;
-import poly.edu.ASSM.Repository.AccountRepository;
+import poly.edu.ASSM.entity.Accounts;
+import poly.edu.ASSM.repository.AccountRepository;
 
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {

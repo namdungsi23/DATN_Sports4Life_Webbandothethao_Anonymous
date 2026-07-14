@@ -131,14 +131,15 @@
                   <span v-else class="profile-hero__initials">{{ initials }}</span>
                   <label class="profile-form__upload">
                     <input type="file" accept="image/*" @change="onAvatarPick" />
-                    Chọn ảnh từ máy
+                    Tải ảnh lên Cloudinary
                   </label>
                   <input
                     v-model="form.photo"
                     type="url"
                     class="profile-form__input"
-                    placeholder="Hoặc dán link ảnh (https://...)"
+                    placeholder="Hoặc dán URL — sẽ đồng bộ Cloudinary khi lưu"
                   />
+                  <small class="profile-form__hint">Ảnh lưu Cloudinary + SQL (Users.Avatar)</small>
                 </div>
 
                 <div class="profile-form__grid">
@@ -148,15 +149,15 @@
                   </label>
                   <label class="profile-form__field">
                     <span>Họ và tên</span>
-                    <input v-model="form.fullname" type="text" placeholder="Nguyễn Văn A" />
+                    <input v-model="form.fullname" type="text" placeholder="Họ và tên" />
                   </label>
                   <label class="profile-form__field">
                     <span>Email</span>
-                    <input v-model="form.email" type="email" placeholder="email@example.com" />
+                    <input v-model="form.email" type="email" placeholder="Email" />
                   </label>
                   <label class="profile-form__field">
                     <span>Số điện thoại</span>
-                    <input v-model="form.phone" type="tel" placeholder="09xxxxxxxx" />
+                    <input v-model="form.phone" type="tel" placeholder="Số điện thoại" />
                   </label>
                 </div>
 
@@ -327,6 +328,7 @@
                       v-model="pwdForm.currentPassword"
                       type="password"
                       autocomplete="current-password"
+                      placeholder="Mật khẩu hiện tại"
                       :class="{ 'is-invalid': pwdFieldErrors.currentPassword }"
                       @input="clearPwdError('currentPassword')"
                     />
@@ -340,7 +342,7 @@
                       v-model="pwdForm.newPassword"
                       type="password"
                       autocomplete="new-password"
-                      placeholder="Tối thiểu 8 ký tự, có chữ và số"
+                      placeholder="Mật khẩu mới"
                       :class="{ 'is-invalid': pwdFieldErrors.newPassword }"
                       @input="clearPwdError('newPassword')"
                     />
@@ -354,6 +356,7 @@
                       v-model="pwdForm.confirmPassword"
                       type="password"
                       autocomplete="new-password"
+                      placeholder="Nhập lại mật khẩu"
                       :class="{ 'is-invalid': pwdFieldErrors.confirmPassword }"
                       @input="clearPwdError('confirmPassword')"
                     />
@@ -369,19 +372,6 @@
                   </button>
                 </div>
               </form>
-
-              <div class="profile-security-tips">
-                <h3>Mẹo bảo mật</h3>
-                <ul>
-                  <li>Không chia sẻ mật khẩu với bất kỳ ai</li>
-                  <li>Đăng xuất khi dùng máy công cộng</li>
-                  <li>Liên hệ hotline 0336 694 988 nếu phát hiện truy cập lạ</li>
-                  <li>
-                    Quên mật khẩu?
-                    <RouterLink to="/forgot-password">Khôi phục bằng OTP email</RouterLink>
-                  </li>
-                </ul>
-              </div>
             </section>
           </div>
         </div>
@@ -448,6 +438,7 @@ const pwdSuccess = ref("");
 
 const clearPwdError = (key) => {
   delete pwdFieldErrors[key];
+  if (pwdError.value) pwdError.value = "";
 };
 
 const submitChangePassword = async () => {
@@ -456,7 +447,7 @@ const submitChangePassword = async () => {
   pwdSuccess.value = "";
 
   const result = runValidation(pwdForm, {
-    currentPassword: ["required"],
+    currentPassword: [{ type: "required", message: "Vui lòng nhập mật khẩu hiện tại." }],
     newPassword: ["required", "password"],
     confirmPassword: [
       "required",
@@ -485,7 +476,7 @@ const submitChangePassword = async () => {
     pwdForm.confirmPassword = "";
   } catch (err) {
     const api = getApiError(err, "Đổi mật khẩu thất bại. Vui lòng thử lại.");
-    Object.assign(pwdFieldErrors, api.errors);
+    Object.assign(pwdFieldErrors, api.errors || {});
     pwdError.value = api.message;
     toast.error(pwdError.value);
   } finally {
