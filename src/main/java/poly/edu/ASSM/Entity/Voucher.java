@@ -24,7 +24,7 @@ public class Voucher {
     @Column(name = "code", nullable = false, length = 50)
     private String code;
 
-    @Column(name = "DiscountPercent")
+    @Column(name = "DiscountPercent", columnDefinition = "int")
     private Integer discountPercent;
 
     @Column(name = "DiscountAmount", precision = 10, scale = 2)

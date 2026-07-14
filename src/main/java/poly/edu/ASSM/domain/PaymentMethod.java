@@ -3,7 +3,8 @@ package poly.edu.ASSM.domain;
 public enum PaymentMethod {
     CASH("Tiền mặt / COD"),
     MOMO("MoMo"),
-    TECHCOMBANK("Techcombank");
+    TECHCOMBANK("Techcombank"),
+    SEPAY("SePay");
 
     private final String label;
 
@@ -26,11 +27,11 @@ public enum PaymentMethod {
         }
     }
 
-    /** COD → chưa thanh toán; chuyển khoản online → đã thanh toán */
+    /** COD → chưa thanh toán; chuyển khoản online → đã thanh toán / chờ IPN */
     public PaymentStatus resolvePaymentStatus() {
         return switch (this) {
             case MOMO, TECHCOMBANK -> PaymentStatus.PAID;
-            case CASH -> PaymentStatus.UNPAID;
+            case SEPAY, CASH -> PaymentStatus.UNPAID;
         };
     }
 }

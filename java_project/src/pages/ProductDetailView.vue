@@ -633,7 +633,6 @@ const onAddToCart = () => {
     }, 2500);
     return;
   }
-
   const result = runValidation();
   if (!result.ok) return;
 

@@ -160,8 +160,6 @@ const submitRegister = async () => {
     setTimeout(() => router.push("/login"), 1200);
   } catch (registerError) {
     console.warn("Register failed", registerError);
-    const api = getApiError(registerError, "Đăng ký thất bại. Vui lòng thử lại.");
-    Object.assign(fieldErrors, api.errors);
     error.value = api.message;
     toast.error(error.value);
   } finally {

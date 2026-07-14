@@ -1,5 +1,87 @@
 <template>
   <AdminLayout>
+    <!-- Hóa đơn in -->
+    <div v-if="selectedOrderId && orderDetail" class="invoice-print-area s4l-card mb-4" :class="{ 'invoice-print-area--solo': isPrintMode }">
+      <div class="invoice-print-area__header">
+        <div>
+          <h2 class="invoice-print-area__brand">Sports4Life</h2>
+          <p class="invoice-print-area__sub">Hóa đơn bán hàng</p>
+        </div>
+        <div class="text-end">
+          <p class="mb-1"><strong>Mã HĐ:</strong> HD-{{ String(selectedOrderId).padStart(6, "0") }}</p>
+          <p class="mb-0"><strong>Ngày:</strong> {{ formatDate(orderDetail.createDate) }}</p>
+        </div>
+      </div>
+
+      <div class="invoice-print-area__parties">
+        <div>
+          <h6>Người bán</h6>
+          <p class="mb-0">Sports4Life — Cửa hàng thể thao</p>
+          <p class="mb-0 text-muted small">Hotline: 1900 xxxx</p>
+        </div>
+        <div>
+          <h6>Người mua</h6>
+          <p class="mb-1"><strong>{{ orderDetail.shippingAddress?.receiverName || orderDetail.customer?.username || "—" }}</strong></p>
+          <p class="mb-1 small">{{ orderDetail.customer?.email || "" }}</p>
+          <p class="mb-1 small">{{ orderDetail.shippingAddress?.receiverPhone || "" }}</p>
+          <p class="mb-0 small" v-if="orderDetail.shippingAddress">
+            {{ orderDetail.shippingAddress.addressDetail }}, {{ orderDetail.shippingAddress.ward }}, {{ orderDetail.shippingAddress.province }}
+          </p>
+        </div>
+      </div>
+
+      <table class="table table-bordered invoice-print-area__table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Sản phẩm</th>
+            <th>Biến thể</th>
+            <th class="text-end">Đơn giá</th>
+            <th class="text-center">SL</th>
+            <th class="text-end">Thành tiền</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(d, i) in orderItems" :key="d.id">
+            <td>{{ i + 1 }}</td>
+            <td>{{ d.productName || "—" }}</td>
+            <td>{{ variantLabel(d) }}</td>
+            <td class="text-end">{{ formatPrice(d.price) }} ₫</td>
+            <td class="text-center">{{ d.quantity }}</td>
+            <td class="text-end">{{ formatPrice(d.lineTotal) }} ₫</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="invoice-print-area__totals">
+        <div class="invoice-print-area__totals-row">
+          <span>Tạm tính</span>
+          <span>{{ formatPrice(orderDetail.subTotal) }} ₫</span>
+        </div>
+        <div class="invoice-print-area__totals-row" v-if="form.shippingFee">
+          <span>Phí vận chuyển</span>
+          <span>{{ formatPrice(form.shippingFee) }} ₫</span>
+        </div>
+        <div class="invoice-print-area__totals-row invoice-print-area__totals-row--grand">
+          <span>Tổng cộng</span>
+          <span>{{ formatPrice(orderDetail.totalAmount) }} ₫</span>
+        </div>
+        <div class="invoice-print-area__status">
+          <span class="badge" :class="orderStatusBadgeClass(orderDetail.orderStatus)">{{ statusLabel(orderDetail.orderStatus) }}</span>
+          <span class="badge ms-2" :class="orderDetail.paymentStatus === 'PAID' ? 'bg-success' : 'bg-secondary'">
+            {{ paymentLabel(orderDetail.paymentStatus) }}
+          </span>
+        </div>
+      </div>
+
+      <p class="invoice-print-area__thanks text-center text-muted mt-4 mb-0">Cảm ơn quý khách đã mua hàng tại Sports4Life!</p>
+
+      <div v-if="!isPrintMode" class="invoice-print-area__actions no-print text-end mt-3">
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="printInvoice">In hóa đơn</button>
+      </div>
+    </div>
+
+    <div class="no-print" :class="{ 'd-none': isPrintMode }">
     <div v-if="flashOk" class="alert alert-success">{{ flashOk }}</div>
     <div v-if="err" class="alert alert-danger">{{ err }}</div>
 
@@ -25,27 +107,13 @@
     <div class="card mb-4">
       <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
         <span class="fw-bold">{{ selectedOrderId ? `Đơn hàng #${selectedOrderId}` : "Danh sách đơn hàng" }}</span>
-        <div class="d-flex flex-wrap align-items-center gap-2">
-          <input
-            v-if="!selectedOrderId"
-            v-model="keyword"
-            type="search"
-            class="form-control form-control-sm"
-            style="min-width: 200px"
-            placeholder="Tìm mã đơn, user, SĐT..."
-            @keyup.enter="loadList"
-          />
-          <button v-if="!selectedOrderId" type="button" class="btn btn-sm btn-outline-primary" @click="loadList">
-            Tìm
+        <div class="btn-group btn-group-sm">
+          <button type="button" class="btn btn-outline-secondary" :class="{ active: filterStatus === 'ALL' }" @click="setFilter('ALL')">
+            Tất cả
           </button>
-          <div class="btn-group btn-group-sm">
-            <button type="button" class="btn btn-outline-secondary" :class="{ active: filterStatus === 'ALL' }" @click="setFilter('ALL')">
-              Tất cả
-            </button>
-            <button type="button" class="btn btn-outline-warning" :class="{ active: filterStatus === 'PENDING' }" @click="setFilter('PENDING')">
-              Chờ xác nhận
-            </button>
-          </div>
+          <button type="button" class="btn btn-outline-warning" :class="{ active: filterStatus === 'PENDING' }" @click="setFilter('PENDING')">
+            Chờ xác nhận
+          </button>
         </div>
       </div>
       <div class="card-body p-0">
@@ -110,13 +178,6 @@
             <h6 class="text-muted mb-2">Thông tin khách hàng</h6>
             <p class="mb-1"><strong>Tài khoản:</strong> {{ orderDetail.customer?.username || "—" }}</p>
             <p class="mb-1"><strong>Email:</strong> {{ orderDetail.customer?.email || "—" }}</p>
-            <p class="mb-1">
-              <strong>Hạng TV:</strong>
-              {{ orderDetail.customer?.rankName || "—" }}
-              <span v-if="orderDetail.customer?.totalPoint != null" class="text-muted">
-                ({{ orderDetail.customer.totalPoint }} điểm)
-              </span>
-            </p>
             <template v-if="orderDetail.shippingAddress">
               <p class="mb-1"><strong>Người nhận:</strong> {{ orderDetail.shippingAddress.receiverName }}</p>
               <p class="mb-1"><strong>SĐT:</strong> {{ orderDetail.shippingAddress.receiverPhone }}</p>
@@ -161,6 +222,7 @@
               Xác nhận đơn
             </button>
             <button type="button" class="btn btn-outline-secondary" @click="backToList">Quay lại</button>
+            <button type="button" class="btn btn-outline-dark" @click="printInvoice">In hóa đơn</button>
           </div>
         </form>
         <div v-else class="alert alert-info mb-0">Bạn chỉ có quyền xem thông tin đơn hàng.</div>
@@ -225,11 +287,12 @@
         </table>
       </div>
     </div>
+    </div>
   </AdminLayout>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AdminLayout from "../../layouts/AdminLayout.vue";
 import { apiFetch } from "../../services/http.js";
@@ -253,7 +316,6 @@ const flashOk = ref("");
 const orders = ref([]);
 const pendingCount = ref(0);
 const filterStatus = ref("ALL");
-const keyword = ref("");
 const selectedOrderId = ref(null);
 const orderDetail = ref(null);
 const orderItems = ref([]);
@@ -275,6 +337,11 @@ const form = reactive({
 });
 
 const canUpdate = computed(() => userCanUpdateOrders(store.state.user));
+const isPrintMode = computed(() => route.query.print === "1");
+
+function printInvoice() {
+  window.print();
+}
 
 const filteredOrders = computed(() => {
   if (filterStatus.value === "PENDING") {
@@ -320,10 +387,7 @@ function setFilter(status) {
 
 async function loadList() {
   err.value = "";
-  const params = new URLSearchParams();
-  if (keyword.value.trim()) params.set("keyword", keyword.value.trim());
-  const qs = params.toString();
-  const data = await apiFetch(`/api/admin/orders${qs ? `?${qs}` : ""}`);
+  const data = await apiFetch("/api/admin/orders");
   orders.value = data.orders || [];
   pendingCount.value = data.pendingCount ?? orders.value.filter((o) => o.orderStatus === "PENDING").length;
 }
@@ -363,6 +427,10 @@ async function loadDetail(id) {
   const data = await apiFetch(`/api/admin/orders/${id}`);
   selectedOrderId.value = id;
   applyDetail(data);
+  if (isPrintMode.value) {
+    await nextTick();
+    setTimeout(() => window.print(), 400);
+  }
 }
 
 function openDetail(id) {

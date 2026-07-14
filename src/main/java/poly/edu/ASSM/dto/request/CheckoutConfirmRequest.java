@@ -47,4 +47,10 @@ public class CheckoutConfirmRequest {
     /** Nhãn khi lưu vào sổ địa chỉ (addressMode = new) */
     @Size(max = 50, message = "Nhãn địa chỉ tối đa 50 ký tự")
     private String addressBookLabel;
+    /** Tuỳ chọn — nếu null thì không gán carrier ngay */
+    private Integer carrierId;
+
+    /** Mã khuyến mãi (tuỳ chọn) */
+    @Size(max = 50, message = "Mã khuyến mãi tối đa 50 ký tự")
+    private String voucherCode;
 }

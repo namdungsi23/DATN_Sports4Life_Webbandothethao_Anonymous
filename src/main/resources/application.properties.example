@@ -1,0 +1,30 @@
+# Sao chép file này thành application.properties và điền giá trị thật (file .properties đã được gitignore)
+
+spring.application.name=ASSMJAVA5
+spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=Sports4Life;encrypt=true;trustServerCertificate=true
+spring.datasource.username=sa
+spring.datasource.password=YOUR_DB_PASSWORD
+spring.datasource.driver-class-name=com.microsoft.sqlserver.jdbc.SQLServerDriver
+spring.jpa.hibernate.ddl-auto=none
+
+app.frontend.url=http://localhost:5173
+app.backend.public-url=http://localhost:8080
+
+# SePay — production hoặc sandbox (merchant + secret phải cùng môi trường)
+sepay.enabled=false
+sepay.env=sandbox
+sepay.merchant-id=
+sepay.secret-key=
+sepay.checkout-url=https://pay-sandbox.sepay.vn/v1/checkout/init
+sepay.frontend-base-url=http://localhost:5173
+sepay.ipn-path=/api/public/sepay/ipn
+
+# Google OAuth2
+spring.security.oauth2.client.registration.google.redirect-uri=http://localhost:8080/login/oauth2/code/google
+spring.security.oauth2.client.registration.google.client-id=
+spring.security.oauth2.client.registration.google.client-secret=
+spring.security.oauth2.client.registration.google.scope=profile,email
+
+cloudinary.cloud-name=
+cloudinary.api-key=
+cloudinary.api-secret=

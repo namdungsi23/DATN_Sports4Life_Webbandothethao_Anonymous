@@ -101,7 +101,10 @@ public class SecurityConfig {
 				}))
 				// SPA dùng Bearer JWT → CSRF tắt; không dựa cookie session cho API
 				.csrf(csrf -> csrf.disable())
-				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+				// OAuth2 authorization code flow requires HTTP session to store auth request state.
+				.sessionManagement(session -> session
+						.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+						.sessionFixation(fix -> fix.migrateSession()))
 				.addFilterBefore(securityHeadersFilter, UsernamePasswordAuthenticationFilter.class)
 				.addFilterBefore(loginRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
 				.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

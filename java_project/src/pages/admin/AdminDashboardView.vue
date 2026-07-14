@@ -32,6 +32,21 @@
       </div>
     </div>
 
+    <div class="admin-panel mb-4" v-if="revenueSummary.totalRevenue != null">
+      <div class="admin-panel__head">
+        <h2><AdminIcon name="chart" :size="18" /> Doanh thu tháng này</h2>
+      </div>
+      <div class="admin-panel__body d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+          <p class="display-6 fw-bold text-success mb-1">{{ formatMoney(revenueSummary.totalRevenue) }}</p>
+          <p class="text-muted mb-0">{{ revenueSummary.orderCount }} đơn hàng · TB {{ formatMoney(revenueSummary.averageOrderValue) }}/đơn</p>
+        </div>
+        <RouterLink to="/admin/invoices" class="btn btn-primary">
+          Xem báo cáo & biểu đồ →
+        </RouterLink>
+      </div>
+    </div>
+
     <div v-if="!loadingCharts" class="admin-dashboard__kpi-row">
       <div class="admin-dashboard__kpi">
         <div class="admin-dashboard__kpi-label">Doanh thu kỳ</div>
@@ -238,6 +253,16 @@ const stats = ref({
   todayOrders: 0,
   newProducts: 0,
 });
+const revenueSummary = ref({});
+
+const formatMoney = (v) => `${Number(v || 0).toLocaleString("vi-VN")} ₫`;
+
+const monthRange = () => {
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  const to = now.toISOString().slice(0, 10);
+  return { from, to };
+};
 
 const charts = ref({
   revenueByMonth: [],
@@ -313,7 +338,11 @@ const loadDashboard = async () => {
   loadingCharts.value = true;
   err.value = "";
   try {
-    const data = await apiFetch(`/api/admin/dashboard?months=${months.value}`);
+    const { from, to } = monthRange();
+    const [data, rev] = await Promise.all([
+      apiFetch(`/api/admin/dashboard?months=${months.value}`),
+      apiFetch(`/api/admin/reports/summary?from=${from}&to=${to}`).catch(() => ({})),
+    ]);
     stats.value = {
       totalUsers: data.totalUsers ?? 0,
       totalProducts: data.totalProducts ?? 0,
@@ -322,6 +351,7 @@ const loadDashboard = async () => {
       newProducts: data.newProducts ?? 0,
     };
     charts.value = data.charts || charts.value;
+    revenueSummary.value = rev || {};
   } catch (e) {
     const msg = e?.message || "Không tải được thống kê dashboard.";
     err.value = msg;

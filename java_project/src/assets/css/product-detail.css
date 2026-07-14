@@ -283,7 +283,7 @@
   align-items: stretch;
 }
 
-.pd-favorite-action :deep(.favorite-btn--stack) {
+.pd-favorite-action .favorite-btn--stack {
   height: 100%;
 }
 

@@ -139,6 +139,10 @@ public class AdminAccessService {
         permissions.add(AdminPermissionCodes.ORDER);
         permissions.add(AdminPermissionCodes.ORDER_UPDATE);
         permissions.add(AdminPermissionCodes.USER);
+        permissions.add(AdminPermissionCodes.VOUCHER);
+        permissions.add(AdminPermissionCodes.VOUCHER_CREATE);
+        permissions.add(AdminPermissionCodes.VOUCHER_UPDATE);
+        permissions.add(AdminPermissionCodes.VOUCHER_DELETE);
         permissions.add("PRODUCT_CREATE");
         permissions.add("PRODUCT_UPDATE");
         permissions.add("PRODUCT_DELETE");
@@ -151,6 +155,9 @@ public class AdminAccessService {
         permissions.add(AdminPermissionCodes.ORDER);
         permissions.add(AdminPermissionCodes.ORDER_UPDATE);
         permissions.add(AdminPermissionCodes.USER);
+        permissions.add(AdminPermissionCodes.VOUCHER);
+        permissions.add(AdminPermissionCodes.VOUCHER_CREATE);
+        permissions.add(AdminPermissionCodes.VOUCHER_UPDATE);
     }
 
     private boolean isStaffOrAdminRole(String role) {
