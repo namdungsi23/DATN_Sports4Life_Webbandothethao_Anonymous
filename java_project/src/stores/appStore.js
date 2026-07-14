@@ -87,6 +87,7 @@ const normalizeQty = (qty) => {
   if (!Number.isFinite(parsed) || parsed < 1) return 1;
   return Math.floor(parsed);
 };
+const cartLineKey = (item) => item.variantId ?? item.productId;
 
 const resolveStock = (product) => {
   const raw = product?.stock ?? product?.quantity ?? product?.availableStock;
@@ -415,6 +416,7 @@ export const useAppStore = () => ({
   pushToast,
   removeToast,
   toast,
+  cartLineKey,
 });
 
 export const useToast = () => toast;

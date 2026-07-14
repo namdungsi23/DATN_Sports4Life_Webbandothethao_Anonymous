@@ -4,6 +4,12 @@ import vue from '@vitejs/plugin-vue'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [vue()],
+  define: {
+    global: 'globalThis',
+  },
+  optimizeDeps: {
+    include: ['sockjs-client', '@stomp/stompjs'],
+  },
   server: {
     port: 5173,
     proxy: {
@@ -12,6 +18,7 @@ export default defineConfig({
         changeOrigin: true,
         timeout: 60000,
         proxyTimeout: 60000,
+        ws: true,
         rewrite: (path) => path.replace(/^\/base/, ''),
         // Spring Security often redirects with an absolute Location to :8080.
         // The browser would then leave the dev origin and hit CORS. Rewrite so

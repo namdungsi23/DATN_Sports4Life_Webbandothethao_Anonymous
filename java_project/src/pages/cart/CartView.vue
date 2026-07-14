@@ -52,8 +52,8 @@
             <span>Phí vận chuyển</span>
             <span class="cart-summary__free">{{ shippingFee ? formatPrice(shippingFee) + "đ" : "Miễn phí" }}</span>
           </div>
-          <div v-if="amount < 499000" class="cart-summary__hint">
-            Mua thêm <strong>{{ formatPrice(499000 - amount) }}đ</strong> để được freeship!
+          <div v-if="amount < FREE_SHIP_THRESHOLD" class="cart-summary__hint">
+            Mua thêm <strong>{{ formatPrice(FREE_SHIP_THRESHOLD - amount) }}đ</strong> để được freeship!
           </div>
           <div class="cart-summary__total">
             <span>Tổng cộng</span>
@@ -78,13 +78,14 @@ import { RouterLink } from "vue-router";
 import MainLayout from "../../layouts/MainLayout.vue";
 import ProductImage from "../../components/ProductImage.vue";
 import { useAppStore } from "../../stores/appStore";
+import { calcShippingFee, calcOrderTotal, FREE_SHIP_THRESHOLD } from "../../utils/shipping";
 
 const store = useAppStore();
 const cartItems = computed(() => store.state.cartItems);
 const cartCount = computed(() => store.cartCount.value);
 const amount = computed(() => store.cartAmount.value);
-const shippingFee = computed(() => (amount.value >= 499000 ? 0 : 30000));
-const total = computed(() => amount.value + shippingFee.value);
+const shippingFee = computed(() => calcShippingFee(amount.value));
+const total = computed(() => calcOrderTotal(amount.value));
 
 const formatPrice = (price) => Number(price || 0).toLocaleString("vi-VN");
 

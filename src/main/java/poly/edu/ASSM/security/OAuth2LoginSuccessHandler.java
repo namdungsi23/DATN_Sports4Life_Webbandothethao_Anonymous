@@ -6,6 +6,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -23,13 +25,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import poly.edu.ASSM.entity.Accounts;
+import poly.edu.ASSM.Entity.Accounts;
 import poly.edu.ASSM.Services.core.AccountService;
-import poly.edu.ASSM.Services.util.CloudinaryService;
 import poly.edu.ASSM.Services.util.JwtService;
 
 @Component
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
+
+	private static final Logger log = LoggerFactory.getLogger(OAuth2LoginSuccessHandler.class);
 
 	@Autowired
 	private AccountService accountService;
@@ -40,9 +43,6 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 	@Autowired
 	private JwtService jwtService;
 
-	@Autowired
-	private CloudinaryService cloudinaryService;
-
 	@Value("${app.frontend.url:http://localhost:5173}")
 	private String frontendUrl;
 
@@ -52,37 +52,29 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
 			Authentication authentication) throws IOException, ServletException {
 
-		OAuth2AuthenticationToken token = (OAuth2AuthenticationToken) authentication;
-		OAuth2User oauth2User = token.getPrincipal();
-
-		String email = oauth2User.getAttribute("email");
-		String name = oauth2User.getAttribute("name");
-		String picture = oauth2User.getAttribute("picture");
-
-		if (email == null || email.isBlank()) {
-			redirectError(response, "Không lấy được email từ Google.");
-			return;
-		}
-
-		// Đồng bộ ảnh Google → Cloudinary rồi mới ghi SQL
-		String avatarUrl = picture;
-		if (picture != null && !picture.isBlank() && !cloudinaryService.isOurCloudinaryUrl(picture)) {
-			try {
-				String usernameHint = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
-				avatarUrl = cloudinaryService.uploadAvatarFromUrl(picture, usernameHint);
-			} catch (Exception ignored) {
-				avatarUrl = picture; // fallback URL Google nếu Cloudinary lỗi
-			}
-		}
-
-		Accounts account = accountService.saveOAuthLogin(email, name, avatarUrl);
-
-		if (account == null || !Boolean.TRUE.equals(account.getIsActive())) {
-			redirectError(response, "Tài khoản bị khóa hoặc không hợp lệ.");
-			return;
-		}
-
 		try {
+			if (!(authentication instanceof OAuth2AuthenticationToken token)) {
+				redirectError(response, "Phản hồi đăng nhập Google không hợp lệ.");
+				return;
+			}
+
+			OAuth2User oauth2User = token.getPrincipal();
+			String email = oauth2User.getAttribute("email");
+			String name = oauth2User.getAttribute("name");
+			String picture = oauth2User.getAttribute("picture");
+
+			if (email == null || email.isBlank()) {
+				redirectError(response, "Không lấy được email từ Google.");
+				return;
+			}
+
+			Accounts account = accountService.saveOAuthLogin(email, name, picture);
+
+			if (account == null || !Boolean.TRUE.equals(account.getIsActive())) {
+				redirectError(response, "Tài khoản bị khóa hoặc không hợp lệ.");
+				return;
+			}
+
 			UserDetails ud = userDetailsService.loadUserByUsername(email);
 			String accessToken = jwtService.createAccessToken(ud);
 			String refreshToken = jwtService.createRefreshToken(ud);
@@ -99,7 +91,14 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 					+ "&roles=" + URLEncoder.encode(rolesJson, StandardCharsets.UTF_8);
 			response.sendRedirect(base + "/login#" + hash);
 		} catch (UsernameNotFoundException e) {
+			log.warn("OAuth user not found after save: {}", e.getMessage());
 			redirectError(response, "Không tìm thấy người dùng trong hệ thống.");
+		} catch (Exception e) {
+			log.error("OAuth login failed", e);
+			String msg = e.getMessage() != null && !e.getMessage().isBlank()
+					? e.getMessage()
+					: "Đăng nhập Google thất bại.";
+			redirectError(response, msg);
 		}
 	}
 

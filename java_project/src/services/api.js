@@ -227,11 +227,6 @@ export const sendContactApi = async (payload) => {
   return response.data;
 };
 
-export const submitCheckoutApi = async (payload) => {
-  const response = await clientApi.post("/checkout/pay", payload);
-  return response.data;
-};
-
 export const fetchAddressesApi = async () => {
   const response = await clientAuthApi.get("/addresses");
   return response.data;
@@ -257,6 +252,11 @@ export const setDefaultAddressApi = async (id) => {
   return response.data;
 };
 
+export const fetchCheckoutCarriersApi = async () => {
+  const response = await clientAuthApi.get("/checkout/carriers");
+  return response.data;
+};
+
 export const confirmPaymentApi = async (payload) => {
   const response = await clientAuthApi.post("/checkout/confirm", payload);
   return response.data;
@@ -269,5 +269,15 @@ export const fetchMyOrdersApi = async () => {
 
 export const fetchMyOrderDetailApi = async (id) => {
   const response = await clientAuthApi.get(`/orders/${id}`);
+  return response.data;
+};
+
+export const applyVoucherApi = async (payload) => {
+  const response = await clientAuthApi.post("/checkout/vouchers/apply", payload);
+  return response.data;
+};
+
+export const fetchSePayStatusApi = async (orderId) => {
+  const response = await clientAuthApi.get(`/checkout/sepay/status/${orderId}`);
   return response.data;
 };

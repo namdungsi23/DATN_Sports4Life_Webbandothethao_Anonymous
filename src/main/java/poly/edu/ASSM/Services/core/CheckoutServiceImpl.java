@@ -12,24 +12,28 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
-import poly.edu.ASSM.entity.Accounts;
-import poly.edu.ASSM.entity.Addresses;
-import poly.edu.ASSM.entity.OrderAddresses;
-import poly.edu.ASSM.entity.OrderDetails;
-import poly.edu.ASSM.entity.Orders;
-import poly.edu.ASSM.entity.ProductVariants;
-import poly.edu.ASSM.entity.Users;
-import poly.edu.ASSM.repository.AccountRepository;
-import poly.edu.ASSM.repository.OrderAddressRepository;
-import poly.edu.ASSM.repository.OrderDetailsRepository;
-import poly.edu.ASSM.repository.OrdersRepository;
-import poly.edu.ASSM.repository.ProductVariantRepository;
-import poly.edu.ASSM.domain.OrderStatus;
-import poly.edu.ASSM.domain.PaymentMethod;
-import poly.edu.ASSM.domain.PaymentStatus;
+import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Entity.Carriers;
+import poly.edu.ASSM.Entity.Addresses;
+import poly.edu.ASSM.Entity.OrderAddresses;
+import poly.edu.ASSM.Entity.OrderDetails;
+import poly.edu.ASSM.Entity.Orders;
+import poly.edu.ASSM.Entity.ProductVariants;
+import poly.edu.ASSM.Entity.Shipments;
+import poly.edu.ASSM.Entity.Users;
+import poly.edu.ASSM.Repository.AccountRepository;
+import poly.edu.ASSM.Repository.CarrierRepository;
+import poly.edu.ASSM.Repository.OrderAddressRepository;
+import poly.edu.ASSM.Repository.OrderDetailsRepository;
+import poly.edu.ASSM.Repository.OrdersRepository;
+import poly.edu.ASSM.Repository.ProductVariantRepository;
+import poly.edu.ASSM.Repository.ShipmentRepository;
+import poly.edu.ASSM.domain.ShippingFeePolicy;
+import poly.edu.ASSM.domain.ShippingStatus;
+import poly.edu.ASSM.domain.VoucherDiscountResult;
 import poly.edu.ASSM.dto.request.CheckoutCartItemRequest;
 import poly.edu.ASSM.dto.request.CheckoutConfirmRequest;
+import poly.edu.ASSM.dto.request.VoucherApplyRequest;
 import poly.edu.ASSM.dto.request.CustomerAddressRequest;
 import poly.edu.ASSM.dto.request.OrderShippingRequest;
 import poly.edu.ASSM.dto.response.CustomerAddressResponse;
@@ -50,13 +54,12 @@ public class CheckoutServiceImpl implements CheckoutService {
 
     @Autowired
     private ProductVariantRepository productVariantRepository;
-
+    @Autowired
+    private CarrierRepository carrierRepository;
     @Autowired
     private OrderAddressRepository orderAddressRepository;
-
     @Autowired
-    private AdminNotificationService adminNotificationService;
-
+    private ShipmentRepository shipmentRepository;
     @Autowired
     private CustomerAddressServiceImpl customerAddressService;
 
@@ -66,6 +69,24 @@ public class CheckoutServiceImpl implements CheckoutService {
     @Autowired
     private CustomerAddressMapper customerAddressMapper;
 
+    @Autowired
+    private VoucherService voucherService;
+
+    @Autowired
+    private SePayService sePayService;
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> listActiveCarriers() {
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (Carriers carrier : carrierRepository.findByActiveTrueOrderByNameAsc()) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", carrier.getId());
+            m.put("name", carrier.getName());
+            m.put("code", carrier.getCode());
+            list.add(m);
+        }
+        return list;
+    }
     @Override
     @Transactional
     public Map<String, Object> confirmCheckout(String username, CheckoutConfirmRequest request) {
@@ -73,15 +94,26 @@ public class CheckoutServiceImpl implements CheckoutService {
         Users user = customerAddressService.requireUser(account);
         ShippingSnapshot snapshot = resolveShippingSnapshot(account, user, request);
         BigDecimal subTotal = calculateSubTotal(request.getItems());
-
+        BigDecimal shippingFee = ShippingFeePolicy.calculate(subTotal);
+        VoucherDiscountResult voucherResult = voucherService.applyForCheckout(
+                request.getVoucherCode(), subTotal, shippingFee);
+        BigDecimal discountAmount = voucherResult.totalDiscount();
+        BigDecimal finalShippingFee = shippingFee.subtract(voucherResult.shippingDiscount()).max(BigDecimal.ZERO);
+        BigDecimal totalAmount = subTotal.subtract(voucherResult.subtotalDiscount())
+                .add(finalShippingFee)
+                .max(BigDecimal.ONE);
         Orders order = new Orders();
+
         order.setAccount(account);
-        order.setOrderStatus(OrderStatus.PENDING.name());
+        order.setOrderStatus("PENDING");
         order.setPaymentStatus(resolvePaymentStatus(request.getPaymentMethod()));
         order.setSubTotal(subTotal);
-        order.setDiscountAmount(BigDecimal.ZERO);
-        order.setTotalAmount(subTotal);
+        order.setDiscountAmount(discountAmount);
+        order.setTotalAmount(totalAmount);
         order.setCreateDate(Instant.now());
+        if (voucherResult.voucher() != null) {
+            order.setVoucher(voucherResult.voucher());
+        }
         Orders savedOrder = ordersRepository.save(order);
 
         createOrderDetails(savedOrder, request.getItems());
@@ -94,6 +126,22 @@ public class CheckoutServiceImpl implements CheckoutService {
                 snapshot.ward(),
                 snapshot.addressDetail());
         OrderAddresses savedSnapshot = orderAddressRepository.save(orderAddress);
+
+        Shipments shipment = new Shipments();
+        shipment.setOrder(savedOrder);
+        shipment.setShippingStatus(ShippingStatus.PENDING.name());
+        shipment.setShippingFee(finalShippingFee);
+        shipment.setCreatedAt(Instant.now());
+        if (request.getCarrierId() != null) {
+            Carriers carrier = carrierRepository.findById(request.getCarrierId())
+                    .filter(c -> Boolean.TRUE.equals(c.getActive()))
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST, "Đơn vị vận chuyển không hợp lệ"));
+            shipment.setCarrier(carrier);
+        }
+        shipmentRepository.save(shipment);
+
+        voucherService.markUsed(voucherResult);
 
         CustomerAddressResponse savedAddressBook = null;
         if ("new".equalsIgnoreCase(request.getAddressMode())
@@ -113,23 +161,53 @@ public class CheckoutServiceImpl implements CheckoutService {
         Map<String, Object> body = new HashMap<>();
         body.put("message", "Đặt hàng thành công");
         body.put("orderId", savedOrder.getId());
+        body.put("subTotal", subTotal);
+        body.put("discountAmount", discountAmount);
+        body.put("shippingFee", finalShippingFee);
+        body.put("totalAmount", totalAmount);
+        if (voucherResult.voucher() != null) {
+            body.put("voucherCode", voucherResult.voucher().getCode());
+            body.put("discountType", voucherResult.discountType());
+        }
         body.put("orderAddress", orderAddressMapper.toResponse(savedSnapshot));
         if (savedAddressBook != null) {
             body.put("savedAddress", savedAddressBook);
         }
 
-        try {
-            adminNotificationService.notifyPanelUsers(
-                    "Đơn hàng mới #" + savedOrder.getId(),
-                    "Khách " + username + " vừa đặt đơn #" + savedOrder.getId()
-                            + " — tổng " + savedOrder.getTotalAmount() + "đ",
-                    "/admin/order/" + savedOrder.getId());
-        } catch (Exception ex) {
-            // Không chặn checkout nếu notify lỗi (thiếu bảng/cột Notifications, v.v.)
-            org.slf4j.LoggerFactory.getLogger(CheckoutServiceImpl.class)
-                    .warn("Gửi thông báo đơn mới #{} thất bại: {}", savedOrder.getId(), ex.getMessage());
+        if (isSePayMethod(request.getPaymentMethod())) {
+            body.put("paymentMethod", "SEPAY");
+            body.put("paymentPending", true);
+            body.put("sepay", sePayService.buildCheckoutForm(savedOrder, account.getUsername()));
         }
 
+        return body;
+    }
+
+    private boolean isSePayMethod(String paymentMethod) {
+        return paymentMethod != null && "SEPAY".equalsIgnoreCase(paymentMethod.trim());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> previewVoucher(String username, VoucherApplyRequest request) {
+        requireAccount(username);
+        BigDecimal subTotal = voucherService.calculateSubTotal(request.getItems());
+        BigDecimal shippingFee = ShippingFeePolicy.calculate(subTotal);
+        VoucherDiscountResult result = voucherService.previewApply(request.getVoucherCode(), subTotal, shippingFee);
+        BigDecimal finalShippingFee = shippingFee.subtract(result.shippingDiscount()).max(BigDecimal.ZERO);
+        BigDecimal totalAmount = subTotal.subtract(result.subtotalDiscount()).add(finalShippingFee).max(BigDecimal.ONE);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("valid", true);
+        body.put("voucherCode", result.voucher().getCode());
+        body.put("voucherName", result.voucher().getName());
+        body.put("discountType", result.discountType());
+        body.put("subTotal", subTotal);
+        body.put("discountAmount", result.totalDiscount());
+        body.put("subtotalDiscount", result.subtotalDiscount());
+        body.put("shippingDiscount", result.shippingDiscount());
+        body.put("shippingFee", finalShippingFee);
+        body.put("totalAmount", totalAmount);
         return body;
     }
 
@@ -150,7 +228,7 @@ public class CheckoutServiceImpl implements CheckoutService {
         List<OrderDetails> details = new ArrayList<>();
         for (CheckoutCartItemRequest item : items) {
             ProductVariants variant = resolveVariant(item);
-            deductStockAtomic(variant, item.getQuantity());
+            ensureStock(variant, item.getQuantity());
 
             OrderDetails detail = new OrderDetails();
             detail.setOrders(order);
@@ -158,6 +236,8 @@ public class CheckoutServiceImpl implements CheckoutService {
             detail.setPrice(variant.getPrice().doubleValue());
             detail.setQuantity(item.getQuantity());
             details.add(detail);
+
+            updateVariantStock(variant, item.getQuantity());
         }
         orderDetailsRepository.saveAll(details);
     }
@@ -186,25 +266,22 @@ public class CheckoutServiceImpl implements CheckoutService {
                         "Sản phẩm không có biến thể để đặt hàng"));
     }
 
-    /**
-     * Trừ tồn kho atomic (UPDATE ... WHERE quantity >= qty).
-     * Hai khách cùng lúc chỉ một người được mua khi còn đúng 1 sp.
-     */
-    private void deductStockAtomic(ProductVariants variant, int quantity) {
-        if (quantity <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số lượng mua không hợp lệ");
-        }
-        String label = variant.getSku() != null ? variant.getSku() : "Sản phẩm";
-        int updated;
-        if (variant.getQuantity() == null) {
-            updated = productVariantRepository.incrementSoldWhenUnlimited(variant.getId(), quantity);
-        } else {
-            updated = productVariantRepository.tryDeductStock(variant.getId(), quantity);
-        }
-        if (updated == 0) {
+    private void ensureStock(ProductVariants variant, int quantity) {
+        Short stock = variant.getQuantity();
+        if (stock != null && stock < quantity) {
+            String label = variant.getSku() != null ? variant.getSku() : "Sản phẩm";
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "\"" + label + "\" không đủ tồn kho");
         }
+    }
+
+    private void updateVariantStock(ProductVariants variant, int quantity) {
+        if (variant.getQuantity() != null) {
+            variant.setQuantity((short) (variant.getQuantity() - quantity));
+        }
+        int sold = variant.getSoldCount() != null ? variant.getSoldCount() : 0;
+        variant.setSoldCount(sold + quantity);
+        productVariantRepository.save(variant);
     }
 
     private ShippingSnapshot resolveShippingSnapshot(Accounts account, Users user, CheckoutConfirmRequest request) {
@@ -281,10 +358,14 @@ public class CheckoutServiceImpl implements CheckoutService {
     }
 
     private String resolvePaymentStatus(String paymentMethod) {
-        if (paymentMethod == null || paymentMethod.isBlank()) {
-            return PaymentStatus.UNPAID.name();
+        if (paymentMethod == null) {
+            return "UNPAID";
         }
-        return PaymentMethod.parse(paymentMethod).resolvePaymentStatus().name();
+        return switch (paymentMethod.toUpperCase()) {
+            case "MOMO", "TECHCOMBANK" -> "PAID";
+            case "SEPAY" -> "UNPAID";
+            default -> "UNPAID";
+        };
     }
 
     private Accounts requireAccount(String username) {

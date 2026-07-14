@@ -52,16 +52,26 @@ public class VoucherMapper {
         if (entity == null || request == null) {
             return;
         }
-        entity.setCode(request.getCode());
+        entity.setCode(request.getCode() != null ? request.getCode().trim().toUpperCase() : null);
         entity.setName(request.getName());
-        entity.setDiscountPercent(request.getDiscountPercent());
-        entity.setDiscountAmount(request.getDiscountAmount());
         entity.setMinOrderValue(request.getMinOrderValue());
         entity.setMaxDiscount(request.getMaxDiscount());
         entity.setQuantity(request.getQuantity());
         entity.setStartDate(request.getStartDate());
         entity.setExpiredAt(request.getExpiredAt());
         entity.setIsActive(request.getIsActive());
+
+        String type = request.getDiscountType() != null ? request.getDiscountType().trim().toUpperCase() : null;
+        if ("PERCENT".equals(type)) {
+            entity.setDiscountPercent(request.getDiscountPercent());
+            entity.setDiscountAmount(null);
+        } else if ("FIXED".equals(type) || "FREESHIP".equals(type)) {
+            entity.setDiscountPercent(null);
+            entity.setDiscountAmount(request.getDiscountAmount());
+        } else {
+            entity.setDiscountPercent(request.getDiscountPercent());
+            entity.setDiscountAmount(request.getDiscountAmount());
+        }
     }
 
     public PageResponse<VoucherResponse> toPageResponse(Page<Voucher> page) {

@@ -79,4 +79,20 @@ public class Users {
     @JoinColumn(name = "UserId")
     private Set<Wishlist> wishlists = new LinkedHashSet<>();
 
+    @PrePersist
+    void applyDefaults() {
+        if (gender == null) {
+            gender = 0;
+        }
+        if (totalPoint == null) {
+            totalPoint = 0;
+        }
+        if (totalSpending == null) {
+            totalSpending = BigDecimal.ZERO;
+        }
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
+    }
+
 }

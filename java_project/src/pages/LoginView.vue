@@ -8,7 +8,11 @@
     footer-text="Chưa có tài khoản?"
     :footer-link="{ to: '/register', label: 'Đăng ký ngay' }"
   >
-    <form class="auth-form" @submit.prevent="submitLogin">
+    <div v-if="oauthLoading" class="auth-form__alert" style="background: #e8f5e9; color: #2e7d32">
+      Đang hoàn tất đăng nhập Google...
+    </div>
+
+    <form v-else class="auth-form" @submit.prevent="submitLogin">
       <div v-if="error" class="auth-form__alert auth-form__alert--error">{{ error }}</div>
 
       <label class="auth-form__field">
@@ -49,7 +53,7 @@
         {{ loading ? "Đang đăng nhập..." : "Đăng nhập" }}
       </button>
 
-      <a href="/base/oauth2/authorization/google" class="auth-form__google">
+      <a :href="googleOAuthUrl" class="auth-form__google">
         <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22 12c0-.68-.06-1.37-.17-2H12v3.77h5.76A5.26 5.26 0 0 1 12 17.26v3.77c4.74-.22 8.5-4.03 8.5-8.99z"/><path fill="#34A853" d="M12 21c2.43 0 4.47-.8 5.96-2.18l-3.77-2.92c-1.03.69-2.35 1.1-4.19 1.1-3.22 0-5.95-2.17-6.93-5.09H1.06v3.02A10 10 0 0 0 12 21z"/><path fill="#FBBC05" d="M5.07 14.91A6 6 0 0 1 4.6 12c0-1.01.24-1.96.47-2.91V6.07H1.06A10 10 0 0 0 2 12c0 1.61.39 3.14 1.06 4.51l3.01-2.6z"/><path fill="#EA4335" d="M12 5.38c1.32 0 2.5.45 3.44 1.35l2.58-2.58C16.46 2.89 14.42 2 12 2 7.7 2 4.02 4.47 2.06 8.07l3.01 2.6C6.05 7.55 8.78 5.38 12 5.38z"/></svg>
         Đăng nhập bằng Google
       </a>
@@ -58,10 +62,10 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import AuthLayout from "../layouts/AuthLayout.vue";
-import { loginApi } from "../services/api";
+import { fetchProfileApi, loginApi } from "../services/api";
 import { useAppStore, useToast } from "../stores/appStore";
 import { resolveDefaultAdminRoute, userCanAccessPanel } from "../utils/adminAccess";
 import { firstError, getApiError, runValidation } from "../utils/validators";
@@ -71,9 +75,19 @@ const route = useRoute();
 const store = useAppStore();
 const toast = useToast();
 const loading = ref(false);
+const oauthLoading = ref(false);
 const error = ref("");
 const fieldErrors = reactive({});
 const form = reactive({ username: "", pwd: "", remember: false });
+
+const googleOAuthUrl = computed(() => {
+  // OAuth must hit Spring Boot directly so JSESSIONID stays on :8080 through the Google callback.
+  if (import.meta.env?.DEV) {
+    return "http://localhost:8080/oauth2/authorization/google";
+  }
+  const base = import.meta.env?.VITE_API_BASE || "";
+  return `${base}/oauth2/authorization/google`;
+});
 
 const resolveAfterLoginPath = () => {
   const redirect = route.query.redirect;
@@ -88,6 +102,24 @@ const resolveAfterLoginPath = () => {
 
 const clearFieldError = (key) => {
   delete fieldErrors[key];
+};
+
+const finishLogin = async () => {
+  try {
+    const profile = await fetchProfileApi();
+    if (profile?.user) {
+      store.updateUserProfile({
+        fullname: profile.user.fullName || profile.user.fullname,
+        phone: profile.user.phone,
+        email: profile.user.email,
+        avatar: profile.user.avatar,
+      });
+    }
+  } catch {
+    /* profile optional */
+  }
+  await store.loadFavorites();
+  router.replace(resolveAfterLoginPath());
 };
 
 const submitLogin = async () => {
@@ -132,8 +164,7 @@ const submitLogin = async () => {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
     });
-    await store.loadFavorites();
-    router.push(resolveAfterLoginPath());
+    await finishLogin();
   } catch (loginError) {
     console.warn("Login failed", loginError);
     const api = getApiError(loginError, "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.");
@@ -145,7 +176,7 @@ const submitLogin = async () => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   const parseHashParams = () => {
     const hash = window.location.hash?.replace(/^#/, "") || "";
     if (!hash) return {};
@@ -179,6 +210,7 @@ onMounted(() => {
   const rolesRaw = h.roles || q.roles;
 
   if (oauth && accessToken && username) {
+    oauthLoading.value = true;
     let roles = [];
     try {
       if (typeof rolesRaw === "string") roles = JSON.parse(rolesRaw);
@@ -186,18 +218,26 @@ onMounted(() => {
     } catch {
       roles = [];
     }
+
     store.login({
       username: String(username),
       roles,
       accessToken: String(accessToken),
       refreshToken: String(refreshToken || ""),
     });
+
     if (window.location.hash) {
       history.replaceState(null, "", window.location.pathname + window.location.search);
     }
-    store.loadFavorites().finally(() => {
-      router.replace(resolveAfterLoginPath());
-    });
+
+    try {
+      await finishLogin();
+    } catch (err) {
+      console.error("OAuth finish failed", err);
+      error.value = "Đăng nhập Google thành công nhưng không thể tải hồ sơ.";
+      oauthLoading.value = false;
+      router.replace({ path: "/login" });
+    }
   }
 });
 </script>

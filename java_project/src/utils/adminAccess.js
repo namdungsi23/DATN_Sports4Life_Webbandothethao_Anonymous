@@ -10,6 +10,10 @@ export const ADMIN_PERMS = {
   USER: "USER_VIEW",
   COMMENT: "PRODUCT_VIEW",
   RANK: "USER_VIEW",
+  VOUCHER: "VOUCHER_VIEW",
+  VOUCHER_CREATE: "VOUCHER_CREATE",
+  VOUCHER_UPDATE: "VOUCHER_UPDATE",
+  VOUCHER_DELETE: "VOUCHER_DELETE",
 };
 
 export const ADMIN_MENU = [
@@ -26,6 +30,13 @@ export const ADMIN_MENU = [
     icon: "chart",
     tone: "green",
     permission: ADMIN_PERMS.DASHBOARD,
+  },
+  {
+    to: "/admin/chat",
+    label: "Chat hỗ trợ",
+    icon: "chat",
+    tone: "teal",
+    panelOnly: true,
   },
   {
     to: "/admin/product",
@@ -63,6 +74,20 @@ export const ADMIN_MENU = [
     permission: ADMIN_PERMS.RANK,
   },
   {
+    to: "/admin/invoices",
+    label: "Hóa đơn",
+    icon: "chart",
+    tone: "orange",
+    permission: ADMIN_PERMS.ORDER,
+  },
+  {
+    to: "/admin/voucher",
+    label: "Khuyến mãi",
+    icon: "package",
+    tone: "purple",
+    permission: ADMIN_PERMS.VOUCHER,
+  },
+  {
     to: "/admin/user",
     label: "Tài khoản",
     icon: "user",
@@ -90,7 +115,10 @@ export function userHasPermission(user, required) {
 }
 
 export function filterAdminMenu(user) {
-  return ADMIN_MENU.filter((item) => userHasPermission(user, item.permission));
+  return ADMIN_MENU.filter((item) => {
+    if (item.panelOnly) return userCanAccessPanel(user);
+    return userHasPermission(user, item.permission);
+  });
 }
 
 export function resolveDefaultAdminRoute(user) {
@@ -119,6 +147,13 @@ export function userCanUpdateOrders(user) {
   if (!user) return false;
   if (userIsAdmin(user)) return true;
   return userHasPermission(user, ADMIN_PERMS.ORDER_UPDATE);
+}
+
+export function userCanWriteVouchers(user) {
+  if (!user) return false;
+  if (userIsAdmin(user)) return true;
+  return userHasPermission(user, ADMIN_PERMS.VOUCHER_CREATE)
+    || userHasPermission(user, ADMIN_PERMS.VOUCHER_UPDATE);
 }
 
 export const ORDER_STATUS_LABELS = {

@@ -117,7 +117,7 @@ const emptyForm = () => ({
   isDefault: false,
 });
 
-const form = reactive(emptyForm());
+let form = reactive(emptyForm());
 
 const loadAddresses = async () => {
   loading.value = true;

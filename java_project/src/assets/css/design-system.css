@@ -1,0 +1,259 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+:root {
+  --s4l-green: #1a3c34;
+  --s4l-green-light: #2d6a5a;
+  --s4l-orange: #e8871e;
+  --s4l-orange-light: #f5a623;
+  --s4l-bg: #faf8f5;
+  --s4l-surface: #ffffff;
+  --s4l-text: #1f2937;
+  --s4l-muted: #6b7280;
+  --s4l-border: #e8ecf1;
+  --s4l-shadow: 0 4px 24px rgba(26, 60, 52, 0.08);
+  --s4l-shadow-sm: 0 2px 12px rgba(26, 60, 52, 0.06);
+  --s4l-radius: 12px;
+  --s4l-radius-lg: 16px;
+}
+
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background: var(--s4l-bg);
+  color: var(--s4l-text);
+}
+
+.site-main {
+  background: var(--s4l-bg);
+}
+
+.site-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Premium cards */
+.s4l-card {
+  background: var(--s4l-surface);
+  border-radius: var(--s4l-radius);
+  box-shadow: var(--s4l-shadow-sm);
+  border: 1px solid var(--s4l-border);
+  overflow: hidden;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.s4l-card:hover {
+  box-shadow: var(--s4l-shadow);
+}
+
+.s4l-card__head {
+  padding: 18px 24px;
+  border-bottom: 1px solid #f0f2f5;
+  font-weight: 700;
+  color: var(--s4l-green);
+}
+
+.s4l-card__body {
+  padding: 24px;
+}
+
+/* Section titles */
+.s4l-section-title {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 28px;
+  color: var(--s4l-green);
+  margin: 0 0 8px;
+}
+
+.s4l-section-sub {
+  color: var(--s4l-muted);
+  font-size: 14px;
+  margin: 0 0 24px;
+}
+
+/* Buttons */
+.s4l-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.s4l-btn--primary {
+  background: linear-gradient(135deg, var(--s4l-orange), #d07615);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(232, 135, 30, 0.35);
+}
+
+.s4l-btn--primary:hover {
+  transform: translateY(-1px);
+  color: #fff;
+}
+
+.s4l-btn--green {
+  background: linear-gradient(135deg, var(--s4l-green), var(--s4l-green-light));
+  color: #fff;
+}
+
+.s4l-btn--outline {
+  background: transparent;
+  border: 2px solid var(--s4l-green);
+  color: var(--s4l-green);
+}
+
+/* Product grid polish */
+.product-card,
+.cart-item,
+.checkout-card,
+.admin-stat-card,
+.admin-panel {
+  border-radius: var(--s4l-radius) !important;
+}
+
+/* Smooth page transitions */
+.site-main__inner {
+  animation: s4l-fade-in 0.35s ease;
+}
+
+@keyframes s4l-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Form inputs global polish */
+input.form-control,
+select.form-select,
+textarea.form-control {
+  border-radius: 8px;
+  border-color: var(--s4l-border);
+  padding: 10px 14px;
+}
+
+input.form-control:focus,
+select.form-select:focus {
+  border-color: var(--s4l-green);
+  box-shadow: 0 0 0 3px rgba(26, 60, 52, 0.12);
+}
+
+/* Badge polish */
+.badge {
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+/* Table polish */
+.table {
+  --bs-table-hover-bg: #f8faf9;
+}
+
+.table thead th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+/* Print invoice */
+.invoice-print-area {
+  padding: 32px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.invoice-print-area--solo {
+  margin-top: 24px;
+}
+
+.invoice-print-area__brand {
+  font-family: "Playfair Display", Georgia, serif;
+  color: var(--s4l-green);
+  margin: 0;
+  font-size: 28px;
+}
+
+.invoice-print-area__sub {
+  color: var(--s4l-muted);
+  margin: 4px 0 0;
+  font-size: 14px;
+}
+
+.invoice-print-area__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid var(--s4l-green);
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.invoice-print-area__parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.invoice-print-area__parties h6 {
+  color: var(--s4l-green);
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+
+.invoice-print-area__table th {
+  background: #f0f5f3;
+  font-size: 12px;
+}
+
+.invoice-print-area__totals {
+  max-width: 320px;
+  margin-left: auto;
+  margin-top: 16px;
+}
+
+.invoice-print-area__totals-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.invoice-print-area__totals-row--grand {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--s4l-green);
+  border-bottom: none;
+  padding-top: 12px;
+}
+
+.invoice-print-area__status {
+  text-align: right;
+  margin-top: 12px;
+}
+
+@media print {
+  .admin-sidebar,
+  .admin-topbar,
+  .admin-order-alert,
+  .no-print {
+    display: none !important;
+  }
+  .admin-shell__main {
+    margin-left: 0 !important;
+  }
+  .invoice-print-area {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
