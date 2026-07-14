@@ -28,6 +28,13 @@ export const ADMIN_MENU = [
     permission: ADMIN_PERMS.DASHBOARD,
   },
   {
+    to: "/admin/chat",
+    label: "Chat hỗ trợ",
+    icon: "chat",
+    tone: "teal",
+    panelOnly: true,
+  },
+  {
     to: "/admin/product",
     label: "Sản phẩm",
     icon: "product",
@@ -90,7 +97,10 @@ export function userHasPermission(user, required) {
 }
 
 export function filterAdminMenu(user) {
-  return ADMIN_MENU.filter((item) => userHasPermission(user, item.permission));
+  return ADMIN_MENU.filter((item) => {
+    if (item.panelOnly) return userCanAccessPanel(user);
+    return userHasPermission(user, item.permission);
+  });
 }
 
 export function resolveDefaultAdminRoute(user) {

@@ -16,6 +16,7 @@ import './assets/css/contact.css'
 import './assets/css/profile.css'
 import './assets/css/favorites.css'
 import './assets/css/admin.css'
+import './assets/css/chat.css'
 
 createApp(App).use(router).mount('#app')
 

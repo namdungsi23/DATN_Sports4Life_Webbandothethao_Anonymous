@@ -84,7 +84,10 @@ public class SecurityConfig {
 								"/login/oauth2/**",
 								"/css/**",
 								"/js/**",
-								"/images/**")
+								"/images/**",
+								// Handshake WS: JWT xác thực ở STOMP CONNECT (JwtStompChannelInterceptor)
+								"/ws",
+								"/ws/**")
 						.permitAll()
 						.anyRequest().authenticated())
 				.cors(cors -> cors.configurationSource(request -> {
