@@ -1,0 +1,99 @@
+package poly.edu.ASSM.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+@Component
+@ConfigurationProperties(prefix = "sepay")
+public class SePayProperties {
+
+    public static final String SANDBOX_CHECKOUT_URL = "https://pay-sandbox.sepay.vn/v1/checkout/init";
+    public static final String PRODUCTION_CHECKOUT_URL = "https://pay.sepay.vn/v1/checkout/init";
+    public static final String SANDBOX_API_URL = "https://pgapi-sandbox.sepay.vn";
+    public static final String PRODUCTION_API_URL = "https://pgapi.sepay.vn";
+
+    private boolean enabled = false;
+    private String env = "sandbox";
+    private String merchantId = "";
+    private String secretKey = "";
+    private String checkoutUrl = SANDBOX_CHECKOUT_URL;
+    private String frontendBaseUrl = "http://localhost:5173";
+    private String ipnPath = "/api/public/sepay/ipn";
+    /** Webhook biến động số dư — URL: {backend}/api/public/sepay/bank-webhook */
+    private String bankWebhookPath = "/api/public/sepay/bank-webhook";
+    /** API Key cấu hình trên my.sepay.vn (Security → API Key). Để trống = không kiểm tra (dev). */
+    private String bankWebhookApiKey = "";
+
+    public boolean isConfigured() {
+        return enabled
+                && merchantId != null && !merchantId.isBlank()
+                && secretKey != null && !secretKey.isBlank();
+    }
+
+    /** True when credentials or explicit env point to production (live payments). */
+    public boolean isProductionMode() {
+        if ("production".equalsIgnoreCase(env) || "live".equalsIgnoreCase(env)) {
+            return true;
+        }
+        if ("sandbox".equalsIgnoreCase(env) || "test".equalsIgnoreCase(env)) {
+            return looksLikeProductionCredentials();
+        }
+        return looksLikeProductionCredentials();
+    }
+
+    private boolean looksLikeProductionCredentials() {
+        String mid = merchantId != null ? merchantId.trim().toUpperCase() : "";
+        String sk = secretKey != null ? secretKey.trim() : "";
+        return mid.contains("LIVE") || sk.startsWith("spsk_live_");
+    }
+
+    public String getResolvedCheckoutUrl() {
+        String expected = isProductionMode() ? PRODUCTION_CHECKOUT_URL : SANDBOX_CHECKOUT_URL;
+        if (checkoutUrl == null || checkoutUrl.isBlank()) {
+            return expected;
+        }
+        String configured = checkoutUrl.trim();
+        boolean configuredSandbox = configured.contains("pay-sandbox");
+        boolean configuredProduction = configured.contains("pay.sepay.vn") && !configuredSandbox;
+        if (isProductionMode() && configuredSandbox) {
+            return expected;
+        }
+        if (!isProductionMode() && configuredProduction) {
+            return expected;
+        }
+        return configured;
+    }
+
+    public String getEffectiveEnv() {
+        return isProductionMode() ? "production" : "sandbox";
+    }
+
+    public boolean hasEnvMismatch() {
+        if (checkoutUrl == null || checkoutUrl.isBlank()) {
+            return false;
+        }
+        String configured = checkoutUrl.trim();
+        boolean configuredSandbox = configured.contains("pay-sandbox");
+        boolean configuredProduction = configured.contains("pay.sepay.vn") && !configuredSandbox;
+        return (isProductionMode() && configuredSandbox) || (!isProductionMode() && configuredProduction);
+    }
+
+    public String ipnUrl(String backendPublicUrl) {
+        String base = backendPublicUrl != null ? backendPublicUrl.replaceAll("/$", "") : "";
+        return base + ipnPath;
+    }
+
+    public String bankWebhookUrl(String backendPublicUrl) {
+        String base = backendPublicUrl != null ? backendPublicUrl.replaceAll("/$", "") : "";
+        return base + bankWebhookPath;
+    }
+
+    public String getResolvedApiBaseUrl() {
+        return isProductionMode() ? PRODUCTION_API_URL : SANDBOX_API_URL;
+    }
+}

@@ -1,0 +1,47 @@
+package poly.edu.ASSM.Services.Config;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
+import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
+import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
+import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+
+import poly.edu.ASSM.Services.chat.websocket.ChatHandshakeInterceptor;
+import poly.edu.ASSM.Services.chat.websocket.JwtStompChannelInterceptor;
+
+@Configuration
+@EnableWebSocketMessageBroker
+public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    @Autowired
+    private JwtStompChannelInterceptor jwtStompChannelInterceptor;
+
+    @Autowired
+    private ChatHandshakeInterceptor chatHandshakeInterceptor;
+
+    @Override
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+        registry.addEndpoint("/ws")
+                .addInterceptors(chatHandshakeInterceptor)
+                .setAllowedOriginPatterns(
+                        "http://localhost:5173",
+                        "http://localhost:5174",
+                        "http://127.0.0.1:5173",
+                        "http://127.0.0.1:5174")
+                .withSockJS();
+    }
+
+    @Override
+    public void configureMessageBroker(MessageBrokerRegistry registry) {
+        registry.setApplicationDestinationPrefixes("/app");
+        registry.enableSimpleBroker("/topic", "/queue");
+        registry.setUserDestinationPrefix("/user");
+    }
+
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(jwtStompChannelInterceptor);
+    }
+}

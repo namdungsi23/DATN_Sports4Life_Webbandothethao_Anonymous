@@ -1,0 +1,134 @@
+<header th:fragment="header"
+	class="play-header d-flex align-items-center justify-content-between px-4">
+
+	<!-- LOGO -->
+	<div class="play-logo fw-bold fs-4">▶ Play Sport</div>
+
+    <!-- MENU -->
+    <nav class="play-menu">
+        <a th:href="@{/}" class="active">Trang chủ</a>
+        <a th:href="@{/product}">Sản phẩm</a>
+        <a th:href="@{/contact}">Liên hệ</a>
+        <a th:href="@{/more}">Xem thêm</a>
+        <!-- <a th:href="@{/logout/oauth2}">Logout</a> -->
+    </nav>
+
+	<!-- RIGHT -->
+	<div class="d-flex align-items-center gap-3">
+
+		<!-- SEARCH -->
+		<form class="d-none d-lg-flex">
+			<div class="input-group input-group-sm">
+				<input type="text" class="form-control" placeholder="Tìm kiếm...">
+				<button class="btn btn-outline-secondary">🔍</button>
+			</div>
+		</form>
+
+		<!-- CART -->
+		<a th:href="@{/cart}"
+			class="btn btn-outline-primary position-relative"> 🛒 <span
+			th:text="${count}"
+			class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+		</span>
+		</a>
+
+		<!-- LOGIN ICON -->
+		<!-- USER ICON -->
+		<button type="button" 
+			    class="btn btn-light rounded-circle"
+			    data-bs-toggle="modal"
+			    th:data-bs-target="${user == null} ? '#authModal' : '#profileMenu'">👤
+		</button>
+
+	</div>
+	
+	<div class="modal fade" id="profileMenu" tabindex="-1"
+		th:if="${user != null}">
+		<div class="modal-dialog modal-dialog-centered modal-sm">
+			<div class="modal-content border-0 rounded-4 shadow">
+
+				<div class="modal-body text-center p-4">
+
+					<img th:if="${user.photo != null}" 
+						 th:src="@{${user.photo}}"
+						 class="rounded-circle mb-3 border" width="70" height="70"> <img
+						 th:unless="${user.photo != null}" src="/img/avatar-default.png"
+						 class="rounded-circle mb-3 border" width="70" height="70">
+
+					<h6 class="fw-bold mb-1" th:text="${user.username}">username</h6>
+
+					<p class="text-muted small mb-3" th:text="${user.email}"></p>
+
+					<div class="d-grid gap-2">
+						<a th:href="@{/profile}" 
+						   class="btn btn-outline-primary btn-sm">👤 Trang cá nhân 
+						</a> 
+						<a  id="btnLogout"
+						    th:href="@{/logout}"
+							class="btn btn-danger btn-sm"> 
+							🚪 Đăng xuất 
+						</a>
+					</div>
+
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- ================= MODAL LOGIN / REGISTER ================= -->
+
+	<div class="modal fade" id="authModal" tabindex="-1"
+		th:if="${user == null}">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content border-0 rounded-4 shadow">
+				<div class="modal-header border-0">
+					<h5 class="modal-title fw-bold" id="authTitle">Đăng nhập</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+
+				<div class="modal-body px-4">
+
+					<div id="loginBox">
+						<div th:replace="~{page/login :: loginForm}"></div>
+					</div>
+
+					<div id="registerBox" class="d-none">
+						<div th:replace="~{page/register :: registerForm}"></div>
+					</div>
+
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade auth-modal" id="authModal" tabindex="-1"
+		th:if="${user != null}">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content border-0 rounded-4 shadow">
+
+				<div class="modal-header border-0 justify-content-center">
+					<h5 class="modal-title fw-bold text-danger" id="authTitle">Xác nhận đăng xuất</h5>
+					<button type="button"
+						class="btn-close position-absolute end-0 me-3"
+						data-bs-dismiss="modal">
+					</button>
+				</div>
+
+				<div class="modal-body px-4 text-center">
+					<p class="mb-4">
+						Bạn có chắc chắn muốn <strong>đăng xuất</strong> khỏi hệ thống không?
+					</p>
+
+					<div class="d-flex justify-content-center gap-3">
+						<button class="btn btn-outline-secondary px-4"
+							data-bs-dismiss="modal">Hủy</button>
+
+						<a th:href="@{/logout}" class="btn btn-danger px-4"> Đăng xuất</a>
+					</div>
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+</header>

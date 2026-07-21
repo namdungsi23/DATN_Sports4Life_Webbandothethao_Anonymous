@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>Admin Header</title>
+
+<style>
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body {
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+/* HEADER */
+.play-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 24px;
+	background-color: #ffffff;
+	border-bottom: 1px solid #e5e5e5;
+}
+
+/* LOGO */
+.play-logo {
+	font-size: 22px;
+	font-weight: bold;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.play-logo span {
+	color: #e60023;
+	font-size: 24px;
+}
+
+/* MENU */
+.play-menu {
+	display: flex;
+	gap: 20px;
+}
+
+.play-menu a {
+	text-decoration: none;
+	color: #333;
+	font-size: 15px;
+	padding: 6px 0;
+	position: relative;
+}
+
+.play-menu a:hover, .play-menu a.active {
+	color: #e60023;
+	font-weight: bold;
+}
+
+.play-menu a.active::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	bottom: -6px;
+	width: 100%;
+	height: 2px;
+	background-color: #e60023;
+}
+
+/* RIGHT */
+.play-right {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+
+.avatar {
+	width: 34px;
+	height: 34px;
+	background-color: #ddd;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+	<header th:fragment="adminHeader" class="play-header">
+
+		<div class="play-logo">
+			<span>▶</span> Admin Play Sport
+		</div>
+
+
+    <!-- MENU ADMIN -->
+    <nav class="play-menu">
+        <a th:href="@{/admin/dashboard}">Dashboard</a>
+        <a th:href="@{/admin/product}">Sản phẩm</a>
+        <a th:href="@{/admin/category}">Danh mục</a>
+        <a th:href="@{/admin/user}">Tài khoản người dùng</a>
+        <a th:href="@{/admin/order}">Đơn hàng</a>
+        <a th:href="@{/logout/oauth2}">Logout</a>
+        <a th:href="@{/product}">Quay về trang chủ</a>
+    </nav>
+
+		<!-- RIGHT -->
+		<div class="play-right">
+			<div class="avatar">😊</div>
+		</div>
+
+	</header>
+
+</body>
+</html>
