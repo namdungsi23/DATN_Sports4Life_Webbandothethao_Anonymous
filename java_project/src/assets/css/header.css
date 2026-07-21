@@ -38,15 +38,114 @@
 }
 
 /* Search */
-.header-search {
+.header-search-wrap {
+  position: relative;
   flex: 1;
-  display: flex;
-  align-items: stretch;
   max-width: 620px;
   margin: 0 auto;
+}
+
+.header-search {
+  display: flex;
+  align-items: stretch;
   background: #fff;
   border-radius: 4px;
   overflow: hidden;
+}
+
+.header-suggest {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.16);
+  overflow: hidden;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.header-suggest__state {
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  color: #888;
+  font-size: 14px;
+}
+
+.header-suggest__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.header-suggest__item:hover {
+  background: #f6f4f0;
+}
+
+.header-suggest__img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: #f0f0f0;
+}
+
+.header-suggest__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.header-suggest__name {
+  font-size: 14px;
+  color: #222;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-suggest__brand {
+  font-size: 12px;
+  color: #999;
+}
+
+.header-suggest__price {
+  font-size: 14px;
+  font-weight: 600;
+  color: #c8761a;
+  white-space: nowrap;
+}
+
+.header-suggest__all {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  border-top: 1px solid #eee;
+  background: #faf8f5;
+  color: #1a3c34;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.header-suggest__all:hover {
+  background: #f0e9df;
 }
 
 .header-search__category {
@@ -166,6 +265,93 @@
   line-height: 1;
 }
 
+.header-notify {
+  position: relative;
+}
+
+.header-notify__dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: min(340px, 90vw);
+  max-height: 420px;
+  overflow: auto;
+  background: #fff;
+  color: #1a1a1a;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.header-notify__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eee;
+}
+
+.header-notify__head strong {
+  font-size: 0.95rem;
+}
+
+.header-notify__all {
+  border: none;
+  background: transparent;
+  color: #0d6efd;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.header-notify__empty {
+  margin: 0;
+  padding: 20px 14px;
+  color: #6b7280;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.header-notify__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.header-notify__item:hover {
+  background: #f8fafc;
+}
+
+.header-notify__item.is-unread {
+  background: #eff6ff;
+}
+
+.header-notify__item strong {
+  font-size: 0.875rem;
+  color: #111;
+}
+
+.header-notify__item span {
+  font-size: 0.8rem;
+  color: #4b5563;
+  line-height: 1.35;
+}
+
+.header-notify__item small {
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+
 .header-icon-btn--cart .header-icon-btn__svg {
   width: 24px;
   height: 24px;
@@ -207,6 +393,7 @@
 
 /* ===== SUB NAV ===== */
 .header-subnav {
+  position: relative;
   background: #f5f0e8;
   border-bottom: 1px solid #e8e0d4;
 }
@@ -253,6 +440,120 @@
   color: #c8761a;
 }
 
+/* Dropdown Sản phẩm */
+.header-nav-drop {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.header-nav-drop__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  padding: 12px 0;
+  color: #333;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  position: relative;
+}
+
+.header-nav-drop__trigger:hover,
+.header-nav-drop__trigger.is-active,
+.header-nav-drop.is-open .header-nav-drop__trigger {
+  color: #c8761a;
+}
+
+.header-nav-drop__trigger.is-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  background: #e8871e;
+}
+
+.header-nav-drop__chevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.2s ease;
+}
+
+.header-nav-drop.is-open .header-nav-drop__chevron {
+  transform: rotate(180deg);
+}
+
+/* Mega menu ngang: panel trải hết chiều rộng thanh menu */
+.header-mega {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1200;
+  background: #fff;
+  border-bottom: 1px solid #e8e0d4;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+}
+
+.header-mega__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.header-mega__item {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px !important;
+  border: 1px solid #e8e0d4;
+  border-radius: 999px;
+  background: #faf7f2;
+  color: #333 !important;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.header-mega__item::after {
+  display: none !important;
+}
+
+.header-mega__item:hover,
+.header-mega__item.router-link-active {
+  background: #1a3c34;
+  border-color: #1a3c34;
+  color: #fff !important;
+}
+
+.header-mega__item--all {
+  background: #e8871e;
+  border-color: #e8871e;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+.header-mega__item--all:hover {
+  background: #c8761a;
+  border-color: #c8761a;
+}
+
+.header-mega__empty {
+  margin: 0;
+  padding: 8px 0;
+  font-size: 13px;
+  color: #888;
+}
+
 .header-hotline {
   display: flex;
   align-items: center;
@@ -278,7 +579,7 @@
     gap: 12px;
   }
 
-  .header-search {
+  .header-search-wrap {
     order: 3;
     flex: 1 1 100%;
     max-width: none;

@@ -1,14 +1,14 @@
 <template>
   <AdminLayout>
-    <div class="container-fluid px-4 mt-4">
-      <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="rank-admin">
+      <div class="rank-admin__head">
         <div>
-          <h4 class="fw-bold mb-1">Hạng thành viên</h4>
-          <p class="text-muted mb-0">
-            Quản lý hạng gắn với người mua (điểm từ đơn giao &amp; đánh giá)
+          <h1 class="rank-admin__title">Hạng thành viên</h1>
+          <p class="rank-admin__subtitle">
+            Quản lý bậc hạng theo điểm tích lũy — tự nâng khi đơn <strong>Đã giao</strong> / đánh giá.
           </p>
         </div>
-        <button v-if="canWrite" type="button" class="btn btn-primary" @click="openCreate">
+        <button v-if="canWrite" type="button" class="rank-admin__btn-primary" @click="openCreate">
           + Thêm hạng
         </button>
       </div>
@@ -16,141 +16,125 @@
       <div v-if="flashOk" class="alert alert-success">{{ flashOk }}</div>
       <div v-if="flashErr" class="alert alert-danger">{{ flashErr }}</div>
 
-      <div class="row g-4">
-        <div class="col-lg-8">
-          <div class="card shadow border-0">
-            <div class="card-header bg-dark text-white fw-semibold">
-              Danh sách hạng ({{ ranks.length }})
+      <div class="rank-admin__rules">
+        <span>Đơn đã giao: <strong>1 điểm / 1.000đ</strong></span>
+        <span>Đánh giá SP: <strong>+20 điểm</strong></span>
+        <span>Hạng tự cập nhật theo <strong>MinPoint</strong></span>
+      </div>
+
+      <div class="rank-admin__layout">
+        <div class="rank-admin__list">
+          <p v-if="loading" class="rank-admin__empty">Đang tải...</p>
+          <p v-else-if="!sortedRanks.length" class="rank-admin__empty">Chưa có hạng</p>
+          <article
+            v-for="(r, idx) in sortedRanks"
+            :key="r.id"
+            class="rank-card"
+            :class="[`rank-card--${rankVisual(r.rankName).tone}`, { 'is-off': r.isActive === false }]"
+          >
+            <div class="rank-card__medal" aria-hidden="true">
+              <span>{{ rankVisual(r.rankName).icon }}</span>
+              <small>#{{ idx + 1 }}</small>
             </div>
-            <div class="card-body p-0">
-              <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                  <thead class="table-light">
-                    <tr>
-                      <th style="width: 60px">ID</th>
-                      <th>Tên hạng</th>
-                      <th>Điểm tối thiểu</th>
-                      <th>Giảm giá %</th>
-                      <th>Thành viên</th>
-                      <th>Trạng thái</th>
-                      <th v-if="canWrite" style="width: 160px">Hành động</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-if="!loading && !ranks.length">
-                      <td :colspan="canWrite ? 7 : 6" class="text-center text-muted py-4">
-                        Chưa có hạng
-                      </td>
-                    </tr>
-                    <tr v-for="r in ranks" :key="r.id">
-                      <td>{{ r.id }}</td>
-                      <td>
-                        <div class="fw-semibold">{{ r.rankName }}</div>
-                        <small class="text-muted">{{ r.description || "" }}</small>
-                      </td>
-                      <td>{{ r.minPoint ?? 0 }}</td>
-                      <td>{{ formatDiscount(r.discountPercent) }}%</td>
-                      <td>
-                        <span class="badge text-bg-secondary">{{ r.memberCount ?? 0 }}</span>
-                      </td>
-                      <td>
-                        <span v-if="r.isActive !== false" class="badge bg-success">Đang dùng</span>
-                        <span v-else class="badge bg-secondary">Tắt</span>
-                      </td>
-                      <td v-if="canWrite">
-                        <button type="button" class="btn btn-sm btn-warning me-1" @click="openEdit(r)">
-                          Sửa
-                        </button>
-                        <button
-                          type="button"
-                          class="btn btn-sm btn-outline-danger"
-                          :disabled="r.id === 1 || (r.memberCount || 0) > 0"
-                          @click="remove(r)"
-                        >
-                          Xóa
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+            <div class="rank-card__body">
+              <div class="rank-card__title-row">
+                <h3>{{ r.rankName }}</h3>
+                <span v-if="r.isActive !== false" class="rank-card__status is-on">Đang dùng</span>
+                <span v-else class="rank-card__status">Tắt</span>
+              </div>
+              <p v-if="r.description" class="rank-card__desc">{{ r.description }}</p>
+              <div class="rank-card__meta">
+                <div>
+                  <span>Điểm tối thiểu</span>
+                  <strong>{{ formatNum(r.minPoint) }}</strong>
+                </div>
+                <div>
+                  <span>Ưu đãi</span>
+                  <strong>{{ formatDiscount(r.discountPercent) }}%</strong>
+                </div>
+                <div>
+                  <span>Thành viên</span>
+                  <strong>{{ formatNum(r.memberCount) }}</strong>
+                </div>
               </div>
             </div>
-          </div>
-          <p class="text-muted small mt-2 mb-0">
-            Quy tắc điểm: đơn <strong>Đã giao</strong> = 1 điểm / 1.000đ; mỗi đánh giá sản phẩm = +20 điểm.
-            Hạng tự nâng theo MinPoint.
-          </p>
+            <div v-if="canWrite" class="rank-card__actions">
+              <button type="button" class="rank-card__btn" @click="openEdit(r)">Sửa</button>
+              <button
+                type="button"
+                class="rank-card__btn rank-card__btn--danger"
+                :disabled="r.id === 1 || (r.memberCount || 0) > 0"
+                @click="remove(r)"
+              >
+                Xóa
+              </button>
+            </div>
+          </article>
         </div>
 
-        <div v-if="canWrite && showForm" class="col-lg-4">
-          <div class="card shadow border-0">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <aside v-if="canWrite && showForm" class="rank-admin__form-wrap">
+          <div class="rank-admin__form">
+            <div class="rank-admin__form-head">
               <strong>{{ editingId ? "Cập nhật hạng" : "Thêm hạng mới" }}</strong>
-              <button type="button" class="btn btn-sm btn-light" @click="closeForm">Đóng</button>
+              <button type="button" class="rank-admin__form-close" @click="closeForm">Đóng</button>
             </div>
-            <div class="card-body">
-              <form @submit.prevent="save">
-                <div class="mb-3">
-                  <label class="form-label">Tên hạng <span class="text-danger">*</span></label>
-                  <input
-                    v-model="form.rankName"
-                    type="text"
-                    class="form-control"
-                    :class="{ 'is-invalid': fieldErrors.rankName }"
-                    maxlength="50"
-                    @input="delete fieldErrors.rankName"
-                  />
-                  <div v-if="fieldErrors.rankName" class="invalid-feedback d-block">{{ fieldErrors.rankName }}</div>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label">Điểm tối thiểu <span class="text-danger">*</span></label>
-                  <input
-                    v-model.number="form.minPoint"
-                    type="number"
-                    class="form-control"
-                    :class="{ 'is-invalid': fieldErrors.minPoint }"
-                    min="0"
-                    @input="delete fieldErrors.minPoint"
-                  />
-                  <div v-if="fieldErrors.minPoint" class="invalid-feedback d-block">{{ fieldErrors.minPoint }}</div>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label">Giảm giá (%) <span class="text-danger">*</span></label>
-                  <input
-                    v-model.number="form.discountPercent"
-                    type="number"
-                    class="form-control"
-                    :class="{ 'is-invalid': fieldErrors.discountPercent }"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    @input="delete fieldErrors.discountPercent"
-                  />
-                  <div v-if="fieldErrors.discountPercent" class="invalid-feedback d-block">{{ fieldErrors.discountPercent }}</div>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label">Mô tả</label>
-                  <textarea
-                    v-model="form.description"
-                    class="form-control"
-                    :class="{ 'is-invalid': fieldErrors.description }"
-                    rows="2"
-                    maxlength="255"
-                    @input="delete fieldErrors.description"
-                  />
-                  <div v-if="fieldErrors.description" class="invalid-feedback d-block">{{ fieldErrors.description }}</div>
-                </div>
-                <div class="form-check mb-3">
-                  <input id="rank-active" v-model="form.isActive" class="form-check-input" type="checkbox" />
-                  <label class="form-check-label" for="rank-active">Đang kích hoạt</label>
-                </div>
-                <button type="submit" class="btn btn-success w-100" :disabled="saving">
-                  {{ saving ? "Đang lưu..." : "Lưu" }}
-                </button>
-              </form>
-            </div>
+            <form @submit.prevent="save">
+              <label class="rank-admin__field">
+                <span>Tên hạng <em>*</em></span>
+                <input
+                  v-model="form.rankName"
+                  type="text"
+                  maxlength="50"
+                  :class="{ 'is-invalid': fieldErrors.rankName }"
+                  @input="delete fieldErrors.rankName"
+                />
+                <small v-if="fieldErrors.rankName">{{ fieldErrors.rankName }}</small>
+              </label>
+              <label class="rank-admin__field">
+                <span>Điểm tối thiểu <em>*</em></span>
+                <input
+                  v-model.number="form.minPoint"
+                  type="number"
+                  min="0"
+                  :class="{ 'is-invalid': fieldErrors.minPoint }"
+                  @input="delete fieldErrors.minPoint"
+                />
+                <small v-if="fieldErrors.minPoint">{{ fieldErrors.minPoint }}</small>
+              </label>
+              <label class="rank-admin__field">
+                <span>Giảm giá (%) <em>*</em></span>
+                <input
+                  v-model.number="form.discountPercent"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  :class="{ 'is-invalid': fieldErrors.discountPercent }"
+                  @input="delete fieldErrors.discountPercent"
+                />
+                <small v-if="fieldErrors.discountPercent">{{ fieldErrors.discountPercent }}</small>
+              </label>
+              <label class="rank-admin__field">
+                <span>Mô tả</span>
+                <textarea
+                  v-model="form.description"
+                  rows="3"
+                  maxlength="255"
+                  :class="{ 'is-invalid': fieldErrors.description }"
+                  @input="delete fieldErrors.description"
+                />
+                <small v-if="fieldErrors.description">{{ fieldErrors.description }}</small>
+              </label>
+              <label class="rank-admin__check">
+                <input v-model="form.isActive" type="checkbox" />
+                Đang kích hoạt
+              </label>
+              <button type="submit" class="rank-admin__btn-primary rank-admin__btn-primary--block" :disabled="saving">
+                {{ saving ? "Đang lưu..." : "Lưu hạng" }}
+              </button>
+            </form>
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   </AdminLayout>
@@ -162,6 +146,7 @@ import AdminLayout from "../../layouts/AdminLayout.vue";
 import { apiFetch } from "../../services/http.js";
 import { useAppStore, useToast } from "../../stores/appStore";
 import { userCanWriteCatalog } from "../../utils/adminAccess";
+import { rankVisual } from "../../utils/rankStyle";
 import { firstError, getApiError, runValidation } from "../../utils/validators";
 
 const store = useAppStore();
@@ -185,9 +170,18 @@ const form = reactive({
   isActive: true,
 });
 
+const sortedRanks = computed(() =>
+  [...ranks.value].sort((a, b) => (a.minPoint ?? 0) - (b.minPoint ?? 0))
+);
+
 const formatDiscount = (v) => {
   if (v == null || v === "") return "0";
   return Number(v);
+};
+
+const formatNum = (v) => {
+  const n = Number(v ?? 0);
+  return Number.isFinite(n) ? n.toLocaleString("vi-VN") : "0";
 };
 
 const resetForm = () => {

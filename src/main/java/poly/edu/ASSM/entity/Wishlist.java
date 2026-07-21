@@ -1,4 +1,4 @@
-package poly.edu.ASSM.entity;
+package poly.edu.ASSM.Entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;

@@ -1,4 +1,4 @@
-package poly.edu.ASSM.controller;
+package poly.edu.ASSM.Controller;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import poly.edu.ASSM.entity.Accounts;
-import poly.edu.ASSM.entity.OrderAddresses;
-import poly.edu.ASSM.entity.OrderDetails;
-import poly.edu.ASSM.entity.Orders;
-import poly.edu.ASSM.repository.OrderAddressRepository;
+import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Entity.OrderAddresses;
+import poly.edu.ASSM.Entity.OrderDetails;
+import poly.edu.ASSM.Entity.Orders;
+import poly.edu.ASSM.Repository.OrderAddressRepository;
 import poly.edu.ASSM.Services.core.AccountsServiceImpl;
 import poly.edu.ASSM.Services.core.OrderDetailsServiceImpl;
 import poly.edu.ASSM.Services.core.OrdersServiceImpl;

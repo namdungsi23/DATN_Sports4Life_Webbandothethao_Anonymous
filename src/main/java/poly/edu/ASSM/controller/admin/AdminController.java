@@ -1,4 +1,4 @@
-package poly.edu.ASSM.controller.admin;
+package poly.edu.ASSM.Controller.admin;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;

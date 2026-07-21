@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import poly.edu.ASSM.entity.Products;
+import poly.edu.ASSM.Entity.Products;
 import poly.edu.ASSM.Services.core.AdminProductCatalogService;
 import poly.edu.ASSM.Services.core.ProductService;
 import poly.edu.ASSM.dto.request.AdminVariantSaveRequest;

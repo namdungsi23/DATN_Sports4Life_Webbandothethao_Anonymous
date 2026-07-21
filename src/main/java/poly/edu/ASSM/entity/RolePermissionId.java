@@ -1,4 +1,4 @@
-package poly.edu.ASSM.entity;
+package poly.edu.ASSM.Entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

@@ -1,4 +1,4 @@
-package poly.edu.ASSM.entity;
+package poly.edu.ASSM.Entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 

@@ -1,18 +1,5 @@
 <template>
   <footer class="site-footer">
-    <div class="site-footer__newsletter">
-      <div class="site-container site-footer__newsletter-inner">
-        <div class="site-footer__newsletter-text">
-          <h3>Đăng ký nhận tin khuyến mãi</h3>
-          <p>Nhận ngay voucher 50K cho đơn hàng đầu tiên</p>
-        </div>
-        <form class="site-footer__newsletter-form" @submit.prevent="onSubscribe">
-          <input v-model="email" type="email" placeholder="Nhập email của bạn" required />
-          <button type="submit">Đăng ký</button>
-        </form>
-      </div>
-    </div>
-
     <div class="site-footer__main">
       <div class="site-container site-footer__grid">
         <div class="site-footer__brand">
@@ -68,8 +55,28 @@
           <RouterLink to="/product">Phụ kiện thể thao</RouterLink>
         </div>
 
-        <div class="site-footer__col">
-          <h4>Kết nối với chúng tôi</h4>
+        <div class="site-footer__col site-footer__col--newsletter">
+          <h4>Nhận mã voucher</h4>
+          <p class="site-footer__newsletter-hint">
+            Nhập Gmail đã đăng ký tài khoản để nhận mã khuyến mãi mới.
+          </p>
+          <form class="site-footer__newsletter-form" @submit.prevent="onSubscribe">
+            <input
+              v-model.trim="email"
+              type="email"
+              name="email"
+              placeholder="your@gmail.com"
+              autocomplete="email"
+              required
+              :disabled="loading"
+            />
+            <button type="submit" :disabled="loading || !email">
+              {{ loading ? "…" : "Đăng ký" }}
+            </button>
+          </form>
+          <p v-if="message" class="site-footer__newsletter-msg" :class="{ error: isError }">
+            {{ message }}
+          </p>
           <div class="site-footer__social">
             <a
               v-for="s in socials"
@@ -81,11 +88,6 @@
               class="site-footer__social-btn"
               v-html="s.svg"
             />
-          </div>
-          <p class="site-footer__app-label">Tải ứng dụng</p>
-          <div class="site-footer__apps">
-            <a href="#" class="site-footer__app-btn">App Store</a>
-            <a href="#" class="site-footer__app-btn">Google Play</a>
           </div>
         </div>
       </div>
@@ -125,21 +127,39 @@
         </div>
       </div>
     </div>
-
-    <p v-if="subscribeMsg" class="site-footer__toast">{{ subscribeMsg }}</p>
   </footer>
 </template>
 
 <script setup>
 import { ref } from "vue";
 import { RouterLink } from "vue-router";
-import { useToast } from "../stores/appStore";
-import { firstError, runValidation } from "../utils/validators";
+import { newsletterSubscribeApi } from "../services/api";
 import { BRAND } from "../utils/brand";
+import { getApiError } from "../utils/validators";
 
-const toast = useToast();
 const email = ref("");
-const subscribeMsg = ref("");
+const loading = ref(false);
+const message = ref("");
+const isError = ref(false);
+
+async function onSubscribe() {
+  message.value = "";
+  isError.value = false;
+  loading.value = true;
+  try {
+    const data = await newsletterSubscribeApi(email.value);
+    message.value = data?.message || "Đăng ký thành công!";
+    isError.value = false;
+    if (!data?.alreadySubscribed) {
+      email.value = "";
+    }
+  } catch (err) {
+    isError.value = true;
+    message.value = getApiError(err, "Không đăng ký được. Vui lòng thử lại.");
+  } finally {
+    loading.value = false;
+  }
+}
 
 const socials = [
   {
@@ -160,24 +180,7 @@ const socials = [
   {
     label: "YouTube",
     href: "https://youtube.com",
-    svg: `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d="M23 12.2s0-3.4-.4-5c-.2-1-.9-1.7-1.8-2-1.6-.4-8-.4-8-.4s-6.4 0-8 .4c-1 .2-1.6 1-1.8 2C3 8.8 3 12.2 3 12.2s0 3.4.4 5c.2 1 .9 1.7 1.8 2 1.6.4 8 .4 8 .4s6.4 0 8-.4c1-.2 1.6-1 1.8-2 .4-1.6.4-5 .4-5zM10 15.5v-6.6l5.5 3.3-5.5 3.3z"/></svg>`,
+    svg: `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d="M23 12.2s0-3.4-.4-5c-.2-1-.9-1.7-1.8-2-1.6-.4-8-.4-8-.4s-6.4 0-8 .4c-1 .2-1.6 1-1.8 2 .4-1.6.4-5 .4-5zM10 15.5v-6.6l5.5 3.3-5.5 3.3z"/></svg>`,
   },
 ];
-
-const onSubscribe = () => {
-  const result = runValidation(
-    { email: email.value },
-    { email: ["required", "email"] }
-  );
-  if (!result.ok) {
-    toast.error(firstError(result.errors));
-    return;
-  }
-  subscribeMsg.value = "Cảm ơn bạn đã đăng ký nhận tin!";
-  toast.success(subscribeMsg.value);
-  email.value = "";
-  setTimeout(() => {
-    subscribeMsg.value = "";
-  }, 3000);
-};
 </script>

@@ -1,5 +1,6 @@
 package poly.edu.ASSM.Services.core;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,15 +12,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import poly.edu.ASSM.entity.OrderAddresses;
-import poly.edu.ASSM.entity.OrderDetails;
-import poly.edu.ASSM.entity.Orders;
-import poly.edu.ASSM.entity.ProductVariants;
-import poly.edu.ASSM.entity.Products;
-import poly.edu.ASSM.entity.Shipments;
-import poly.edu.ASSM.repository.OrderAddressRepository;
-import poly.edu.ASSM.repository.OrdersRepository;
-import poly.edu.ASSM.repository.ShipmentRepository;
+import poly.edu.ASSM.Entity.OrderAddresses;
+import poly.edu.ASSM.Entity.OrderDetails;
+import poly.edu.ASSM.Entity.Orders;
+import poly.edu.ASSM.Entity.ProductVariants;
+import poly.edu.ASSM.Entity.Products;
+import poly.edu.ASSM.Entity.Shipments;
+import poly.edu.ASSM.Repository.OrderAddressRepository;
+import poly.edu.ASSM.Repository.OrderDetailsRepository;
+import poly.edu.ASSM.Repository.OrdersRepository;
+import poly.edu.ASSM.Repository.ProductVariantRepository;
+import poly.edu.ASSM.Repository.ShipmentRepository;
+import poly.edu.ASSM.domain.OrderStatus;
 
 @Service
 public class CustomerOrderServiceImpl implements CustomerOrderService {
@@ -32,6 +36,15 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
     @Autowired
     private ShipmentRepository shipmentRepository;
+
+    @Autowired
+    private OrderDetailsRepository orderDetailsRepository;
+
+    @Autowired
+    private ProductVariantRepository productVariantRepository;
+
+    @Autowired
+    private AdminNotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -60,6 +73,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         body.put("subTotal", order.getSubTotal());
         body.put("discountAmount", order.getDiscountAmount());
         body.put("totalAmount", order.getTotalAmount());
+        body.put("canCancel", canCustomerCancel(order.getOrderStatus()));
         body.put("items", toItems(order));
 
         orderAddressRepository.findByOrder_Id(orderId)
@@ -69,6 +83,69 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
                 .ifPresent(shipment -> body.put("shipment", toShipmentMap(shipment)));
 
         return body;
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> cancelMyOrder(String username, int orderId) {
+        requireUsername(username);
+        Orders order = ordersRepository.findByIdAndAccount_Username(orderId, username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng"));
+
+        OrderStatus current;
+        try {
+            current = OrderStatus.parse(order.getOrderStatus());
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+        }
+
+        if (!current.canTransitionTo(OrderStatus.CANCELLED)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Không thể hủy đơn ở trạng thái «" + current.getLabel() + "». "
+                            + "Chỉ hủy được khi đơn còn Chờ xác nhận hoặc Đã xác nhận.");
+        }
+
+        restockOrder(orderId);
+        order.setOrderStatus(OrderStatus.CANCELLED.name());
+        order.setUpdateDate(Instant.now());
+        ordersRepository.save(order);
+
+        String title = "Đã hủy đơn hàng";
+        String message = "Bạn đã hủy đơn #" + orderId + " thành công. Tồn kho đã được hoàn.";
+        String link = "/profile?tab=orders";
+        try {
+            notificationService.notifyUser(username, title, message, link);
+            notificationService.notifyPanelUsers(
+                    "Khách hủy đơn #" + orderId,
+                    "Tài khoản «" + username + "» vừa hủy đơn #" + orderId + ".",
+                    "/admin/order/" + orderId);
+        } catch (Exception ignored) {
+            // không làm fail hủy đơn nếu notify lỗi
+        }
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("ok", true);
+        body.put("message", "Đã hủy đơn hàng #" + orderId + ".");
+        body.put("order", getMyOrderDetail(username, orderId));
+        return body;
+    }
+
+    private void restockOrder(int orderId) {
+        for (OrderDetails detail : orderDetailsRepository.findByOrders_Id(orderId)) {
+            ProductVariants variant = detail.getVariant();
+            if (variant == null || detail.getQuantity() == null || detail.getQuantity() <= 0) {
+                continue;
+            }
+            productVariantRepository.restock(variant.getId(), detail.getQuantity());
+        }
+    }
+
+    private static boolean canCustomerCancel(String orderStatus) {
+        try {
+            return OrderStatus.parse(orderStatus).canTransitionTo(OrderStatus.CANCELLED);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private static void requireUsername(String username) {
@@ -88,6 +165,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         m.put("discountAmount", order.getDiscountAmount());
         m.put("totalAmount", order.getTotalAmount());
         m.put("itemCount", order.getOrderDetails() != null ? order.getOrderDetails().size() : 0);
+        m.put("canCancel", canCustomerCancel(order.getOrderStatus()));
 
         orderAddressRepository.findByOrder_Id(order.getId()).ifPresent(addr -> {
             m.put("address", formatAddress(addr));

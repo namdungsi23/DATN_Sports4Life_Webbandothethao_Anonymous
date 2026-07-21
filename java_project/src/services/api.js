@@ -138,6 +138,11 @@ export const registerResendOtpApi = async (payload) => {
   return response.data;
 };
 
+export const newsletterSubscribeApi = async (email) => {
+  const response = await clientApi.post("/newsletter/subscribe", { email });
+  return response.data;
+};
+
 export const forgotPasswordApi = async (payload) => {
   const response = await clientApi.post("/forgot-password", payload);
   return response.data;
@@ -207,6 +212,27 @@ export const markAllAdminNotificationsReadApi = async () => {
   return response.data;
 };
 
+/** Chuông thông báo trang user */
+export const fetchUserNotificationsApi = async (limit = 20) => {
+  const response = await clientAuthApi.get("/notifications", { params: { limit } });
+  return response.data;
+};
+
+export const fetchUserUnreadCountApi = async () => {
+  const response = await clientAuthApi.get("/notifications/unread-count");
+  return response.data;
+};
+
+export const markUserNotificationReadApi = async (id) => {
+  const response = await clientAuthApi.patch(`/notifications/${id}/read`);
+  return response.data;
+};
+
+export const markAllUserNotificationsReadApi = async () => {
+  const response = await clientAuthApi.patch("/notifications/read-all");
+  return response.data;
+};
+
 export const fetchWishlistApi = async () => {
   const response = await clientAuthApi.get("/wishlist");
   return response.data;
@@ -269,6 +295,11 @@ export const fetchMyOrdersApi = async () => {
 
 export const fetchMyOrderDetailApi = async (id) => {
   const response = await clientAuthApi.get(`/orders/${id}`);
+  return response.data;
+};
+
+export const cancelMyOrderApi = async (id) => {
+  const response = await clientAuthApi.post(`/orders/${id}/cancel`);
   return response.data;
 };
 

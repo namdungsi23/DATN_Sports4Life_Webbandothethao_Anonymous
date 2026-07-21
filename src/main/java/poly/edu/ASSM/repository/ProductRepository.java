@@ -1,4 +1,4 @@
-package poly.edu.ASSM.repository;
+package poly.edu.ASSM.Repository;
 
 import java.time.Instant;
 
@@ -13,7 +13,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import poly.edu.ASSM.entity.Products;
+import poly.edu.ASSM.Entity.Products;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Products, Long> {

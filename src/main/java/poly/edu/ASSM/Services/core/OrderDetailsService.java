@@ -2,7 +2,7 @@ package poly.edu.ASSM.Services.core;
 
 import java.util.List;
 
-import poly.edu.ASSM.entity.OrderDetails;
+import poly.edu.ASSM.Entity.OrderDetails;
 
 public interface OrderDetailsService {
     List<OrderDetails> findAll();

@@ -1,4 +1,4 @@
-package poly.edu.ASSM.controller.user;
+package poly.edu.ASSM.Controller.user;
 
 import java.util.List;
 
@@ -23,9 +23,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import poly.edu.ASSM.entity.Accounts;
-import poly.edu.ASSM.entity.Category;
-import poly.edu.ASSM.entity.Products;
+import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Entity.Category;
+import poly.edu.ASSM.Entity.Products;
 import poly.edu.ASSM.Services.core.AccountsServiceImpl;
 import poly.edu.ASSM.Services.core.CategoryServiceImpl;
 import poly.edu.ASSM.Services.core.ProductServiceImpl;

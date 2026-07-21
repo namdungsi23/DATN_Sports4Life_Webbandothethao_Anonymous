@@ -1,4 +1,4 @@
-package poly.edu.ASSM.repository;
+package poly.edu.ASSM.Repository;
 
 import java.util.List;
 import java.util.Optional;
@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import poly.edu.ASSM.entity.Wishlist;
+import poly.edu.ASSM.Entity.Wishlist;
 
 @Repository
 public interface WishlistRepository extends JpaRepository<Wishlist, Long> {

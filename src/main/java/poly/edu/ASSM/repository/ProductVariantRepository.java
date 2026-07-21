@@ -1,4 +1,4 @@
-package poly.edu.ASSM.repository;
+package poly.edu.ASSM.Repository;
 
 import java.util.List;
 import java.util.Optional;
@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import poly.edu.ASSM.entity.ProductVariants;
+import poly.edu.ASSM.Entity.ProductVariants;
 
 public interface ProductVariantRepository extends JpaRepository<ProductVariants, Long> {
 

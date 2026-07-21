@@ -6,10 +6,10 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.entity.Permissions;
-import poly.edu.ASSM.entity.RolePermissionId;
-import poly.edu.ASSM.entity.RolePermissions;
-import poly.edu.ASSM.entity.Roles;
+import poly.edu.ASSM.Entity.Permissions;
+import poly.edu.ASSM.Entity.RolePermissionId;
+import poly.edu.ASSM.Entity.RolePermissions;
+import poly.edu.ASSM.Entity.Roles;
 import poly.edu.ASSM.dto.request.RolePermissionRequest;
 import poly.edu.ASSM.dto.response.RolePermissionResponse;
 

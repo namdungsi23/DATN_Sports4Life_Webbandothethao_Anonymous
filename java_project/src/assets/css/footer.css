@@ -5,48 +5,38 @@
   color: #bbb;
 }
 
-.site-footer__newsletter {
-  background: linear-gradient(135deg, #1a3c34 0%, #2d5a4e 100%);
-  padding: 32px 0;
-}
-
-.site-footer__newsletter-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-
-.site-footer__newsletter-text h3 {
-  color: #fff;
-  font-family: "Playfair Display", Georgia, serif;
-  font-size: 22px;
-  margin: 0 0 6px;
-}
-
-.site-footer__newsletter-text p {
-  color: rgba(255, 255, 255, 0.8);
-  margin: 0;
-  font-size: 14px;
+.site-footer__newsletter-hint {
+  color: #888;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 12px;
 }
 
 .site-footer__newsletter-form {
   display: flex;
   gap: 0;
-  flex: 1;
-  max-width: 420px;
-  min-width: 260px;
+  width: 100%;
+  margin-bottom: 10px;
 }
 
 .site-footer__newsletter-form input {
   flex: 1;
-  border: none;
-  padding: 12px 16px;
+  border: 1px solid #3a3a3a;
+  background: #2a2a2a;
+  color: #fff;
+  padding: 10px 12px;
   border-radius: 4px 0 0 4px;
-  font-size: 14px;
+  font-size: 13px;
   outline: none;
   min-width: 0;
+}
+
+.site-footer__newsletter-form input::placeholder {
+  color: #777;
+}
+
+.site-footer__newsletter-form input:focus {
+  border-color: #e8871e;
 }
 
 .site-footer__newsletter-form button {
@@ -54,15 +44,38 @@
   background: #e8871e;
   color: #fff;
   font-weight: 600;
-  padding: 12px 24px;
+  padding: 10px 14px;
   border-radius: 0 4px 4px 0;
   cursor: pointer;
   white-space: nowrap;
+  font-size: 13px;
   transition: background 0.2s;
 }
 
-.site-footer__newsletter-form button:hover {
+.site-footer__newsletter-form button:hover:not(:disabled) {
   background: #d07615;
+}
+
+.site-footer__newsletter-form button:disabled,
+.site-footer__newsletter-form input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.site-footer__newsletter-msg {
+  margin: 0 0 14px;
+  color: #8fd9a8;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.site-footer__newsletter-msg.error {
+  color: #f0a0a0;
+}
+
+.site-footer__col--newsletter .site-footer__social {
+  margin-top: 16px;
+  margin-bottom: 0;
 }
 
 .site-footer__main {
@@ -168,7 +181,7 @@
   color: #fff;
 }
 
-.site-footer__social-btn :deep(svg) {
+.site-footer__social-btn svg {
   display: block;
 }
 
@@ -340,16 +353,6 @@
 @media (max-width: 576px) {
   .site-footer__grid {
     grid-template-columns: 1fr;
-  }
-
-  .site-footer__newsletter-inner {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .site-footer__newsletter-form {
-    width: 100%;
-    max-width: none;
   }
 
   .site-footer__bottom-inner {

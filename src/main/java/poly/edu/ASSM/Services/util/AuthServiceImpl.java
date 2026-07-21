@@ -8,7 +8,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import poly.edu.ASSM.entity.Accounts;
+import poly.edu.ASSM.Entity.Accounts;
 import poly.edu.ASSM.Services.core.AccountService;
 import poly.edu.ASSM.Services.core.AdminAccessService;
 import poly.edu.ASSM.Services.web.SessionService;

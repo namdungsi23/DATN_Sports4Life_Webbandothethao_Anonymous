@@ -16,14 +16,16 @@
         v-for="(product, index) in products"
         :key="product.id"
         class="featured-editorial__item"
-        :class="{ 'featured-editorial__item--hero': index === 0 }"
+        :class="{ 'featured-editorial__item--hero': index === 0, 'is-soldout': !product.inStock }"
       >
-        <div class="featured-editorial__media product-img">
-          <RouterLink :to="`/product/${product.id}`">
-            <ProductImage :product="product" :alt="product.name" />
-          </RouterLink>
+        <ProductCardMedia
+          class="featured-editorial__media"
+          :product="product"
+          @quick-view="openQuickView"
+        >
+          <span v-if="!product.inStock" class="product-soldout-tag">Hết hàng</span>
           <FavoriteButton :product="product" variant="icon" size="sm" />
-        </div>
+        </ProductCardMedia>
         <div class="featured-editorial__body">
           <p v-if="product.categoryName" class="featured-editorial__cat">{{ product.categoryName }}</p>
           <RouterLink :to="`/product/${product.id}`" class="featured-editorial__name">
@@ -41,6 +43,12 @@
         </div>
       </article>
     </div>
+
+    <QuickViewModal
+      :open="!!quickViewProduct"
+      :product="quickViewProduct"
+      @close="quickViewProduct = null"
+    />
   </section>
 </template>
 
@@ -49,14 +57,20 @@ import { onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import { fetchProductsApi } from "../services/api";
 import { useAppStore, useToast } from "../stores/appStore";
-import ProductImage from "./ProductImage.vue";
 import FavoriteButton from "./FavoriteButton.vue";
+import ProductCardMedia from "./ProductCardMedia.vue";
+import QuickViewModal from "./QuickViewModal.vue";
 
 const store = useAppStore();
 const toast = useToast();
 const products = ref([]);
 const loading = ref(true);
 const errorMsg = ref("");
+const quickViewProduct = ref(null);
+
+const openQuickView = (product) => {
+  quickViewProduct.value = product;
+};
 
 const formatPrice = (price) => Number(price || 0).toLocaleString("vi-VN");
 

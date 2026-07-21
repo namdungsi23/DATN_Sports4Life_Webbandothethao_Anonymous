@@ -20,12 +20,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import poly.edu.ASSM.dto.request.PublicRegisterRequest;
 import poly.edu.ASSM.dto.request.RegisterVerifyOtpRequest;
-import poly.edu.ASSM.entity.Accounts;
-import poly.edu.ASSM.entity.Users;
+import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Entity.Users;
 import poly.edu.ASSM.exception.InvalidInputException;
-import poly.edu.ASSM.repository.AccountRepository;
-import poly.edu.ASSM.repository.RoleRepository;
-import poly.edu.ASSM.repository.UsersRepository;
+import poly.edu.ASSM.Repository.AccountRepository;
+import poly.edu.ASSM.Repository.RoleRepository;
+import poly.edu.ASSM.Repository.UsersRepository;
 import poly.edu.ASSM.security.OtpService;
 import poly.edu.ASSM.security.PasswordPolicy;
 import poly.edu.ASSM.Services.util.CloudinaryService;

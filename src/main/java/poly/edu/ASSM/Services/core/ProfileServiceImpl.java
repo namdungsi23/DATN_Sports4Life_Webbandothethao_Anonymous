@@ -11,12 +11,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import poly.edu.ASSM.entity.Accounts;
-import poly.edu.ASSM.entity.Ranks;
-import poly.edu.ASSM.entity.Users;
-import poly.edu.ASSM.repository.AccountRepository;
-import poly.edu.ASSM.repository.RankRepository;
-import poly.edu.ASSM.repository.UsersRepository;
+import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Entity.Ranks;
+import poly.edu.ASSM.Entity.Users;
+import poly.edu.ASSM.Repository.AccountRepository;
+import poly.edu.ASSM.Repository.RankRepository;
+import poly.edu.ASSM.Repository.UsersRepository;
 import poly.edu.ASSM.Services.util.CloudinaryService;
 import poly.edu.ASSM.dto.request.ChangePasswordRequest;
 import poly.edu.ASSM.dto.request.ProfileUpdateRequest;

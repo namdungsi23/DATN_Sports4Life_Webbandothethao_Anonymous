@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,5 +28,11 @@ public class CustomerOrderApiController {
     @GetMapping("/{id}")
     public Map<String, Object> detail(Principal principal, @PathVariable int id) {
         return customerOrderService.getMyOrderDetail(principal.getName(), id);
+    }
+
+    /** User hủy đơn (chỉ PENDING / CONFIRMED). */
+    @PostMapping("/{id}/cancel")
+    public Map<String, Object> cancel(Principal principal, @PathVariable int id) {
+        return customerOrderService.cancelMyOrder(principal.getName(), id);
     }
 }

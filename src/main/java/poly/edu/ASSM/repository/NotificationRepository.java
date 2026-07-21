@@ -1,4 +1,4 @@
-package poly.edu.ASSM.repository;
+package poly.edu.ASSM.Repository;
 
 import java.util.List;
 
@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import poly.edu.ASSM.entity.Notification;
+import poly.edu.ASSM.Entity.Notification;
 
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Integer> {

@@ -17,30 +17,45 @@
             <p class="profile-hero__eyebrow">Thành viên Sports4Life</p>
             <h1>{{ displayName }}</h1>
             <p class="profile-hero__username">@{{ profile.username || "user" }}</p>
-            <p v-if="profile.rankName" class="profile-hero__rank">
-              Hạng <strong>{{ profile.rankName }}</strong>
-              <span v-if="profile.totalPoint != null"> · {{ profile.totalPoint }} điểm</span>
-            </p>
+            <div v-if="profile.rankName" class="profile-rank-badge" :class="`profile-rank-badge--${rankMeta.tone}`">
+              <span class="profile-rank-badge__icon" aria-hidden="true">{{ rankMeta.icon }}</span>
+              <span class="profile-rank-badge__text">
+                Hạng <strong>{{ profile.rankName }}</strong>
+                <span v-if="profile.totalPoint != null"> · {{ Number(profile.totalPoint).toLocaleString("vi-VN") }} điểm</span>
+              </span>
+              <span v-if="rankDiscountLabel" class="profile-rank-badge__perk">−{{ rankDiscountLabel }}</span>
+            </div>
           </div>
-          <button type="button" class="profile-hero__logout" @click="onLogout">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M9 6V4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-2" stroke-linecap="round" />
-              <path d="M14 12H3m0 0l3.5-3.5M3 12l3.5 3.5" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            Đăng xuất
-          </button>
+          <div class="profile-hero__actions">
+            <RouterLink to="/" class="profile-home-btn profile-home-btn--hero">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M9 12h12" stroke-linecap="round" />
+              </svg>
+              Quay lại trang chủ
+            </RouterLink>
+            <button type="button" class="profile-hero__logout" @click="onLogout">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 6V4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-2" stroke-linecap="round" />
+                <path d="M14 12H3m0 0l3.5-3.5M3 12l3.5 3.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              Đăng xuất
+            </button>
+          </div>
         </section>
 
         <div v-if="message" class="profile-alert profile-alert--success">{{ message }}</div>
         <div v-if="error" class="profile-alert profile-alert--error">{{ error }}</div>
 
         <div class="profile-stats">
-          <div class="profile-stat">
+          <div class="profile-stat profile-stat--rank" :class="`profile-stat--rank-${rankMeta.tone}`">
+            <span class="profile-stat__medal" aria-hidden="true">{{ rankMeta.icon }}</span>
             <strong>{{ profile.rankName || "—" }}</strong>
             <span>Hạng thành viên</span>
+            <em v-if="rankDiscountLabel">Ưu đãi giảm {{ rankDiscountLabel }}</em>
           </div>
           <div class="profile-stat">
-            <strong>{{ profile.totalPoint ?? 0 }}</strong>
+            <strong>{{ Number(profile.totalPoint ?? 0).toLocaleString("vi-VN") }}</strong>
             <span>Điểm tích lũy</span>
           </div>
           <div class="profile-stat">
@@ -70,6 +85,13 @@
             </nav>
 
             <div class="profile-sidebar__links">
+              <RouterLink to="/" class="profile-quick-link profile-quick-link--home">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M3 10.5 12 3l9 7.5" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                Quay lại trang chủ
+              </RouterLink>
               <RouterLink to="/favorites" class="profile-quick-link">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <path
@@ -189,16 +211,22 @@
                 <div class="profile-field">
                   <label>Hạng thành viên</label>
                   <div class="profile-field__value">
-                    {{ profile.rankName || "—" }}
-                    <span v-if="profile.rankDiscountPercent" class="text-muted">
-                      (giảm {{ profile.rankDiscountPercent }}%)
+                    <span class="profile-rank-chip" :class="`profile-rank-chip--${rankMeta.tone}`">
+                      {{ rankMeta.icon }} {{ profile.rankName || "—" }}
+                    </span>
+                    <span v-if="rankDiscountLabel" class="text-muted">
+                      (giảm {{ rankDiscountLabel }})
                     </span>
                   </div>
                 </div>
                 <div class="profile-field">
                   <label>Điểm tích lũy</label>
-                  <div class="profile-field__value">{{ profile.totalPoint ?? 0 }}</div>
+                  <div class="profile-field__value">{{ Number(profile.totalPoint ?? 0).toLocaleString("vi-VN") }}</div>
                 </div>
+              </div>
+
+              <div class="profile-panel__footer">
+                <RouterLink to="/" class="profile-home-btn">← Quay lại trang chủ</RouterLink>
               </div>
             </section>
 
@@ -241,13 +269,24 @@
                   </div>
                   <p v-if="order.address" class="profile-order-card__addr">{{ order.address }}</p>
 
-                  <button
-                    type="button"
-                    class="profile-order-card__toggle"
-                    @click="toggleOrderDetail(order.id)"
-                  >
-                    {{ expandedOrderId === order.id ? "Thu gọn" : "Xem chi tiết" }}
-                  </button>
+                  <div class="profile-order-card__actions">
+                    <button
+                      type="button"
+                      class="profile-order-card__toggle"
+                      @click="toggleOrderDetail(order.id)"
+                    >
+                      {{ expandedOrderId === order.id ? "Thu gọn" : "Xem chi tiết" }}
+                    </button>
+                    <button
+                      v-if="order.canCancel"
+                      type="button"
+                      class="profile-order-card__cancel"
+                      :disabled="cancellingOrderId === order.id"
+                      @click="cancelOrder(order)"
+                    >
+                      {{ cancellingOrderId === order.id ? "Đang hủy..." : "Hủy đơn" }}
+                    </button>
+                  </div>
 
                   <div v-if="expandedOrderId === order.id" class="profile-order-detail">
                     <div v-if="orderDetailLoading" class="text-muted small py-2">Đang tải chi tiết...</div>
@@ -299,6 +338,9 @@
               </div>
 
               <RouterLink to="/cart" class="profile-panel__action">Xem giỏ hàng →</RouterLink>
+              <div class="profile-panel__footer">
+                <RouterLink to="/" class="profile-home-btn">← Quay lại trang chủ</RouterLink>
+              </div>
             </section>
 
             <section v-show="activeTab === 'security'" class="profile-panel">
@@ -372,6 +414,10 @@
                   </button>
                 </div>
               </form>
+
+              <div class="profile-panel__footer">
+                <RouterLink to="/" class="profile-home-btn">← Quay lại trang chủ</RouterLink>
+              </div>
             </section>
           </div>
         </div>
@@ -385,6 +431,7 @@ import { computed, onMounted, reactive, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
 import {
+  cancelMyOrderApi,
   changePasswordApi,
   fetchMyOrderDetailApi,
   fetchMyOrdersApi,
@@ -400,6 +447,7 @@ import {
   SHIPPING_STATUS_LABELS,
   userCanAccessPanel,
 } from "../utils/adminAccess";
+import { formatRankDiscount, rankVisual } from "../utils/rankStyle";
 
 const route = useRoute();
 const router = useRouter();
@@ -418,6 +466,7 @@ const ordersLoading = ref(false);
 const expandedOrderId = ref(null);
 const orderDetail = ref(null);
 const orderDetailLoading = ref(false);
+const cancellingOrderId = ref(null);
 
 const form = reactive({
   fullname: "",
@@ -499,6 +548,9 @@ const displayName = computed(
   () => profile.value.fullname || profile.value.username || "Thành viên"
 );
 
+const rankMeta = computed(() => rankVisual(profile.value.rankName));
+const rankDiscountLabel = computed(() => formatRankDiscount(profile.value.rankDiscountPercent));
+
 const avatarPreview = computed(
   () => form.photo || profile.value.photo || profile.value.avatar || ""
 );
@@ -564,6 +616,34 @@ const toggleOrderDetail = async (orderId) => {
     expandedOrderId.value = null;
   } finally {
     orderDetailLoading.value = false;
+  }
+};
+
+const cancelOrder = async (order) => {
+  if (!order?.canCancel || !order?.id) return;
+  if (!confirm(`Hủy đơn #${order.id}? Thao tác không hoàn tác.`)) return;
+  cancellingOrderId.value = order.id;
+  try {
+    const data = await cancelMyOrderApi(order.id);
+    toast.success(data.message || `Đã hủy đơn #${order.id}.`);
+    const updated = data.order;
+    myOrders.value = myOrders.value.map((o) =>
+      o.id === order.id
+        ? {
+            ...o,
+            orderStatus: updated?.orderStatus || "CANCELLED",
+            canCancel: false,
+            updateDate: updated?.updateDate || o.updateDate,
+          }
+        : o
+    );
+    if (expandedOrderId.value === order.id && updated) {
+      orderDetail.value = { ...orderDetail.value, ...updated, canCancel: false };
+    }
+  } catch (err) {
+    toast.error(err?.response?.data?.message || err?.message || "Hủy đơn thất bại.");
+  } finally {
+    cancellingOrderId.value = null;
   }
 };
 

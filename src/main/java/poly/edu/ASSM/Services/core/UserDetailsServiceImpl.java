@@ -8,8 +8,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import poly.edu.ASSM.entity.Accounts;
-import poly.edu.ASSM.repository.AccountRepository;
+import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Repository.AccountRepository;
 
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {

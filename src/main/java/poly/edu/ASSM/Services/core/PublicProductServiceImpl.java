@@ -14,9 +14,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import poly.edu.ASSM.entity.Category;
-import poly.edu.ASSM.entity.Products;
-import poly.edu.ASSM.repository.ProductRepository;
+import poly.edu.ASSM.Entity.Category;
+import poly.edu.ASSM.Entity.Products;
+import poly.edu.ASSM.Repository.ProductRepository;
 import poly.edu.ASSM.dto.response.ProductImageResponse;
 import poly.edu.ASSM.dto.response.ProductResponse;
 import poly.edu.ASSM.dto.response.ProductVariantResponse;
@@ -313,6 +313,24 @@ public class PublicProductServiceImpl implements PublicProductService {
         m.put("minPrice", p.getMinPrice());
         m.put("maxPrice", p.getMaxPrice());
         m.put("stock", totalQty);
+
+        // Gallery list: ảnh từ biến thể mặc định / fallback (đã resolve trong ProductMapper)
+        List<String> gallery = new ArrayList<>();
+        if (p.getImages() != null) {
+            for (ProductImageResponse img : p.getImages()) {
+                if (img != null && img.getImageUrl() != null && !img.getImageUrl().isBlank()) {
+                    addUnique(gallery, img.getImageUrl().trim());
+                    if (gallery.size() >= 4) {
+                        break;
+                    }
+                }
+            }
+        }
+        if (gallery.isEmpty() && image != null && !image.isBlank()) {
+            gallery.add(image);
+        }
+        m.put("gallery", gallery);
+        m.put("images", gallery);
         return m;
     }
 
@@ -349,7 +367,7 @@ public class PublicProductServiceImpl implements PublicProductService {
             }
         }
 
-        // Gallery SP = ảnh biến thể mặc định (không gộp tất cả biến thể), tối đa 4 góc
+        // Gallery SP = ảnh biến thể mặc định (nếu có), không thì biến thể đầu có ảnh
         List<String> gallery = new ArrayList<>();
         for (String url : defaultGallery) {
             if (gallery.size() >= 4) {
@@ -358,8 +376,11 @@ public class PublicProductServiceImpl implements PublicProductService {
             addUnique(gallery, url);
         }
         if (gallery.isEmpty() && !variants.isEmpty()) {
-            Object imgs = variants.get(0).get("images");
-            if (imgs instanceof List<?> list) {
+            for (Map<String, Object> variant : variants) {
+                Object imgs = variant.get("images");
+                if (!(imgs instanceof List<?> list) || list.isEmpty()) {
+                    continue;
+                }
                 for (Object o : list) {
                     if (o != null) {
                         addUnique(gallery, String.valueOf(o));
@@ -367,6 +388,9 @@ public class PublicProductServiceImpl implements PublicProductService {
                             break;
                         }
                     }
+                }
+                if (!gallery.isEmpty()) {
+                    break;
                 }
             }
         }

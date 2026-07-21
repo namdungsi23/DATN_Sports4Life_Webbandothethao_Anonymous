@@ -22,14 +22,21 @@
       </button>
 
       <div ref="trackRef" class="bestseller-track">
-        <article v-for="(product, index) in products" :key="product.id" class="bestseller-card">
-          <span v-if="index < 3" class="bestseller-card__badge">HOT</span>
-          <div class="bestseller-card__img-wrap product-img">
-            <RouterLink :to="`/product/${product.id}`">
-              <ProductImage :product="product" :alt="product.name" />
-            </RouterLink>
+        <article
+          v-for="(product, index) in products"
+          :key="product.id"
+          class="bestseller-card"
+          :class="{ 'is-soldout': !product.inStock }"
+        >
+          <span v-if="index < 3 && product.inStock" class="bestseller-card__badge">HOT</span>
+          <ProductCardMedia
+            class="bestseller-card__img-wrap"
+            :product="product"
+            @quick-view="openQuickView"
+          >
+            <span v-if="!product.inStock" class="product-soldout-tag">Hết hàng</span>
             <FavoriteButton :product="product" variant="icon" size="sm" />
-          </div>
+          </ProductCardMedia>
           <div class="bestseller-card__body">
             <p v-if="product.categoryName" class="bestseller-card__cat">{{ product.categoryName }}</p>
             <RouterLink :to="`/product/${product.id}`" class="bestseller-card__name">
@@ -57,6 +64,12 @@
         ›
       </button>
     </div>
+
+    <QuickViewModal
+      :open="!!quickViewProduct"
+      :product="quickViewProduct"
+      @close="quickViewProduct = null"
+    />
   </section>
 </template>
 
@@ -65,8 +78,9 @@ import { onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import { fetchProductsApi } from "../services/api";
 import { useAppStore } from "../stores/appStore";
-import ProductImage from "./ProductImage.vue";
 import FavoriteButton from "./FavoriteButton.vue";
+import ProductCardMedia from "./ProductCardMedia.vue";
+import QuickViewModal from "./QuickViewModal.vue";
 import { normalizeProduct } from "../utils/productImage";
 
 const { addToCart, state } = useAppStore();
@@ -74,6 +88,11 @@ const trackRef = ref(null);
 const products = ref([]);
 const loading = ref(true);
 const error = ref("");
+const quickViewProduct = ref(null);
+
+const openQuickView = (product) => {
+  quickViewProduct.value = product;
+};
 
 const formatPrice = (price) => Number(price || 0).toLocaleString("vi-VN");
 

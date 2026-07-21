@@ -45,11 +45,7 @@
 
     <div class="product-grid">
       <article v-for="p in products.content" :key="p.id" class="product-item">
-        <div class="product-img">
-          <RouterLink :to="`/product/${p.id}`" class="product-item__link">
-            <ProductImage :product="p" width="150" :alt="p.name" />
-          </RouterLink>
-        </div>
+        <ProductCardMedia :product="p" width="150" @quick-view="openQuickView" />
 
         <RouterLink :to="`/product/${p.id}`" class="product-item__name">
           <h4>{{ p.name }}</h4>
@@ -70,6 +66,12 @@
         </div>
       </article>
     </div>
+
+    <QuickViewModal
+      :open="!!quickViewProduct"
+      :product="quickViewProduct"
+      @close="quickViewProduct = null"
+    />
 
     <p v-if="!products.content?.length" class="product-empty">Không có sản phẩm phù hợp.</p>
 
@@ -152,10 +154,11 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { RouterLink } from "vue-router";
 import FavoriteButton from "./FavoriteButton.vue";
-import ProductImage from "./ProductImage.vue";
+import ProductCardMedia from "./ProductCardMedia.vue";
+import QuickViewModal from "./QuickViewModal.vue";
 
 const props = defineProps({
   products: {
@@ -167,6 +170,11 @@ const props = defineProps({
 });
 
 defineEmits(["add-to-cart", "change-page", "sort-change"]);
+
+const quickViewProduct = ref(null);
+const openQuickView = (product) => {
+  quickViewProduct.value = product;
+};
 
 const currentPage = computed(() => Number(props.products.number ?? 0));
 const totalPages = computed(() => Number(props.products.totalPages ?? 0));

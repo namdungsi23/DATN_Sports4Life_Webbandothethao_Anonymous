@@ -1,4 +1,4 @@
-package poly.edu.ASSM.controller;
+package poly.edu.ASSM.Controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import poly.edu.ASSM.entity.Accounts;
-import poly.edu.ASSM.repository.RoleRepository;
+import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Repository.RoleRepository;
 import poly.edu.ASSM.Services.core.AccountService;
 import poly.edu.ASSM.Services.util.AuthService;
 import poly.edu.ASSM.security.PasswordPolicy;

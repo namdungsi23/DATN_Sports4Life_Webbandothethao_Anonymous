@@ -14,11 +14,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import poly.edu.ASSM.entity.Orders;
-import poly.edu.ASSM.entity.Ranks;
-import poly.edu.ASSM.entity.Users;
-import poly.edu.ASSM.repository.RankRepository;
-import poly.edu.ASSM.repository.UsersRepository;
+import poly.edu.ASSM.Entity.Orders;
+import poly.edu.ASSM.Entity.Ranks;
+import poly.edu.ASSM.Entity.Users;
+import poly.edu.ASSM.Repository.RankRepository;
+import poly.edu.ASSM.Repository.UsersRepository;
 import poly.edu.ASSM.dto.request.RankRequest;
 import poly.edu.ASSM.dto.response.RankResponse;
 import poly.edu.ASSM.exception.InvalidInputException;

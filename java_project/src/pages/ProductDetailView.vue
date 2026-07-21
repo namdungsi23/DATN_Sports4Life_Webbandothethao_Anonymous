@@ -111,13 +111,10 @@
               <p class="pd-option__label">
                 {{ selectedSize ? `Size — ${selectedSize}` : "Chọn size" }}
               </p>
-              <button type="button" class="pd-size-guide" @click.prevent="showSizeGuide = !showSizeGuide">
-                Bảng size
+              <button type="button" class="pd-size-guide" @click.prevent="showSizeAdvisor = true">
+                Hướng dẫn chọn size
               </button>
             </div>
-            <p v-if="showSizeGuide" class="pd-size-guide-hint">
-              Giày: EU 39–43 · Áo/quần/áo khoác: S–XL · Phụ kiện/balo/tất: Free · Đổi size trong 30 ngày.
-            </p>
             <div class="pd-size-grid" role="listbox" aria-label="Chọn size">
               <button
                 v-for="size in sizeOptions"
@@ -138,6 +135,23 @@
             <p v-if="fieldErrors.size" class="pd-field-error pd-field-error--box">{{ fieldErrors.size }}</p>
           </div>
 
+          <button
+            v-if="!(realVariants && sizeOptions.length)"
+            type="button"
+            class="pd-size-advisor-trigger"
+            @click.prevent="showSizeAdvisor = true"
+          >
+            <span aria-hidden="true">📏</span> Hướng dẫn chọn size
+          </button>
+
+          <SizeAdvisorModal
+            :open="showSizeAdvisor"
+            :sizes="sizeOptions"
+            :category-name="product.categoryName || ''"
+            @close="showSizeAdvisor = false"
+            @apply="onApplyAdvisedSize"
+          />
+
           <p v-if="fieldErrors.variant || fieldErrors.stock" class="pd-field-error pd-field-error--box">
             {{ fieldErrors.variant || fieldErrors.stock }}
           </p>
@@ -146,7 +160,16 @@
             <span class="pd-option__label">Số lượng</span>
             <div class="pd-qty">
               <button type="button" aria-label="Giảm" @click="changeQty(-1)">−</button>
-              <span>{{ quantity }}</span>
+              <input
+                type="number"
+                class="pd-qty__input"
+                min="1"
+                :max="maxStock ?? undefined"
+                :value="quantity"
+                aria-label="Số lượng"
+                @blur="onQtyBlur"
+                @input="onQtyInput"
+              />
               <button type="button" aria-label="Tăng" :disabled="!canIncreaseQty" @click="changeQty(1)">+</button>
             </div>
             <span v-if="selectedVariant && maxStock != null" class="pd-stock-hint">
@@ -298,6 +321,7 @@ import { RouterLink, useRoute, useRouter } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
 import FavoriteButton from "../components/FavoriteButton.vue";
 import ProductImage from "../components/ProductImage.vue";
+import SizeAdvisorModal from "../components/SizeAdvisorModal.vue";
 import { fetchProductByIdApi, fetchProductCommentsApi, fetchProfileApi, postProductCommentApi } from "../services/api";
 import { useAppStore, useToast } from "../stores/appStore";
 import {
@@ -328,7 +352,7 @@ const activeTab = ref("");
 const selectedColor = ref("");
 const selectedSize = ref("");
 const quantity = ref(1);
-const showSizeGuide = ref(false);
+const showSizeAdvisor = ref(false);
 const fieldErrors = reactive({});
 
 const toggleTab = (id) => {
@@ -711,6 +735,14 @@ const onSelectSize = (size) => {
     "";
 };
 
+const onApplyAdvisedSize = (size) => {
+  if (!size) return;
+  onSelectSize(size);
+  if (selectedSize.value === size) {
+    toast.success(`Đã chọn size ${size} theo gợi ý.`);
+  }
+};
+
 const syncGalleryToVariant = () => {
   const imgs = gallery.value;
   if (!imgs.length) return;
@@ -721,7 +753,7 @@ const syncGalleryToVariant = () => {
 
 const initSelections = () => {
   clearFieldErrors();
-  showSizeGuide.value = false;
+  showSizeAdvisor.value = false;
   if (realVariants.value) {
     const def = variants.value.find((v) => v.isDefault);
     const defColor = def && String(def.color || "").trim();
@@ -752,7 +784,7 @@ const loadProduct = async (id) => {
   loading.value = true;
   error.value = "";
   activeTab.value = "";
-  showSizeGuide.value = false;
+  showSizeAdvisor.value = false;
   try {
     const data = await fetchProductByIdApi(id);
     product.value = data.product;
@@ -769,11 +801,31 @@ const loadProduct = async (id) => {
   }
 };
 
+const clampQty = (value) => {
+  let next = Math.max(1, value);
+  if (maxStock.value != null) next = Math.min(next, Math.max(1, maxStock.value));
+  return next;
+};
+
 const changeQty = (delta) => {
   delete fieldErrors.quantity;
-  let next = Math.max(1, quantity.value + delta);
-  if (maxStock.value != null) next = Math.min(next, maxStock.value);
-  quantity.value = next;
+  quantity.value = clampQty(quantity.value + delta);
+};
+
+const onQtyInput = (event) => {
+  delete fieldErrors.quantity;
+  const raw = parseInt(event.target.value, 10);
+  if (!Number.isFinite(raw)) return;
+  quantity.value = clampQty(raw);
+  if (String(quantity.value) !== event.target.value) {
+    event.target.value = quantity.value;
+  }
+};
+
+const onQtyBlur = (event) => {
+  const raw = parseInt(event.target.value, 10);
+  quantity.value = clampQty(Number.isFinite(raw) ? raw : 1);
+  event.target.value = quantity.value;
 };
 
 const buildCartProduct = (variant) => ({

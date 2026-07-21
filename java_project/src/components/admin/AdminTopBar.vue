@@ -16,6 +16,7 @@
     </div>
 
     <div class="admin-topbar__right">
+      <LiveClock variant="admin" />
       <div class="admin-topbar__search" ref="searchWrap">
         <div class="admin-topbar__search-box">
           <AdminIcon name="search" :size="16" />
@@ -138,6 +139,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
+import LiveClock from "../LiveClock.vue";
 import AdminIcon from "./AdminIcon.vue";
 import { useAppStore } from "../../stores/appStore";
 import {

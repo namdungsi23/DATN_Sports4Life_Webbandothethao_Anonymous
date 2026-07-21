@@ -1,4 +1,4 @@
-package poly.edu.ASSM.entity;
+package poly.edu.ASSM.Entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -30,7 +30,7 @@ public class Users {
     @Column(name = "FullName", length = 100)
     private String fullName;
 
-    @Column(name = "Avatar", length = 1000)
+    @Column(name = "Avatar", length = 500)
     private String avatar;
 
     @Column(name = "Phone", length = 20)
@@ -50,6 +50,11 @@ public class Users {
     @ColumnDefault("0")
     @Column(name = "TotalSpending", nullable = false, precision = 18, scale = 2)
     private BigDecimal totalSpending;
+
+    /** Đăng ký nhận mã voucher / khuyến mãi qua Gmail */
+    @ColumnDefault("0")
+    @Column(name = "NewsletterOptIn", nullable = false)
+    private Boolean newsletterOptIn;
 
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt", nullable = false)
@@ -78,5 +83,24 @@ public class Users {
     @OneToMany
     @JoinColumn(name = "UserId")
     private Set<Wishlist> wishlists = new LinkedHashSet<>();
+
+    @PrePersist
+    void applyDefaults() {
+        if (gender == null) {
+            gender = 0;
+        }
+        if (totalPoint == null) {
+            totalPoint = 0;
+        }
+        if (totalSpending == null) {
+            totalSpending = BigDecimal.ZERO;
+        }
+        if (newsletterOptIn == null) {
+            newsletterOptIn = false;
+        }
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
+    }
 
 }

@@ -7,7 +7,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.entity.Roles;
+import poly.edu.ASSM.Entity.Roles;
 import poly.edu.ASSM.dto.request.RoleRequest;
 import poly.edu.ASSM.dto.response.PageResponse;
 import poly.edu.ASSM.dto.response.RoleResponse;

@@ -9,8 +9,8 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.entity.ProductVariants;
-import poly.edu.ASSM.entity.Products;
+import poly.edu.ASSM.Entity.ProductVariants;
+import poly.edu.ASSM.Entity.Products;
 import poly.edu.ASSM.dto.request.ProductVariantRequest;
 import poly.edu.ASSM.dto.response.ProductImageResponse;
 import poly.edu.ASSM.dto.response.ProductVariantResponse;

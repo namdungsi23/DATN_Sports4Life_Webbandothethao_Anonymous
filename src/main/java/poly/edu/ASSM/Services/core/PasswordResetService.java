@@ -18,11 +18,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import io.jsonwebtoken.Claims;
-import poly.edu.ASSM.entity.Accounts;
-import poly.edu.ASSM.entity.Users;
+import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Entity.Users;
 import poly.edu.ASSM.exception.InvalidInputException;
-import poly.edu.ASSM.repository.AccountRepository;
-import poly.edu.ASSM.repository.UsersRepository;
+import poly.edu.ASSM.Repository.AccountRepository;
+import poly.edu.ASSM.Repository.UsersRepository;
 import poly.edu.ASSM.Services.util.JwtService;
 import poly.edu.ASSM.Services.util.SmsService;
 import poly.edu.ASSM.security.OtpService;

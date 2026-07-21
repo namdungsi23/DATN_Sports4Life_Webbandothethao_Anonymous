@@ -7,8 +7,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import poly.edu.ASSM.entity.Category;
-import poly.edu.ASSM.repository.CategoryRepository;
+import poly.edu.ASSM.Entity.Category;
+import poly.edu.ASSM.Repository.CategoryRepository;
 
 @Service
 public class CategoryServiceImpl implements CategoryService {

@@ -5,7 +5,7 @@ import java.util.Map;
 
 import org.springframework.web.multipart.MultipartFile;
 
-import poly.edu.ASSM.entity.Products;
+import poly.edu.ASSM.Entity.Products;
 import poly.edu.ASSM.dto.request.AdminVariantSaveRequest;
 import poly.edu.ASSM.dto.response.ProductImageResponse;
 import poly.edu.ASSM.dto.response.ProductVariantResponse;

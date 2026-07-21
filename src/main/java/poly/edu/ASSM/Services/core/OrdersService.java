@@ -3,7 +3,7 @@ package poly.edu.ASSM.Services.core;
 import java.time.LocalDate;
 import java.util.List;
 
-import poly.edu.ASSM.entity.Orders;
+import poly.edu.ASSM.Entity.Orders;
 
 public interface OrdersService {
     List<Orders> findAll();

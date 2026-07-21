@@ -8,9 +8,9 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.entity.Accounts;
-import poly.edu.ASSM.entity.Ranks;
-import poly.edu.ASSM.entity.Users;
+import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Entity.Ranks;
+import poly.edu.ASSM.Entity.Users;
 import poly.edu.ASSM.dto.request.UserRequest;
 import poly.edu.ASSM.dto.response.PageResponse;
 import poly.edu.ASSM.dto.response.UserResponse;

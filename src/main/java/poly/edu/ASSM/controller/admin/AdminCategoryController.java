@@ -1,4 +1,4 @@
-package poly.edu.ASSM.controller.admin;
+package poly.edu.ASSM.Controller.admin;
 
 import java.util.List;
 
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import poly.edu.ASSM.entity.Category;
+import poly.edu.ASSM.Entity.Category;
 import poly.edu.ASSM.Services.core.CategoryService;
 
 @Controller

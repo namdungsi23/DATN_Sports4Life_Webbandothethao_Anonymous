@@ -2,8 +2,11 @@
   <MainLayout>
     <div class="favorites-page">
       <div class="favorites-page__head">
-        <h1>Sản phẩm yêu thích</h1>
-        <p>{{ favoriteItems.length ? `${favoriteCount} sản phẩm` : "Chưa có sản phẩm nào" }}</p>
+        <div>
+          <h1>Sản phẩm yêu thích</h1>
+          <p>{{ favoriteItems.length ? `${favoriteCount} sản phẩm` : "Chưa có sản phẩm nào" }}</p>
+        </div>
+        <RouterLink to="/" class="profile-home-btn">← Quay lại trang chủ</RouterLink>
       </div>
 
       <div v-if="loading" class="favorites-loading">Đang tải danh sách yêu thích...</div>

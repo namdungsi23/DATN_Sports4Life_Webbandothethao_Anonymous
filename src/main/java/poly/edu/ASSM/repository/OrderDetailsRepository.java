@@ -1,4 +1,4 @@
-package poly.edu.ASSM.repository;
+package poly.edu.ASSM.Repository;
 
 import java.time.Instant;
 import java.util.List;
@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import poly.edu.ASSM.entity.OrderDetails;
+import poly.edu.ASSM.Entity.OrderDetails;
 
 @Repository
 public interface OrderDetailsRepository extends JpaRepository<OrderDetails, Integer> {

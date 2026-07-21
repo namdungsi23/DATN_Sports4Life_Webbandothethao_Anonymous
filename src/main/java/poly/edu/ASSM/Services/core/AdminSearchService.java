@@ -10,13 +10,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import poly.edu.ASSM.entity.Accounts;
-import poly.edu.ASSM.entity.Category;
-import poly.edu.ASSM.entity.Orders;
-import poly.edu.ASSM.entity.Products;
-import poly.edu.ASSM.entity.Users;
-import poly.edu.ASSM.repository.AccountRepository;
-import poly.edu.ASSM.repository.OrdersRepository;
+import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Entity.Category;
+import poly.edu.ASSM.Entity.Orders;
+import poly.edu.ASSM.Entity.Products;
+import poly.edu.ASSM.Entity.Users;
+import poly.edu.ASSM.Repository.AccountRepository;
+import poly.edu.ASSM.Repository.OrdersRepository;
 import poly.edu.ASSM.security.AdminPermissionCodes;
 
 @Service

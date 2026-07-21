@@ -1,4 +1,4 @@
-package poly.edu.ASSM.controller.user;
+package poly.edu.ASSM.Controller.user;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;

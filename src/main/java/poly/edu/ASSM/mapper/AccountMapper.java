@@ -9,10 +9,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.entity.Accounts;
-import poly.edu.ASSM.entity.Roles;
-import poly.edu.ASSM.entity.Users;
-import poly.edu.ASSM.repository.UsersRepository;
+import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Entity.Roles;
+import poly.edu.ASSM.Entity.Users;
+import poly.edu.ASSM.Repository.UsersRepository;
 import poly.edu.ASSM.dto.request.AccountRequest;
 import poly.edu.ASSM.dto.response.AccountResponse;
 import poly.edu.ASSM.dto.response.PageResponse;

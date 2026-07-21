@@ -48,15 +48,19 @@ export function normalizeProduct(product) {
       })
     : product.variants;
 
-  // Gallery SP ưu tiên biến thể mặc định (không gộp mọi biến thể)
+  // Gallery: ưu tiên biến thể mặc định có ảnh; không thì biến thể đầu tiên có ảnh
   const def =
-    (Array.isArray(variants) && variants.find((v) => v.isDefault)) ||
-    (Array.isArray(variants) && variants[0]) ||
-    null;
+    (Array.isArray(variants) && variants.find((v) => v.isDefault)) || null;
   const fromDefault = resolveVariantImages(def);
+  const fromAnyVariant = Array.isArray(variants)
+    ? resolveVariantImages(
+        variants.find((v) => resolveVariantImages(v).length > 0) || null
+      )
+    : [];
 
   const gallery =
     (fromDefault.length ? fromDefault : null) ||
+    (fromAnyVariant.length ? fromAnyVariant : null) ||
     (Array.isArray(product.gallery) && product.gallery.length
       ? product.gallery.filter(Boolean).slice(0, 4)
       : null) ||

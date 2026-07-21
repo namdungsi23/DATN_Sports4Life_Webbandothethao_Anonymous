@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 import poly.edu.ASSM.Services.core.PublicProductService;
+import poly.edu.ASSM.Services.core.NewsletterService;
 import poly.edu.ASSM.Services.core.RegisterVerificationService;
 import poly.edu.ASSM.dto.request.PublicRegisterRequest;
 import poly.edu.ASSM.dto.request.RegisterResendOtpRequest;
@@ -31,6 +32,9 @@ public class HomeAPI {
 
     @Autowired
     private RegisterVerificationService registerVerificationService;
+
+    @Autowired
+    private NewsletterService newsletterService;
 
     @GetMapping("/")
     public Map<String, String> home() {
@@ -91,5 +95,12 @@ public class HomeAPI {
                 request.getVerifyChannel(),
                 request.getEmail(),
                 request.getPhone()));
+    }
+
+    /** Đăng ký nhận mã voucher / khuyến mãi qua Gmail (cần email đã có tài khoản). */
+    @PostMapping("/newsletter/subscribe")
+    public ResponseEntity<Map<String, Object>> newsletterSubscribe(@RequestBody Map<String, String> body) {
+        String email = body != null ? body.get("email") : null;
+        return ResponseEntity.ok(newsletterService.subscribe(email));
     }
 }

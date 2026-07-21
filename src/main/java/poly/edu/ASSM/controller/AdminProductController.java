@@ -1,4 +1,4 @@
-package poly.edu.ASSM.controller;
+package poly.edu.ASSM.Controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import poly.edu.ASSM.entity.Products;
+import poly.edu.ASSM.Entity.Products;
 import poly.edu.ASSM.Services.core.CategoryService;
 import poly.edu.ASSM.Services.core.ProductService;
 import poly.edu.ASSM.Services.util.CloudinaryService;

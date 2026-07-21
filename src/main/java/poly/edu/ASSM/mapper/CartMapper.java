@@ -8,8 +8,8 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.entity.Carts;
-import poly.edu.ASSM.entity.Users;
+import poly.edu.ASSM.Entity.Carts;
+import poly.edu.ASSM.Entity.Users;
 import poly.edu.ASSM.dto.request.CartRequest;
 import poly.edu.ASSM.dto.response.CartResponse;
 import poly.edu.ASSM.dto.response.PageResponse;

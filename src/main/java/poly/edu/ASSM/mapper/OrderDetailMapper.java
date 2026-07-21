@@ -7,8 +7,8 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.entity.OrderDetails;
-import poly.edu.ASSM.entity.Orders;
+import poly.edu.ASSM.Entity.OrderDetails;
+import poly.edu.ASSM.Entity.Orders;
 import poly.edu.ASSM.dto.request.OrderDetailRequest;
 import poly.edu.ASSM.dto.response.OrderDetailResponse;
 import poly.edu.ASSM.dto.response.PageResponse;

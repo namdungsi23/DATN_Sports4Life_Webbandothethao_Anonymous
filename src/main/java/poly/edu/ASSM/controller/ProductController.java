@@ -1,4 +1,4 @@
-package poly.edu.ASSM.controller;
+package poly.edu.ASSM.Controller;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import poly.edu.ASSM.entity.Products;
+import poly.edu.ASSM.Entity.Products;
 import poly.edu.ASSM.Services.core.CategoryServiceImpl;
 import poly.edu.ASSM.Services.core.ProductServiceImpl;
 

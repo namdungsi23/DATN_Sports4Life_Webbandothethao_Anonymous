@@ -10,10 +10,10 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.entity.Category;
-import poly.edu.ASSM.entity.ProductImages;
-import poly.edu.ASSM.entity.ProductVariants;
-import poly.edu.ASSM.entity.Products;
+import poly.edu.ASSM.Entity.Category;
+import poly.edu.ASSM.Entity.ProductImages;
+import poly.edu.ASSM.Entity.ProductVariants;
+import poly.edu.ASSM.Entity.Products;
 import poly.edu.ASSM.dto.request.ProductRequest;
 import poly.edu.ASSM.dto.response.PageResponse;
 import poly.edu.ASSM.dto.response.ProductImageResponse;
@@ -85,11 +85,12 @@ public class ProductMapper {
     }
 
     public String resolveProductThumbnail(Products entity) {
-        ProductVariants defaultVariant = findDefaultVariant(entity);
-        if (defaultVariant == null || defaultVariant.getProductImages() == null) {
+        ProductVariants preferred = findVariantWithImages(entity, true);
+        if (preferred == null) {
             return null;
         }
-        return defaultVariant.getProductImages().stream()
+        return preferred.getProductImages().stream()
+                .filter(img -> img != null && img.getImageUrl() != null && !img.getImageUrl().isBlank())
                 .sorted(Comparator.comparing(
                         img -> img.getSortOrder() != null ? img.getSortOrder() : Integer.MAX_VALUE))
                 .map(ProductImages::getImageUrl)
@@ -105,6 +106,38 @@ public class ProductMapper {
                 .filter(v -> Boolean.TRUE.equals(v.getIsDefault()))
                 .findFirst()
                 .orElse(entity.getProductVariants().iterator().next());
+    }
+
+    /**
+     * Ưu tiên biến thể mặc định nếu có ảnh; nếu không thì lấy biến thể đầu tiên có ảnh.
+     * Tránh mất thumbnail khi gắn "mặc định" cho biến thể chưa upload ảnh.
+     */
+    private ProductVariants findVariantWithImages(Products entity, boolean preferDefault) {
+        if (entity == null || entity.getProductVariants() == null || entity.getProductVariants().isEmpty()) {
+            return null;
+        }
+
+        if (preferDefault) {
+            ProductVariants def = findDefaultVariant(entity);
+            if (hasImages(def)) {
+                return def;
+            }
+        }
+
+        return entity.getProductVariants().stream()
+                .sorted(Comparator.comparing(
+                        v -> v.getDisplayOrder() != null ? v.getDisplayOrder() : Integer.MAX_VALUE))
+                .filter(this::hasImages)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean hasImages(ProductVariants variant) {
+        if (variant == null || variant.getProductImages() == null || variant.getProductImages().isEmpty()) {
+            return false;
+        }
+        return variant.getProductImages().stream()
+                .anyMatch(img -> img != null && img.getImageUrl() != null && !img.getImageUrl().isBlank());
     }
 
     public List<ProductResponse> toResponseList(List<Products> entities) {
@@ -150,12 +183,13 @@ public class ProductMapper {
     }
 
     private List<ProductImageResponse> toImageResponses(Products entity) {
-        ProductVariants defaultVariant = findDefaultVariant(entity);
-        if (defaultVariant == null || defaultVariant.getProductImages() == null) {
+        ProductVariants preferred = findVariantWithImages(entity, true);
+        if (preferred == null || preferred.getProductImages() == null) {
             return List.of();
         }
 
-        return defaultVariant.getProductImages().stream()
+        return preferred.getProductImages().stream()
+                .filter(img -> img != null && img.getImageUrl() != null && !img.getImageUrl().isBlank())
                 .sorted(Comparator.comparing(
                         img -> img.getSortOrder() != null ? img.getSortOrder() : Integer.MAX_VALUE))
                 .limit(4)

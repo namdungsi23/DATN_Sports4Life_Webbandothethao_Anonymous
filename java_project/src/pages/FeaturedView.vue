@@ -31,12 +31,13 @@
           class="featured-editorial__item"
           :class="{ 'featured-editorial__item--hero': index === 0 }"
         >
-          <div class="featured-editorial__media product-img">
-            <RouterLink :to="`/product/${product.id}`">
-              <ProductImage :product="product" :alt="product.name" />
-            </RouterLink>
+          <ProductCardMedia
+            class="featured-editorial__media"
+            :product="product"
+            @quick-view="openQuickView"
+          >
             <FavoriteButton :product="product" variant="icon" :size="index === 0 ? 'md' : 'sm'" />
-          </div>
+          </ProductCardMedia>
           <div class="featured-editorial__body">
             <p v-if="product.categoryName" class="featured-editorial__cat">{{ product.categoryName }}</p>
             <RouterLink :to="`/product/${product.id}`" class="featured-editorial__name">
@@ -59,6 +60,12 @@
     </section>
 
     <BestSellerSection />
+
+    <QuickViewModal
+      :open="!!quickViewProduct"
+      :product="quickViewProduct"
+      @close="quickViewProduct = null"
+    />
   </MainLayout>
 </template>
 
@@ -67,8 +74,9 @@ import { onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
 import BestSellerSection from "../components/BestSellerSection.vue";
-import ProductImage from "../components/ProductImage.vue";
 import FavoriteButton from "../components/FavoriteButton.vue";
+import ProductCardMedia from "../components/ProductCardMedia.vue";
+import QuickViewModal from "../components/QuickViewModal.vue";
 import { fetchProductsApi } from "../services/api";
 import { useAppStore, useToast } from "../stores/appStore";
 
@@ -76,6 +84,11 @@ const store = useAppStore();
 const toast = useToast();
 const allProducts = ref([]);
 const loading = ref(true);
+const quickViewProduct = ref(null);
+
+const openQuickView = (product) => {
+  quickViewProduct.value = product;
+};
 
 const formatPrice = (price) => Number(price || 0).toLocaleString("vi-VN");
 

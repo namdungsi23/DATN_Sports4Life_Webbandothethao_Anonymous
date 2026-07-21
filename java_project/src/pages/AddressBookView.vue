@@ -6,9 +6,12 @@
           <h2 class="mb-1">Sổ địa chỉ</h2>
           <p class="text-muted mb-0">Quản lý địa chỉ giao hàng đã lưu. Họ tên và số điện thoại được lấy từ tài khoản của bạn.</p>
         </div>
-        <button type="button" class="btn btn-primary" @click="openCreateForm">
-          + Thêm địa chỉ mới
-        </button>
+        <div class="address-book__head-actions">
+          <RouterLink to="/" class="profile-home-btn">← Quay lại trang chủ</RouterLink>
+          <button type="button" class="btn btn-primary" @click="openCreateForm">
+            + Thêm địa chỉ mới
+          </button>
+        </div>
       </div>
 
       <div v-if="accountFullName || accountPhone" class="alert alert-light border py-2 mb-3">
@@ -244,6 +247,13 @@ onMounted(loadAddresses);
   align-items: flex-start;
   gap: 1rem;
   margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.address-book__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 

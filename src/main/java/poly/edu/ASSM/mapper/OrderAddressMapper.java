@@ -4,8 +4,8 @@ import java.time.Instant;
 
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.entity.OrderAddresses;
-import poly.edu.ASSM.entity.Orders;
+import poly.edu.ASSM.Entity.OrderAddresses;
+import poly.edu.ASSM.Entity.Orders;
 import poly.edu.ASSM.dto.response.OrderAddressResponse;
 
 @Component

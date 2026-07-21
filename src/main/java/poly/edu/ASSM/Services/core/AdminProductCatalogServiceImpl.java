@@ -20,13 +20,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.transaction.Transactional;
-import poly.edu.ASSM.entity.Category;
-import poly.edu.ASSM.entity.ProductImages;
-import poly.edu.ASSM.entity.ProductVariants;
-import poly.edu.ASSM.entity.Products;
-import poly.edu.ASSM.repository.ProductImageRepository;
-import poly.edu.ASSM.repository.ProductRepository;
-import poly.edu.ASSM.repository.ProductVariantRepository;
+import poly.edu.ASSM.Entity.Category;
+import poly.edu.ASSM.Entity.ProductImages;
+import poly.edu.ASSM.Entity.ProductVariants;
+import poly.edu.ASSM.Entity.Products;
+import poly.edu.ASSM.Repository.ProductImageRepository;
+import poly.edu.ASSM.Repository.ProductRepository;
+import poly.edu.ASSM.Repository.ProductVariantRepository;
 import poly.edu.ASSM.dto.request.AdminVariantSaveRequest;
 import poly.edu.ASSM.dto.response.ProductImageResponse;
 import poly.edu.ASSM.dto.response.ProductResponse;
@@ -63,6 +63,8 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
     private ProductMapper productMapper;
     @Autowired
     private ProductVariantMapper variantMapper;
+    @Autowired
+    private AdminNotificationService adminNotificationService;
 
     @Transactional
     @Override
@@ -72,6 +74,7 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
         }
 
         Products product;
+        boolean isNew = id == null;
         if (id != null) {
             product = productRepository.findById(id)
                     .orElseThrow(() -> new InvalidInputException("Không tìm thấy sản phẩm."));
@@ -90,6 +93,14 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
 
         if (variantRepository.countByProduct_Id(saved.getId()) == 0) {
             createDefaultVariant(saved);
+        }
+
+        if (isNew) {
+            try {
+                adminNotificationService.notifyCustomersNewProduct(saved.getId(), saved.getName());
+            } catch (Exception ignored) {
+                // không chặn lưu sản phẩm nếu notify chuông lỗi
+            }
         }
 
         return saved;

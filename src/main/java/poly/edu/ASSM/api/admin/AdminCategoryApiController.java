@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import poly.edu.ASSM.entity.Category;
+import poly.edu.ASSM.Entity.Category;
 import poly.edu.ASSM.Services.core.CategoryService;
 import poly.edu.ASSM.dto.response.CategoryResponse;
 import poly.edu.ASSM.exception.InvalidInputException;

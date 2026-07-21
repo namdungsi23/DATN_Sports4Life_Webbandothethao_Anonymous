@@ -1,4 +1,4 @@
-package poly.edu.ASSM.controller;
+package poly.edu.ASSM.Controller;
 
 import java.util.List;
 
@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import jakarta.servlet.http.HttpSession;
-import poly.edu.ASSM.entity.Accounts;
-import poly.edu.ASSM.repository.RoleRepository;
+import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Repository.RoleRepository;
 import poly.edu.ASSM.Services.core.AccountService;
 
 @Controller

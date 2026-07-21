@@ -8,8 +8,8 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-import poly.edu.ASSM.entity.ProductImages;
-import poly.edu.ASSM.entity.ProductVariants;
+import poly.edu.ASSM.Entity.ProductImages;
+import poly.edu.ASSM.Entity.ProductVariants;
 import poly.edu.ASSM.dto.request.ProductImageRequest;
 import poly.edu.ASSM.dto.response.PageResponse;
 import poly.edu.ASSM.dto.response.ProductImageResponse;
