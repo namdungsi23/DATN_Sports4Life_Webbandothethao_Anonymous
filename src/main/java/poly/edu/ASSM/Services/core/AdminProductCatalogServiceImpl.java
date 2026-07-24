@@ -28,6 +28,7 @@ import poly.edu.ASSM.Repository.ProductImageRepository;
 import poly.edu.ASSM.Repository.ProductRepository;
 import poly.edu.ASSM.Repository.ProductVariantRepository;
 import poly.edu.ASSM.dto.request.AdminVariantSaveRequest;
+import poly.edu.ASSM.dto.response.PageResponse;
 import poly.edu.ASSM.dto.response.ProductImageResponse;
 import poly.edu.ASSM.dto.response.ProductResponse;
 import poly.edu.ASSM.dto.response.ProductVariantResponse;
@@ -68,7 +69,7 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
 
     @Transactional
     @Override
-    public Products saveProduct(Long id, String name, String description, String categoryId, Boolean available) {
+    public ProductResponse saveProduct(Long id, String name, String description, String categoryId, Boolean available) {
         if (name == null || name.isBlank()) {
             throw new InvalidInputException("Tên sản phẩm không được để trống.");
         }
@@ -103,14 +104,39 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
             }
         }
 
-        return saved;
+        return productMapper.toResponse(saved);
     }
 
     @Transactional
     @Override
-    public Products createProductWithDefaultVariant(String name, String description, String categoryId,
+    public ProductResponse createProductWithDefaultVariant(String name, String description, String categoryId,
             Boolean available) {
         return saveProduct(null, name, description, categoryId, available);
+    }
+
+    @Override
+    public Map<String, Object> getProductForm(Long id) {
+        Products product = productRepository.findById(id)
+                .orElseThrow(() -> new InvalidInputException("Không tìm thấy sản phẩm."));
+        ProductResponse resp = productMapper.toResponse(product);
+        Map<String, Object> form = new HashMap<>();
+        form.put("id", resp.getId());
+        form.put("name", resp.getName());
+        form.put("description", resp.getDescription());
+        form.put("available", resp.getStatus() != null ? resp.getStatus() : true);
+        form.put("image", resp.getImageUrl());
+        form.put("categoryId", resp.getCategoryId() != null ? resp.getCategoryId() : "");
+        return Map.of("product", form);
+    }
+
+    @Override
+    public PageResponse<ProductResponse> filterProductsPage(
+            String cat, String keyword, Double min, Double max,
+            int page, int pageSize, String dir, String sortBy) {
+        Sort.Direction direction = "asc".equalsIgnoreCase(dir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, pageSize, Sort.by(direction, sortBy));
+        Page<Products> products = productRepository.filterProducts(cat, keyword, min, max, pageable);
+        return productMapper.toPageResponse(products);
     }
 
     @Override
@@ -655,8 +681,7 @@ public class AdminProductCatalogServiceImpl implements AdminProductCatalogServic
         }
     }
 
-    @Override
-    public int totalQuantity(Products product) {
+    private int totalQuantity(Products product) {
         return productMapper.totalQuantity(product);
     }
 

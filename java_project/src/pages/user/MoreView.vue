@@ -77,7 +77,7 @@
 <script setup>
 import { RouterLink } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
-import BrandStrip from "../components/BrandStrip.vue";
+import BrandStrip from "../components/user/BrandStrip.vue";
 import { BRAND } from "../utils/brand";
 
 const promises = [

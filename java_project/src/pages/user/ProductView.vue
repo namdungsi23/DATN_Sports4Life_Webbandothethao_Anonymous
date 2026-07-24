@@ -193,8 +193,8 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
-import ProductList from "../components/ProductList.vue";
-import BrandStrip from "../components/BrandStrip.vue";
+import ProductList from "../components/user/ProductList.vue";
+import BrandStrip from "../components/user/BrandStrip.vue";
 import { fetchProductsApi } from "../services/api";
 import { useAppStore, useToast } from "../stores/appStore";
 import {

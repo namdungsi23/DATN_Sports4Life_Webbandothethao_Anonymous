@@ -319,9 +319,9 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
-import FavoriteButton from "../components/FavoriteButton.vue";
-import ProductImage from "../components/ProductImage.vue";
-import SizeAdvisorModal from "../components/SizeAdvisorModal.vue";
+import FavoriteButton from "../components/user/FavoriteButton.vue";
+import ProductImage from "../components/user/ProductImage.vue";
+import SizeAdvisorModal from "../components/user/SizeAdvisorModal.vue";
 import { fetchProductByIdApi, fetchProductCommentsApi, fetchProfileApi, postProductCommentApi } from "../services/api";
 import { useAppStore, useToast } from "../stores/appStore";
 import {

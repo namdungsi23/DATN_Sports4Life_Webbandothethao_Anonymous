@@ -66,7 +66,7 @@
 import { computed, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
-import ProductImage from "../components/ProductImage.vue";
+import ProductImage from "../components/user/ProductImage.vue";
 import { useAppStore } from "../stores/appStore";
 
 const store = useAppStore();

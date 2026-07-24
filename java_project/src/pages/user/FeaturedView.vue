@@ -73,10 +73,10 @@
 import { onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import MainLayout from "../layouts/MainLayout.vue";
-import BestSellerSection from "../components/BestSellerSection.vue";
-import FavoriteButton from "../components/FavoriteButton.vue";
-import ProductCardMedia from "../components/ProductCardMedia.vue";
-import QuickViewModal from "../components/QuickViewModal.vue";
+import BestSellerSection from "../components/user/BestSellerSection.vue";
+import FavoriteButton from "../components/user/FavoriteButton.vue";
+import ProductCardMedia from "../components/user/ProductCardMedia.vue";
+import QuickViewModal from "../components/user/QuickViewModal.vue";
 import { fetchProductsApi } from "../services/api";
 import { useAppStore, useToast } from "../stores/appStore";
 

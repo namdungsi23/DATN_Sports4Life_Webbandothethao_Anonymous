@@ -66,15 +66,15 @@ import { RouterLink } from "vue-router";
 
 import MainLayout from "../layouts/MainLayout.vue";
 
-import HeroBanner from "../components/HeroBanner.vue";
+import HeroBanner from "../components/user/HeroBanner.vue";
 
-import MarqueeTicker from "../components/MarqueeTicker.vue";
+import MarqueeTicker from "../components/user/MarqueeTicker.vue";
 
-import BrandStrip from "../components/BrandStrip.vue";
+import BrandStrip from "../components/user/BrandStrip.vue";
 
-import BestSellerSection from "../components/BestSellerSection.vue";
+import BestSellerSection from "../components/user/BestSellerSection.vue";
 
-import FeaturedProductSection from "../components/FeaturedProductSection.vue";
+import FeaturedProductSection from "../components/user/FeaturedProductSection.vue";
 
 
 

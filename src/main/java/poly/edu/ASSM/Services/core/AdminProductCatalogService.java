@@ -5,16 +5,25 @@ import java.util.Map;
 
 import org.springframework.web.multipart.MultipartFile;
 
-import poly.edu.ASSM.Entity.Products;
 import poly.edu.ASSM.dto.request.AdminVariantSaveRequest;
+import poly.edu.ASSM.dto.response.PageResponse;
 import poly.edu.ASSM.dto.response.ProductImageResponse;
+import poly.edu.ASSM.dto.response.ProductResponse;
 import poly.edu.ASSM.dto.response.ProductVariantResponse;
 
 public interface AdminProductCatalogService {
 
-    Products saveProduct(Long id, String name, String description, String categoryId, Boolean available);
+    /** Lưu SP; trả ProductResponse (không expose Entity). */
+    ProductResponse saveProduct(Long id, String name, String description, String categoryId, Boolean available);
 
-    Products createProductWithDefaultVariant(String name, String description, String categoryId, Boolean available);
+    ProductResponse createProductWithDefaultVariant(String name, String description, String categoryId, Boolean available);
+
+    /** Form edit admin: id/name/description/available/image/categoryId. */
+    Map<String, Object> getProductForm(Long id);
+
+    PageResponse<ProductResponse> filterProductsPage(
+            String cat, String keyword, Double min, Double max,
+            int page, int pageSize, String dir, String sortBy);
 
     List<ProductVariantResponse> listVariants(Long productId);
 
@@ -47,8 +56,6 @@ public interface AdminProductCatalogService {
     List<ProductImageResponse> reorderImages(Long variantId, List<Long> imageIds);
 
     void deleteImage(Long imageId);
-
-    int totalQuantity(Products product);
 
     Map<String, Object> listProductsForAdmin(
             String categoryId, String keyword, int page, int size, String sortBy, String sortDir);
