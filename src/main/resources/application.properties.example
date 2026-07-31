@@ -3,7 +3,7 @@
 spring.application.name=ASSMJAVA5
 spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=Sports4Life;encrypt=true;trustServerCertificate=true
 spring.datasource.username=sa
-spring.datasource.password=YOUR_DB_PASSWORD
+spring.datasource.password=
 spring.datasource.driver-class-name=com.microsoft.sqlserver.jdbc.SQLServerDriver
 spring.jpa.hibernate.ddl-auto=none
 
