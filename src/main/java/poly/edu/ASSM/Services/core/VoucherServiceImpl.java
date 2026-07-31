@@ -40,6 +40,9 @@ public class VoucherServiceImpl implements VoucherService {
     @Autowired
     private VoucherMapper voucherMapper;
 
+    @Autowired
+    private NewsletterService newsletterService;
+
     @Override
     @Transactional(readOnly = true)
     public Map<String, Object> list(String keyword, Pageable pageable) {
@@ -79,7 +82,11 @@ public class VoucherServiceImpl implements VoucherService {
             entity.setIsActive((short) 1);
         }
         entity.setCode(normalizeCode(request.getCode()));
-        return voucherMapper.toResponse(voucherRepository.save(entity));
+        Voucher saved = voucherRepository.save(entity);
+        if (saved.getIsActive() != null && saved.getIsActive() == 1) {
+            newsletterService.notifyNewVoucher(saved);
+        }
+        return voucherMapper.toResponse(saved);
     }
 
     @Override

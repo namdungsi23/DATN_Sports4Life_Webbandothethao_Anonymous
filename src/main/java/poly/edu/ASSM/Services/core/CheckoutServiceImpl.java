@@ -74,6 +74,10 @@ public class CheckoutServiceImpl implements CheckoutService {
 
     @Autowired
     private SePayService sePayService;
+
+    @Autowired
+    private AdminNotificationService notificationService;
+
     @Override
     @Transactional(readOnly = true)
     public List<Map<String, Object>> listActiveCarriers() {
@@ -180,7 +184,31 @@ public class CheckoutServiceImpl implements CheckoutService {
             body.put("sepay", sePayService.buildCheckoutForm(savedOrder, account.getUsername()));
         }
 
+        notifyNewOrder(username, savedOrder.getId(), totalAmount, request.getPaymentMethod());
+
         return body;
+    }
+
+    /** Chuông admin + khách sau khi đặt hàng; lỗi notify không làm fail đơn. */
+    private void notifyNewOrder(String username, int orderId, BigDecimal totalAmount, String paymentMethod) {
+        String payLabel = paymentMethod != null && !paymentMethod.isBlank()
+                ? paymentMethod.trim().toUpperCase()
+                : "CASH";
+        String totalLabel = totalAmount != null ? totalAmount.toPlainString() : "0";
+        try {
+            notificationService.notifyPanelUsers(
+                    "Đơn hàng mới #" + orderId,
+                    "Khách «" + username + "» vừa đặt đơn #" + orderId
+                            + " (" + payLabel + ", tổng " + totalLabel + "đ).",
+                    "/admin/order/" + orderId);
+            notificationService.notifyUser(
+                    username,
+                    "Đặt hàng thành công",
+                    "Đơn #" + orderId + " đã được tạo. Tổng thanh toán: " + totalLabel + "đ.",
+                    "/profile?tab=orders");
+        } catch (Exception ignored) {
+            // không làm fail checkout nếu notify lỗi
+        }
     }
 
     private boolean isSePayMethod(String paymentMethod) {

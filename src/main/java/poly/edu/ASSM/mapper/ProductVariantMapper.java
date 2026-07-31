@@ -37,6 +37,7 @@ public class ProductVariantMapper {
             images = entity.getProductImages().stream()
                     .sorted(Comparator.comparing(
                             img -> img.getSortOrder() != null ? img.getSortOrder() : Integer.MAX_VALUE))
+                    .limit(4)
                     .map(imageMapper::toResponse)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());

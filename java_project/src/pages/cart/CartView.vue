@@ -2,8 +2,11 @@
   <MainLayout>
     <div class="cart-page">
       <div class="cart-page__head">
-        <h1>Giỏ hàng</h1>
-        <p>{{ cartItems.length ? `${cartCount} sản phẩm` : "Chưa có sản phẩm nào" }}</p>
+        <div>
+          <h1>Giỏ hàng</h1>
+          <p>{{ cartItems.length ? `${cartCount} sản phẩm` : "Chưa có sản phẩm nào" }}</p>
+        </div>
+        <RouterLink to="/" class="profile-home-btn">← Quay lại trang chủ</RouterLink>
       </div>
 
       <div v-if="!cartItems.length" class="cart-empty">
@@ -29,7 +32,15 @@
               <div class="cart-item__actions">
                 <div class="cart-qty">
                   <button type="button" aria-label="Giảm" @click="changeQty(item, item.quantity - 1)">−</button>
-                  <span>{{ item.quantity }}</span>
+                  <input
+                    type="number"
+                    class="cart-qty__input"
+                    min="1"
+                    :value="item.quantity"
+                    aria-label="Số lượng"
+                    @change="onQtyInput(item, $event)"
+                    @keyup.enter="onQtyInput(item, $event)"
+                  />
                   <button type="button" aria-label="Tăng" @click="changeQty(item, item.quantity + 1)">+</button>
                 </div>
                 <button type="button" class="cart-item__remove" @click="removeItem(item)">Xóa</button>
@@ -97,5 +108,15 @@ const changeQty = (item, qty) => {
     return;
   }
   store.updateCartQuantity(item.productId, qty, item.variantId ?? null);
+};
+
+const onQtyInput = (item, event) => {
+  const raw = parseInt(event.target.value, 10);
+  if (!Number.isFinite(raw) || raw < 1) {
+    event.target.value = item.quantity;
+    return;
+  }
+  const result = store.updateCartQuantity(item.productId, raw, item.variantId ?? null);
+  event.target.value = result?.quantity ?? item.quantity;
 };
 </script>

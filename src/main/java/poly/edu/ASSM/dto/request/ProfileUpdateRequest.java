@@ -19,6 +19,6 @@ public class ProfileUpdateRequest {
     @Size(max = 20, message = "Số điện thoại tối đa 20 ký tự")
     private String phone;
 
-    @Size(max = 500, message = "URL ảnh tối đa 500 ký tự")
+    @Size(max = 1000, message = "URL ảnh tối đa 1000 ký tự")
     private String photo;
 }

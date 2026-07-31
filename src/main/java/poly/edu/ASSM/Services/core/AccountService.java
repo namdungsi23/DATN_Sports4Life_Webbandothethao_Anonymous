@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 
 import poly.edu.ASSM.Entity.Accounts;
+import poly.edu.ASSM.Entity.Users;
 
 public interface AccountService {
 
@@ -25,4 +26,9 @@ public interface AccountService {
     Accounts login(String username, String password);
 
     Page<Accounts> search(String keyword, int page, int size);
+
+    /** Tên role (đã normalize) — dùng cho form admin, không expose RoleRepository ra controller. */
+    List<String> listRoleNames();
+
+    Users findCustomerProfileByAccountId(Long accountId);
 }

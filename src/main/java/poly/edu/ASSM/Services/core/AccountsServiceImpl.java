@@ -152,6 +152,22 @@ public class AccountsServiceImpl implements AccountService {
         return repo.search(keyword, PageRequest.of(page, size));
     }
 
+    @Override
+    public List<String> listRoleNames() {
+        return roleRepository.findAll().stream()
+                .map(Roles::getName)
+                .map(SpringRoleNames::normalize)
+                .toList();
+    }
+
+    @Override
+    public Users findCustomerProfileByAccountId(Long accountId) {
+        if (accountId == null) {
+            return null;
+        }
+        return usersRepository.findByAccount_Id(accountId).orElse(null);
+    }
+
     private Accounts createAccount(Accounts acc) {
         Accounts newAcc = new Accounts();
         newAcc.setUsername(acc.getUsername());

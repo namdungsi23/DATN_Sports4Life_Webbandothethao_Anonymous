@@ -79,6 +79,63 @@ public class AdminNotificationService {
 		log.info("Đã gửi {} thông báo panel: {}", saved, title);
 	}
 
+	/**
+	 * Thông báo sản phẩm mới tới khách hàng (chuông trang user).
+	 * REQUIRES_NEW: không làm rollback tạo sản phẩm nếu notify lỗi.
+	 */
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public void notifyCustomersNewProduct(Long productId, String productName) {
+		if (productId == null) {
+			return;
+		}
+		String name = productName != null && !productName.isBlank() ? productName.trim() : ("#" + productId);
+		String title = "Sản phẩm mới";
+		String message = "Sports4Life vừa thêm: " + name;
+		String link = "/product/" + productId;
+		List<Users> customers = usersRepository.findCustomerUsers();
+		if (customers.isEmpty()) {
+			log.info("Không có khách hàng để nhận thông báo SP mới #{}", productId);
+			return;
+		}
+		Instant now = Instant.now();
+		int saved = 0;
+		for (Users user : customers) {
+			Notification n = new Notification();
+			n.setUsers(user);
+			n.setTitle(title);
+			n.setMessage(message);
+			n.setLink(link);
+			n.setIsRead(false);
+			n.setCreatedAt(now);
+			notificationRepository.save(n);
+			saved++;
+		}
+		log.info("Đã gửi {} thông báo chuông (SP mới #{}): {}", saved, productId, name);
+	}
+
+	/**
+	 * Thông báo tới 1 user (chuông trang khách).
+	 */
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public void notifyUser(String username, String title, String message, String link) {
+		if (username == null || username.isBlank()) {
+			return;
+		}
+		try {
+			Users user = requireUser(username);
+			Notification n = new Notification();
+			n.setUsers(user);
+			n.setTitle(title);
+			n.setMessage(message);
+			n.setLink(link);
+			n.setIsRead(false);
+			n.setCreatedAt(Instant.now());
+			notificationRepository.save(n);
+		} catch (Exception e) {
+			log.warn("Không gửi được thông báo cho {}: {}", username, e.getMessage());
+		}
+	}
+
 	@Transactional
 	public Map<String, Object> listForUsername(String username, int limit) {
 		Users user = requireUser(username);

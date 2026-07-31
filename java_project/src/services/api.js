@@ -108,7 +108,38 @@ export const loginApi = async (payload) => {
 };
 
 export const registerApi = async (payload) => {
-  const response = await clientApi.post("/register", payload);
+  // Có ảnh → multipart (Cloudinary + SQL); không ảnh → JSON
+  if (payload?.photo instanceof File || payload?.photo instanceof Blob) {
+    const formData = new FormData();
+    formData.append("username", payload.username ?? "");
+    formData.append("fullname", payload.fullname ?? "");
+    formData.append("email", payload.email ?? "");
+    formData.append("password", payload.password ?? "");
+    if (payload.verifyChannel) formData.append("verifyChannel", payload.verifyChannel);
+    if (payload.phone) formData.append("phone", payload.phone);
+    formData.append("photo", payload.photo);
+    const response = await clientApi.post("/register", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  }
+  const { photo, ...json } = payload || {};
+  const response = await clientApi.post("/register", json);
+  return response.data;
+};
+
+export const registerVerifyOtpApi = async (payload) => {
+  const response = await clientApi.post("/register/verify-otp", payload);
+  return response.data;
+};
+
+export const registerResendOtpApi = async (payload) => {
+  const response = await clientApi.post("/register/resend-otp", payload);
+  return response.data;
+};
+
+export const newsletterSubscribeApi = async (email) => {
+  const response = await clientApi.post("/newsletter/subscribe", { email });
   return response.data;
 };
 
@@ -181,6 +212,27 @@ export const markAllAdminNotificationsReadApi = async () => {
   return response.data;
 };
 
+/** Chuông thông báo trang user */
+export const fetchUserNotificationsApi = async (limit = 20) => {
+  const response = await clientAuthApi.get("/notifications", { params: { limit } });
+  return response.data;
+};
+
+export const fetchUserUnreadCountApi = async () => {
+  const response = await clientAuthApi.get("/notifications/unread-count");
+  return response.data;
+};
+
+export const markUserNotificationReadApi = async (id) => {
+  const response = await clientAuthApi.patch(`/notifications/${id}/read`);
+  return response.data;
+};
+
+export const markAllUserNotificationsReadApi = async () => {
+  const response = await clientAuthApi.patch("/notifications/read-all");
+  return response.data;
+};
+
 export const fetchWishlistApi = async () => {
   const response = await clientAuthApi.get("/wishlist");
   return response.data;
@@ -243,6 +295,11 @@ export const fetchMyOrdersApi = async () => {
 
 export const fetchMyOrderDetailApi = async (id) => {
   const response = await clientAuthApi.get(`/orders/${id}`);
+  return response.data;
+};
+
+export const cancelMyOrderApi = async (id) => {
+  const response = await clientAuthApi.post(`/orders/${id}/cancel`);
   return response.data;
 };
 

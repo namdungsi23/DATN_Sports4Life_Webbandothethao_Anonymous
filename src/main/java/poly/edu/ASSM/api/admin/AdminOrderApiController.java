@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import poly.edu.ASSM.Services.core.AdminOrderManagementService;
 import poly.edu.ASSM.Services.core.OrdersService;
 import poly.edu.ASSM.dto.request.AdminOrderUpdateRequest;
+import poly.edu.ASSM.exception.InvalidInputException;
 
 @RestController
 @RequestMapping("/api/admin/orders")
@@ -85,7 +86,7 @@ public class AdminOrderApiController {
             }
         }
         if (request.getOrderId() == null) {
-            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "Thiếu orderId"));
+            throw InvalidInputException.of("orderId", "Thiếu orderId");
         }
         orderManagementService.updateOrder(request);
         return ResponseEntity.ok(Map.of("ok", true));

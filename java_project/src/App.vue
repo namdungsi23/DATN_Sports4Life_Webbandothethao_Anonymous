@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { RouterView, useRoute } from "vue-router";
 import FloatingChatWidget from "./components/chat/FloatingChatWidget.vue";
 import AdminChatPresence from "./components/chat/AdminChatPresence.vue";
+import ScrollToTop from "./components/ScrollToTop.vue";
 import { useAppStore } from "./stores/appStore";
 import { userCanAccessPanel } from "./utils/adminAccess";
 import ToastContainer from "./components/ToastContainer.vue";
@@ -30,6 +31,7 @@ const showAdminPresence = computed(() => {
 <template>
   <RouterView />
   <ToastContainer />
+  <ScrollToTop />
   <FloatingChatWidget v-if="showFloatingChat" />
   <AdminChatPresence v-if="showAdminPresence" />
 </template>

@@ -24,12 +24,19 @@ public class PasswordResetApiController {
 
 	@PostMapping("/forgot-password")
 	public ResponseEntity<Map<String, Object>> forgot(@Valid @RequestBody ForgotPasswordRequest request) {
-		return ResponseEntity.ok(passwordResetService.requestReset(request.getEmail()));
+		return ResponseEntity.ok(passwordResetService.requestReset(
+				request.getVerifyChannel(),
+				request.getEmail(),
+				request.getPhone()));
 	}
 
 	@PostMapping("/verify-otp")
 	public ResponseEntity<Map<String, Object>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
-		return ResponseEntity.ok(passwordResetService.verifyOtp(request.getEmail(), request.getOtp()));
+		return ResponseEntity.ok(passwordResetService.verifyOtp(
+				request.getVerifyChannel(),
+				request.getEmail(),
+				request.getPhone(),
+				request.getOtp()));
 	}
 
 	@PostMapping("/reset-password")

@@ -86,8 +86,13 @@ export function runValidation(data, schema) {
             errors[field] = msg || `Mật khẩu tối thiểu ${min} ký tự.`;
             break;
           }
-          if (!/[A-Za-z]/.test(String(value)) || !/\d/.test(String(value))) {
-            errors[field] = msg || "Mật khẩu phải gồm ít nhất 1 chữ cái và 1 chữ số.";
+          const hasUpper = /[A-Z]/.test(String(value));
+          const hasLower = /[a-z]/.test(String(value));
+          const hasDigit = /\d/.test(String(value));
+          const hasSpecial = /[^A-Za-z0-9\s]/.test(String(value));
+          if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+            errors[field] =
+              msg || "Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt.";
             break;
           }
         }

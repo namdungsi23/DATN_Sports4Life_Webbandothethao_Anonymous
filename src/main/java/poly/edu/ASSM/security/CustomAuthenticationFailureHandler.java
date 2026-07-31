@@ -1,6 +1,7 @@
 package poly.edu.ASSM.security;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,9 +30,11 @@ public class CustomAuthenticationFailureHandler implements AuthenticationFailure
 		loginAttemptService.recordFailure(request);
 		response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-		objectMapper.writeValue(response.getWriter(), Map.of(
-				"ok", false,
-				"status", 401,
-				"message", "Sai tên đăng nhập hoặc mật khẩu."));
+		response.setCharacterEncoding("UTF-8");
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("ok", false);
+		body.put("message", "Sai tên đăng nhập hoặc mật khẩu.");
+		body.put("errors", Map.of());
+		objectMapper.writeValue(response.getWriter(), body);
 	}
 }

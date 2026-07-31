@@ -30,8 +30,9 @@ public class LoginRateLimitFilter extends OncePerRequestFilter {
 		if (loginAttemptService.isBlocked(request)) {
 			response.setStatus(429);
 			response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+			response.setCharacterEncoding("UTF-8");
 			response.getWriter().write(
-					"{\"ok\":false,\"message\":\"Quá nhiều lần đăng nhập. Vui lòng thử lại sau vài phút.\"}");
+					"{\"ok\":false,\"message\":\"Quá nhiều lần đăng nhập. Vui lòng thử lại sau vài phút.\",\"errors\":{}}");
 			return;
 		}
 		filterChain.doFilter(request, response);

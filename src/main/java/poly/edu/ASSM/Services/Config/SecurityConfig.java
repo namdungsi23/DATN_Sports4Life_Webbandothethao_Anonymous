@@ -76,8 +76,6 @@ public class SecurityConfig {
 								"/",
 								"/api/public/**",
 								"/api/auth/refresh",
-								"/home",
-								"/product",
 								"/login",
 								"/error",
 								"/oauth2/**",
