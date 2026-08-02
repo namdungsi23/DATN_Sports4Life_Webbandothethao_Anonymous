@@ -22,6 +22,7 @@ import poly.edu.ASSM.Services.core.RegisterVerificationService;
 import poly.edu.ASSM.dto.request.PublicRegisterRequest;
 import poly.edu.ASSM.dto.request.RegisterResendOtpRequest;
 import poly.edu.ASSM.dto.request.RegisterVerifyOtpRequest;
+import poly.edu.ASSM.dto.response.ApiMessageResponse;
 
 @RestController
 @RequestMapping("/api/public")
@@ -71,25 +72,25 @@ public class HomeAPI {
 
     /** Đăng ký JSON (không ảnh). */
     @PostMapping(value = "/register", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody PublicRegisterRequest request) {
+    public ResponseEntity<ApiMessageResponse> register(@Valid @RequestBody PublicRegisterRequest request) {
         return ResponseEntity.ok(registerVerificationService.register(request));
     }
 
     /** Đăng ký multipart — ảnh đại diện lên Cloudinary rồi lưu Users.Avatar (SQL). */
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> registerWithPhoto(
+    public ResponseEntity<ApiMessageResponse> registerWithPhoto(
             @Valid @ModelAttribute PublicRegisterRequest request,
             @RequestParam(value = "photo", required = false) MultipartFile photo) {
         return ResponseEntity.ok(registerVerificationService.register(request, photo));
     }
 
     @PostMapping("/register/verify-otp")
-    public ResponseEntity<Map<String, Object>> registerVerifyOtp(@Valid @RequestBody RegisterVerifyOtpRequest request) {
+    public ResponseEntity<ApiMessageResponse> registerVerifyOtp(@Valid @RequestBody RegisterVerifyOtpRequest request) {
         return ResponseEntity.ok(registerVerificationService.verifyOtp(request));
     }
 
     @PostMapping("/register/resend-otp")
-    public ResponseEntity<Map<String, Object>> registerResendOtp(@Valid @RequestBody RegisterResendOtpRequest request) {
+    public ResponseEntity<ApiMessageResponse> registerResendOtp(@Valid @RequestBody RegisterResendOtpRequest request) {
         return ResponseEntity.ok(registerVerificationService.resendOtp(
                 request.getUsername(),
                 request.getVerifyChannel(),
@@ -99,7 +100,7 @@ public class HomeAPI {
 
     /** Đăng ký nhận mã voucher / khuyến mãi qua Gmail (cần email đã có tài khoản). */
     @PostMapping("/newsletter/subscribe")
-    public ResponseEntity<Map<String, Object>> newsletterSubscribe(@RequestBody Map<String, String> body) {
+    public ResponseEntity<ApiMessageResponse> newsletterSubscribe(@RequestBody Map<String, String> body) {
         String email = body != null ? body.get("email") : null;
         return ResponseEntity.ok(newsletterService.subscribe(email));
     }

@@ -60,10 +60,10 @@
 <script setup>
 import { onMounted, reactive, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
-import AuthLayout from "../layouts/AuthLayout.vue";
-import { resetPasswordApi } from "../services/api";
-import { useToast } from "../stores/appStore";
-import { firstError, getApiError, runValidation } from "../utils/validators";
+import AuthLayout from "../../layouts/AuthLayout.vue";
+import { resetPasswordApi } from "../../services/api.js";
+import { useToast } from "../../stores/appStore.js";
+import { firstError, getApiError, runValidation } from "../../utils/validators.js";
 
 const route = useRoute();
 const router = useRouter();

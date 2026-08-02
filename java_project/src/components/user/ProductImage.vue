@@ -12,7 +12,7 @@
 
 <script setup>
 import { ref, watch } from "vue";
-import { FALLBACK_PRODUCT_IMAGE, resolveProductImage } from "../utils/productImage";
+import { FALLBACK_PRODUCT_IMAGE, resolveProductImage } from "../../utils/productImage.js";
 
 const props = defineProps({
   product: { type: Object, default: null },

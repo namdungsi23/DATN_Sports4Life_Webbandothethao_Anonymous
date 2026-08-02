@@ -25,6 +25,7 @@ import poly.edu.ASSM.Repository.UsersRepository;
 import poly.edu.ASSM.dto.request.CommentRequest;
 import poly.edu.ASSM.dto.response.CommentResponse;
 import poly.edu.ASSM.exception.InvalidInputException;
+import poly.edu.ASSM.mapper.CommentMapper;
 
 @Service
 public class CommentService {
@@ -46,12 +47,14 @@ public class CommentService {
 	@Autowired
 	private RankService rankService;
 
+	@Autowired
+	private CommentMapper commentMapper;
+
 	@Transactional(readOnly = true)
 	public Map<String, Object> listByProduct(Long productId) {
 		requireProduct(productId);
-		List<CommentResponse> comments = commentRepository.findVisibleByProductId(productId).stream()
-				.map(this::toResponse)
-				.toList();
+		List<CommentResponse> comments = commentMapper.toResponseList(
+				commentRepository.findVisibleByProductId(productId));
 		Map<String, Object> stats = ratingStats(productId);
 		Map<String, Object> body = new LinkedHashMap<>();
 		body.put("comments", comments);
@@ -106,7 +109,7 @@ public class CommentService {
 		Map<String, Object> body = new LinkedHashMap<>();
 		body.put("ok", true);
 		body.put("message", isNew ? "Đã gửi bình luận." : "Đã cập nhật bình luận.");
-		body.put("comment", toResponse(comment));
+		body.put("comment", commentMapper.toResponse(comment));
 		body.putAll(ratingStats(product.getId()));
 		return body;
 	}
@@ -114,9 +117,8 @@ public class CommentService {
 	@Transactional(readOnly = true)
 	public Map<String, Object> adminList(String keyword, Boolean visible) {
 		String kw = keyword == null ? "" : keyword.trim();
-		List<CommentResponse> rows = commentRepository.adminSearch(kw.isEmpty() ? null : kw, visible).stream()
-				.map(this::toResponse)
-				.toList();
+		List<CommentResponse> rows = commentMapper.toResponseList(
+				commentRepository.adminSearch(kw.isEmpty() ? null : kw, visible));
 		Map<String, Object> body = new LinkedHashMap<>();
 		body.put("comments", rows);
 		body.put("total", rows.size());
@@ -133,7 +135,7 @@ public class CommentService {
 		return Map.of(
 				"ok", true,
 				"message", visible ? "Đã hiện bình luận." : "Đã ẩn bình luận.",
-				"comment", toResponse(comment));
+				"comment", commentMapper.toResponse(comment));
 	}
 
 	@Transactional
@@ -147,26 +149,5 @@ public class CommentService {
 	private Products requireProduct(Long productId) {
 		return productRepository.findById(productId)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy sản phẩm."));
-	}
-
-	private CommentResponse toResponse(Comment c) {
-		Users u = c.getUsers();
-		Accounts acc = u != null ? u.getAccount() : null;
-		String rankName = u != null && u.getRank() != null ? u.getRank().getRankName() : null;
-		return CommentResponse.builder()
-				.id(c.getId())
-				.productId(c.getProduct() != null ? c.getProduct().getId() : null)
-				.productName(c.getProduct() != null ? c.getProduct().getName() : null)
-				.userId(u != null ? u.getId() : null)
-				.username(acc != null ? acc.getUsername() : null)
-				.fullName(u != null ? u.getFullName() : null)
-				.avatar(u != null ? u.getAvatar() : null)
-				.rankName(rankName)
-				.rating(c.getRating())
-				.content(c.getContent())
-				.status(c.getStatus() == null || Boolean.TRUE.equals(c.getStatus()))
-				.createdAt(c.getCreatedAt())
-				.updatedAt(c.getUpdatedAt())
-				.build();
 	}
 }

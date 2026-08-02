@@ -78,7 +78,23 @@ export function normalizeProduct(product) {
     variants,
     gallery: uniqueGallery,
     image: uniqueGallery[0] || resolveProductImage(product),
+    price:
+      Number(
+        product.price ??
+          product.minPrice ??
+          product.maxPrice ??
+          def?.price ??
+          variants?.[0]?.price ??
+          0
+      ) || 0,
   };
+}
+
+/** Giá hiển thị trên danh sách / thẻ sản phẩm. */
+export function displayProductPrice(product) {
+  if (!product) return 0;
+  const raw = product.price ?? product.minPrice ?? product.maxPrice ?? 0;
+  return Number(raw) || 0;
 }
 
 export function normalizeProductsResponse(data) {

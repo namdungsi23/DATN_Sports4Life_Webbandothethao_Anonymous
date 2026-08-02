@@ -18,31 +18,22 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import poly.edu.ASSM.Entity.Products;
 import poly.edu.ASSM.Services.core.AdminProductCatalogService;
-import poly.edu.ASSM.Services.core.ProductService;
 import poly.edu.ASSM.dto.request.AdminVariantSaveRequest;
 import poly.edu.ASSM.dto.request.ImageReorderRequest;
 import poly.edu.ASSM.dto.request.ImageUrlRequest;
 import poly.edu.ASSM.dto.response.ProductImageResponse;
 import poly.edu.ASSM.dto.response.ProductResponse;
 import poly.edu.ASSM.dto.response.ProductVariantResponse;
-import poly.edu.ASSM.exception.InvalidInputException;
-import poly.edu.ASSM.mapper.ProductMapper;
 
 /**
- * Không catch InvalidInputException ở đây — để {@link poly.edu.ASSM.exception.ApiExceptionHandler}
- * trả JSON chuẩn cho FE.
+ * Thin API — chỉ Service + DTO. Không Entity / Repository.
  */
 @RestController
 @RequestMapping("/api/admin/products")
 @PreAuthorize("@adminAuth.has('PRODUCT_VIEW')")
 public class AdminProductApiController {
 
-    @Autowired
-    private ProductService productService;
-    @Autowired
-    private ProductMapper productMapper;
     @Autowired
     private AdminProductCatalogService catalogService;
 
@@ -59,19 +50,7 @@ public class AdminProductApiController {
 
     @GetMapping("/{id}")
     public Map<String, Object> getProduct(@PathVariable Long id) {
-        Products product = productService.findById(id);
-        if (product == null) {
-            throw new InvalidInputException("Không tìm thấy sản phẩm.");
-        }
-        ProductResponse resp = productMapper.toResponse(product);
-        Map<String, Object> form = new HashMap<>();
-        form.put("id", resp.getId());
-        form.put("name", resp.getName());
-        form.put("description", resp.getDescription());
-        form.put("available", resp.getStatus() != null ? resp.getStatus() : true);
-        form.put("image", resp.getImageUrl());
-        form.put("categoryId", resp.getCategoryId() != null ? resp.getCategoryId() : "");
-        return Map.of("product", form);
+        return catalogService.getProductForm(id);
     }
 
     @GetMapping("/{productId}/variants")
@@ -92,7 +71,7 @@ public class AdminProductApiController {
             @RequestParam(required = false) String categoryId,
             @RequestParam(required = false) String description,
             @RequestParam(defaultValue = "true") Boolean available) {
-        Products saved = catalogService.saveProduct(id, name, description, categoryId, available);
+        ProductResponse saved = catalogService.saveProduct(id, name, description, categoryId, available);
         return ResponseEntity.ok(Map.of(
                 "ok", true,
                 "message", "Lưu sản phẩm thành công!",

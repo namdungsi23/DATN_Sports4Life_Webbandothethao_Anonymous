@@ -241,9 +241,9 @@ const loadingCharts = ref(true);
 const months = ref(12);
 
 const monthOptions = [
+  { value: 3, label: "3 tháng" },
   { value: 6, label: "6 tháng" },
   { value: 12, label: "12 tháng" },
-  { value: 24, label: "24 tháng" },
 ];
 
 const stats = ref({

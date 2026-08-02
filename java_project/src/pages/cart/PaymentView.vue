@@ -265,16 +265,17 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
-import { RouterLink, useRoute } from "vue-router";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 import MainLayout from "../../layouts/MainLayout.vue";
-import AddressFormFields from "../../components/AddressFormFields.vue";
-import CheckoutSteps from "../../components/CheckoutSteps.vue";
+import AddressFormFields from "../../components/user/AddressFormFields.vue";
+import CheckoutSteps from "../../components/user/CheckoutSteps.vue";
 import { useAppStore } from "../../stores/appStore";
 import { calcShippingFee } from "../../utils/shipping";
 import { applyVoucherApi, confirmPaymentApi, fetchAddressesApi, fetchCheckoutCarriersApi } from "../../services/api";
-import { submitSePayForm } from "../../utils/sepay";
+import { saveSePayCheckout } from "../../utils/sepay";
 
 const route = useRoute();
+const router = useRouter();
 const store = useAppStore();
 
 const subTotal = computed(() => store.cartAmount.value);
@@ -428,6 +429,7 @@ const goToPaymentTab = () => {
 const buildCheckoutPayload = () => ({
   paymentMethod: paymentMethod.value,
   amount: checkoutTotal.value,
+  returnBaseUrl: window.location.origin,
   voucherCode: appliedVoucher.value?.voucherCode || voucherCode.value.trim() || null,
   addressMode: addressMode.value,
   carrierId: selectedCarrierId.value,
@@ -529,7 +531,13 @@ const confirmPayment = async () => {
 
     if (paymentMethod.value === "SEPAY" && result?.sepay) {
       store.clearCart();
-      submitSePayForm(result.sepay);
+      saveSePayCheckout(result.sepay, {
+        completionToken: result.paymentCompletionToken || null,
+      });
+      await router.push({
+        path: "/cart/payment/sepay",
+        query: { orderId: result.orderId },
+      });
       return;
     }
 

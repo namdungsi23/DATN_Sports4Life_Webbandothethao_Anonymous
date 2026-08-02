@@ -9,8 +9,8 @@ import lombok.Setter;
 @Setter
 public class CategoryRequest {
 
-    @NotBlank(message = "Mã danh mục không được để trống")
-    @Size(max = 4, message = "Mã danh mục tối đa 4 ký tự")
+    /** Có khi cập nhật; tạo mới thì service tự sinh (CAT001…). */
+    @Size(max = 10, message = "Mã danh mục tối đa 10 ký tự")
     private String id;
 
     @NotBlank(message = "Tên danh mục không được để trống")

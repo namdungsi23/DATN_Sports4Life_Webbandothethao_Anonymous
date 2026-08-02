@@ -18,19 +18,20 @@
 
 <script setup>
 import { onMounted } from "vue";
-import SiteHeader from "../components/SiteHeader.vue";
-import SiteFooter from "../components/SiteFooter.vue";
-import { fetchProfileApi } from "../services/api";
+import SiteHeader from "../components/user/SiteHeader.vue";
+import SiteFooter from "../components/user/SiteFooter.vue";
+import { fetchProfileApi, ensureAuthSession } from "../services/api";
 import { useAppStore } from "../stores/appStore";
 
 const store = useAppStore();
 
 onMounted(async () => {
-  if (store.state.user) {
-    store.loadFavorites();
-  }
-
   if (!store.state.user?.username) return;
+
+  const hasSession = await ensureAuthSession();
+  if (!hasSession) return;
+
+  store.loadFavorites();
 
   try {
     const data = await fetchProfileApi();

@@ -1,16 +1,20 @@
 package poly.edu.ASSM.Services.core;
 
-import java.util.Map;
+import poly.edu.ASSM.dto.response.ReportInvoicesByUserResponse;
+import poly.edu.ASSM.dto.response.ReportPageResponse;
+import poly.edu.ASSM.dto.response.ReportSeriesResponse;
+import poly.edu.ASSM.dto.response.ReportStatusBreakdownResponse;
+import poly.edu.ASSM.dto.response.ReportSummaryResponse;
 
 public interface AdminReportService {
 
-    Map<String, Object> getSummary(String from, String to);
+    ReportSummaryResponse getSummary(String from, String to);
 
-    Map<String, Object> getRevenueSeries(String period, String from, String to);
+    ReportSeriesResponse getRevenueSeries(String period, String from, String to);
 
-    Map<String, Object> getStatusBreakdown(String from, String to);
+    ReportStatusBreakdownResponse getStatusBreakdown(String from, String to);
 
-    Map<String, Object> listInvoices(String from, String to, int page, int size);
+    ReportPageResponse listInvoices(String from, String to, int page, int size);
 
-    Map<String, Object> getInvoicesByUser(String from, String to);
+    ReportInvoicesByUserResponse getInvoicesByUser(String from, String to);
 }

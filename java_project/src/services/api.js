@@ -16,10 +16,22 @@ function bearerFromStore() {
   const { state } = useAppStore();
   if (state.accessToken) return state.accessToken;
   try {
-    return sessionStorage.getItem(STORAGE_KEYS.accessToken);
+    return localStorage.getItem(STORAGE_KEYS.accessToken);
   } catch {
     return null;
   }
+}
+
+function refreshTokenFromStore() {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.refreshToken);
+  } catch {
+    return null;
+  }
+}
+
+function isPaymentApiPath(path = "") {
+  return /checkout\/sepay|sepay\/gateway-complete|cart\/payment/i.test(path);
 }
 
 clientApi.interceptors.request.use((config) => {
@@ -35,6 +47,61 @@ const clientAuthApi = axios.create({
   withCredentials: true,
 });
 
+let refreshInFlight = null;
+
+async function refreshAccessToken() {
+  if (refreshInFlight) {
+    return refreshInFlight;
+  }
+  refreshInFlight = (async () => {
+    const refreshToken = refreshTokenFromStore();
+    if (!refreshToken) {
+      return false;
+    }
+    try {
+      const res = await axios.post(
+        "/base/api/auth/refresh",
+        { refreshToken },
+        { withCredentials: true }
+      );
+      const data = res.data;
+      if (!data?.accessToken) {
+        return false;
+      }
+      const store = useAppStore();
+      store.renewSessionTokens(data.accessToken, data.refreshToken);
+      if (data.username && store.state.user) {
+        store.state.user = {
+          ...store.state.user,
+          username: data.username,
+          roles: data.roles ?? store.state.user.roles,
+          permissions: data.permissions ?? store.state.user.permissions,
+          panelAccess: data.panelAccess ?? store.state.user.panelAccess,
+          canWriteCatalog: data.canWriteCatalog ?? store.state.user.canWriteCatalog,
+          isAdmin: data.isAdmin ?? store.state.user.isAdmin,
+          isStaff: data.isStaff ?? store.state.user.isStaff,
+        };
+      }
+      return true;
+    } catch {
+      return false;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+  return refreshInFlight;
+}
+
+export async function ensureAuthSession({ forceRefresh = false } = {}) {
+  if (!forceRefresh && bearerFromStore()) {
+    return true;
+  }
+  if (await refreshAccessToken()) {
+    return true;
+  }
+  return Boolean(bearerFromStore());
+}
+
 clientAuthApi.interceptors.request.use((config) => {
   const token = bearerFromStore();
   if (token) {
@@ -46,13 +113,27 @@ clientAuthApi.interceptors.request.use((config) => {
 function attachUnauthorizedHandler(client) {
   client.interceptors.response.use(
     (res) => res,
-    (error) => {
+    async (error) => {
       const status = error?.response?.status;
-      if (status === 401) {
-        try {
-          useAppStore().logout();
-        } catch {
-          /* ignore */
+      const config = error?.config;
+      if (status === 401 && config && !config.__authRetried) {
+        const refreshed = await refreshAccessToken();
+        if (refreshed) {
+          config.__authRetried = true;
+          const token = bearerFromStore();
+          if (token) {
+            config.headers = config.headers || {};
+            config.headers.Authorization = `Bearer ${token}`;
+          }
+          return client.request(config);
+        }
+        const path = config.url || "";
+        if (!isPaymentApiPath(path)) {
+          try {
+            useAppStore().logout();
+          } catch {
+            /* ignore */
+          }
         }
       }
       return Promise.reject(error);
@@ -311,4 +392,42 @@ export const applyVoucherApi = async (payload) => {
 export const fetchSePayStatusApi = async (orderId) => {
   const response = await clientAuthApi.get(`/checkout/sepay/status/${orderId}`);
   return response.data;
+};
+
+export const completeSePayPaymentPublicApi = async (orderId, token) => {
+  const response = await axios.post(
+    `/base/api/public/sepay/gateway-complete/${orderId}`,
+    null,
+    { params: { token }, withCredentials: true }
+  );
+  return response.data;
+};
+
+/** Gọi khi SePay redirect success — đồng bộ và hoàn tất đơn ngay. */
+export const completeSePayPaymentApi = async (
+  orderId,
+  { gateway = false, completionToken = null } = {}
+) => {
+  const hasAuth = await ensureAuthSession({ forceRefresh: gateway });
+  if (hasAuth) {
+    try {
+      const response = await clientAuthApi.post(
+        `/checkout/sepay/complete/${orderId}`,
+        null,
+        { params: gateway ? { gateway: true } : {} }
+      );
+      return response.data;
+    } catch (err) {
+      const status = err?.response?.status;
+      if (!gateway || !completionToken || (status !== 401 && status !== 403)) {
+        throw err;
+      }
+    }
+  }
+
+  if (gateway && completionToken) {
+    return completeSePayPaymentPublicApi(orderId, completionToken);
+  }
+
+  throw new Error("Không thể xác nhận thanh toán. Vui lòng đăng nhập lại hoặc thử refresh trang.");
 };

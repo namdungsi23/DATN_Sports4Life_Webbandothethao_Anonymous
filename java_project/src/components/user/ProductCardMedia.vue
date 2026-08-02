@@ -33,7 +33,7 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
-import { FALLBACK_PRODUCT_IMAGE, resolveProductImage } from "../utils/productImage";
+import { FALLBACK_PRODUCT_IMAGE, resolveProductImage } from "../../utils/productImage.js";
 
 const props = defineProps({
   product: { type: Object, required: true },

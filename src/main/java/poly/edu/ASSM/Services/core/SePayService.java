@@ -1,9 +1,10 @@
 package poly.edu.ASSM.Services.core;
 
-import java.math.BigDecimal;
 import java.util.Map;
 
 import poly.edu.ASSM.Entity.Orders;
+import poly.edu.ASSM.dto.response.SePayCheckoutFormResponse;
+import poly.edu.ASSM.dto.response.SePayPaymentStatusResponse;
 
 public interface SePayService {
 
@@ -11,9 +12,19 @@ public interface SePayService {
 
     Integer parseOrderId(String invoiceNumber);
 
-    Map<String, Object> buildCheckoutForm(Orders order, String customerId);
+    SePayCheckoutFormResponse buildCheckoutForm(Orders order, String customerId, String returnBaseUrl);
+
+    String createPaymentCompletionToken(int orderId);
 
     void handleIpn(Map<String, Object> payload, String secretHeader);
 
-    Map<String, Object> getPaymentStatus(int orderId, String username);
+    /** Webhook chuyển khoản ngân hàng (QR) — SePay gửi khi có tiền vào. */
+    void handleBankWebhook(Map<String, Object> payload, String authHeader);
+
+    SePayPaymentStatusResponse getPaymentStatus(int orderId, String username);
+
+    SePayPaymentStatusResponse completePayment(int orderId, String username, boolean fromGatewayReturn);
+
+    /** Hoàn tất thanh toán khi quay về từ SePay (không cần đăng nhập). */
+    SePayPaymentStatusResponse completePaymentFromGateway(int orderId, String completionToken);
 }

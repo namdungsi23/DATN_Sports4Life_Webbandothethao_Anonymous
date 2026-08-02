@@ -101,7 +101,7 @@
             <span>VISA</span>
             <span>Mastercard</span>
             <span>Momo</span>
-            <span>VNPAY</span>
+            <span>SePay</span>
             <span>COD</span>
           </div>
         </div>
@@ -133,9 +133,9 @@
 <script setup>
 import { ref } from "vue";
 import { RouterLink } from "vue-router";
-import { newsletterSubscribeApi } from "../services/api";
-import { BRAND } from "../utils/brand";
-import { getApiError } from "../utils/validators";
+import { newsletterSubscribeApi } from "../../services/api.js";
+import { BRAND } from "../../utils/brand.js";
+import { getApiError } from "../../utils/validators.js";
 
 const email = ref("");
 const loading = ref(false);

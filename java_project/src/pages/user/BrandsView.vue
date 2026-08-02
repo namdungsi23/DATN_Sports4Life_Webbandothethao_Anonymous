@@ -57,9 +57,9 @@
 <script setup>
 import { onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
-import MainLayout from "../layouts/MainLayout.vue";
-import { fetchBrandsApi } from "../services/api";
-import { DEFAULT_BRAND_NAMES, mergeBrandNames, resolveBrandLogo } from "../utils/brandLogos";
+import MainLayout from "../../layouts/MainLayout.vue";
+import { fetchBrandsApi } from "../../services/api.js";
+import { DEFAULT_BRAND_NAMES, mergeBrandNames, resolveBrandLogo } from "../../utils/brandLogos.js";
 
 const brands = ref([]);
 const loading = ref(true);

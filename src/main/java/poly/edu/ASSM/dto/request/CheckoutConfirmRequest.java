@@ -53,4 +53,8 @@ public class CheckoutConfirmRequest {
     /** Mã khuyến mãi (tuỳ chọn) */
     @Size(max = 50, message = "Mã khuyến mãi tối đa 50 ký tự")
     private String voucherCode;
+
+    /** URL frontend sau thanh toán (cùng origin user đang dùng, tránh mất session). */
+    @Size(max = 255)
+    private String returnBaseUrl;
 }

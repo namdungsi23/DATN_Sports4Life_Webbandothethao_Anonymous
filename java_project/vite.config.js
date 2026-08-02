@@ -13,6 +13,13 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      // Webhook/IPN SePay hay cấu hình /api/... trỏ frontend:5173 — proxy thẳng về Spring
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        timeout: 60000,
+        proxyTimeout: 60000,
+      },
       '/base': {
         target: 'http://localhost:8080',
         changeOrigin: true,

@@ -76,9 +76,9 @@
 
 <script setup>
 import { RouterLink } from "vue-router";
-import MainLayout from "../layouts/MainLayout.vue";
-import BrandStrip from "../components/user/BrandStrip.vue";
-import { BRAND } from "../utils/brand";
+import MainLayout from "../../layouts/MainLayout.vue";
+import BrandStrip from "../../components/user/BrandStrip.vue";
+import { BRAND } from "../../utils/brand.js";
 
 const promises = [
   {
@@ -95,7 +95,7 @@ const promises = [
   },
   {
     title: "Thanh toán tiện lợi",
-    text: "COD, VNPAY, MoMo — an toàn và rõ ràng từng bước.",
+    text: "COD, SePay, MoMo — an toàn và rõ ràng từng bước.",
   },
 ];
 </script>

@@ -23,6 +23,12 @@ import org.springframework.transaction.annotation.Transactional;
 import poly.edu.ASSM.Entity.Orders;
 import poly.edu.ASSM.Repository.OrdersRepository;
 import poly.edu.ASSM.Repository.ShipmentRepository;
+import poly.edu.ASSM.dto.response.ReportInvoicesByUserResponse;
+import poly.edu.ASSM.dto.response.ReportPageResponse;
+import poly.edu.ASSM.dto.response.ReportSeriesResponse;
+import poly.edu.ASSM.dto.response.ReportStatusBreakdownResponse;
+import poly.edu.ASSM.dto.response.ReportSummaryResponse;
+import poly.edu.ASSM.mapper.AdminReportMapper;
 
 @Service
 public class AdminReportServiceImpl implements AdminReportService {
@@ -38,9 +44,12 @@ public class AdminReportServiceImpl implements AdminReportService {
     @Autowired
     private ShipmentRepository shipmentRepository;
 
+    @Autowired
+    private AdminReportMapper adminReportMapper;
+
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> getSummary(String from, String to) {
+    public ReportSummaryResponse getSummary(String from, String to) {
         FilteredOrders filtered = resolveFilteredOrders(from, to);
         List<Orders> orders = filtered.invoices();
         BigDecimal revenue = sumTotal(orders);
@@ -65,12 +74,12 @@ public class AdminReportServiceImpl implements AdminReportService {
         body.put("totalOrdersAll", filtered.allOrders().size());
         body.put("excludedCancelled", filtered.cancelledCount());
         body.put("excludedOutOfRange", filtered.outOfRange());
-        return body;
+        return adminReportMapper.toSummaryResponse(body);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> getRevenueSeries(String period, String from, String to) {
+    public ReportSeriesResponse getRevenueSeries(String period, String from, String to) {
         String bucket = period == null ? "month" : period.trim().toLowerCase(Locale.ROOT);
         FilteredOrders filtered = resolveFilteredOrders(from, to);
         List<Orders> orders = filtered.invoices();
@@ -101,12 +110,12 @@ public class AdminReportServiceImpl implements AdminReportService {
         body.put("orderCounts", countData);
         body.put("from", filtered.from());
         body.put("to", filtered.to());
-        return body;
+        return adminReportMapper.toSeriesResponse(body);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> getStatusBreakdown(String from, String to) {
+    public ReportStatusBreakdownResponse getStatusBreakdown(String from, String to) {
         FilteredOrders filtered = resolveFilteredOrders(from, to);
         Map<String, Integer> statusCounts = new LinkedHashMap<>();
         Map<String, Integer> paymentCounts = new LinkedHashMap<>();
@@ -123,12 +132,12 @@ public class AdminReportServiceImpl implements AdminReportService {
         body.put("paymentStatus", paymentCounts);
         body.put("from", filtered.from());
         body.put("to", filtered.to());
-        return body;
+        return adminReportMapper.toStatusBreakdownResponse(body);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> listInvoices(String from, String to, int page, int size) {
+    public ReportPageResponse listInvoices(String from, String to, int page, int size) {
         FilteredOrders filtered = resolveFilteredOrders(from, to);
         List<Orders> orders = filtered.invoices().stream()
                 .sorted(Comparator.comparing(Orders::getCreateDate, Comparator.nullsLast(Comparator.reverseOrder()))
@@ -155,12 +164,12 @@ public class AdminReportServiceImpl implements AdminReportService {
         body.put("excludedOutOfRange", filtered.outOfRange());
         body.put("from", filtered.from());
         body.put("to", filtered.to());
-        return body;
+        return adminReportMapper.toPageResponse(body);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> getInvoicesByUser(String from, String to) {
+    public ReportInvoicesByUserResponse getInvoicesByUser(String from, String to) {
         FilteredOrders filtered = resolveFilteredOrders(from, to);
         Map<String, UserAgg> byUser = new LinkedHashMap<>();
 
@@ -183,7 +192,7 @@ public class AdminReportServiceImpl implements AdminReportService {
         body.put("totalRevenue", sumTotal(filtered.invoices()));
         body.put("from", filtered.from());
         body.put("to", filtered.to());
-        return body;
+        return adminReportMapper.toInvoicesByUserResponse(body);
     }
 
     private FilteredOrders resolveFilteredOrders(String from, String to) {

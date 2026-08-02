@@ -65,11 +65,12 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
-import MainLayout from "../layouts/MainLayout.vue";
-import ProductImage from "../components/user/ProductImage.vue";
-import { useAppStore } from "../stores/appStore";
+import MainLayout from "../../layouts/MainLayout.vue";
+import ProductImage from "../../components/user/ProductImage.vue";
+import { useAppStore, useToast } from "../../stores/appStore.js";
 
 const store = useAppStore();
+const toast = useToast();
 const loading = ref(true);
 const removingId = ref(null);
 
@@ -78,8 +79,23 @@ const favoriteCount = computed(() => store.favoriteCount.value);
 
 const formatPrice = (price) => Number(price || 0).toLocaleString("vi-VN");
 
-const addToCart = (item) => {
-  store.addToCart(item);
+const addToCart = async (item) => {
+  if (!store.state.user) {
+    toast.warning("Vui lòng đăng nhập để thêm vào giỏ hàng.");
+    return;
+  }
+  const result = await store.addToCartAsync(item, 1);
+  if (!result?.success) {
+    toast.error(
+      result?.reason === "out_of_stock"
+        ? "Sản phẩm đã hết hàng."
+        : result?.reason === "no_price"
+          ? "Không xác định được giá sản phẩm."
+          : "Không thể thêm vào giỏ hàng."
+    );
+    return;
+  }
+  toast.success(`Đã thêm "${item.name}" vào giỏ.`);
 };
 
 const onRemove = async (productId) => {

@@ -195,16 +195,13 @@
           </div>
 
           <div class="row g-2 align-items-end">
-            <div class="col-md-4">
-              <label class="form-label">Thêm ảnh (không xóa ảnh cũ)</label>
+            <div class="col-md-6">
+              <label class="form-label">Tải ảnh lên</label>
               <input type="file" class="form-control" accept="image/*" multiple @change="onImageFiles($event, false)" />
+              <div class="form-text">Chọn tối đa 4 ảnh. Ảnh mới sẽ thêm vào, không xóa ảnh cũ.</div>
             </div>
-            <div class="col-md-4">
-              <label class="form-label">Thay thế 4 góc (xóa cũ + tên chuẩn)</label>
-              <input type="file" class="form-control" accept="image/*" multiple @change="onImageFiles($event, true)" />
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Link Google Drive / URL ảnh</label>
+            <div class="col-md-6">
+              <label class="form-label">Hoặc dán link ảnh / Google Drive</label>
               <div class="d-flex gap-2">
                 <input v-model="imageUrlInput" class="form-control" placeholder="https://drive.google.com/..." />
                 <button type="button" class="btn btn-secondary" :disabled="uploading" @click="addImageFromUrl">

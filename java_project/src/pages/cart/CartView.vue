@@ -4,7 +4,7 @@
       <div class="cart-page__head">
         <div>
           <h1>Giỏ hàng</h1>
-          <p>{{ cartItems.length ? `${cartCount} sản phẩm` : "Chưa có sản phẩm nào" }}</p>
+          <p>{{ cartItems.length ? `${cartCount} loại · ${cartQuantityTotal} sản phẩm` : "Chưa có sản phẩm nào" }}</p>
         </div>
         <RouterLink to="/" class="profile-home-btn">← Quay lại trang chủ</RouterLink>
       </div>
@@ -56,7 +56,7 @@
         <aside class="cart-summary">
           <h2>Tóm tắt đơn hàng</h2>
           <div class="cart-summary__row">
-            <span>Tạm tính ({{ cartCount }} sp)</span>
+            <span>Tạm tính ({{ cartQuantityTotal }} sp)</span>
             <span>{{ formatPrice(amount) }}đ</span>
           </div>
           <div class="cart-summary__row">
@@ -74,7 +74,7 @@
           <RouterLink to="/product" class="cart-summary__continue">← Tiếp tục mua sắm</RouterLink>
           <ul class="cart-summary__benefits">
             <li>✓ Đổi trả trong 7 ngày</li>
-            <li>✓ Thanh toán COD / VNPAY / Momo</li>
+            <li>✓ Thanh toán COD / SePay / MoMo</li>
             <li>✓ Hỗ trợ 24/7: 0336 694 988</li>
           </ul>
         </aside>
@@ -87,13 +87,14 @@
 import { computed } from "vue";
 import { RouterLink } from "vue-router";
 import MainLayout from "../../layouts/MainLayout.vue";
-import ProductImage from "../../components/ProductImage.vue";
+import ProductImage from "../../components/user/ProductImage.vue";
 import { useAppStore } from "../../stores/appStore";
 import { calcShippingFee, calcOrderTotal, FREE_SHIP_THRESHOLD } from "../../utils/shipping";
 
 const store = useAppStore();
 const cartItems = computed(() => store.state.cartItems);
 const cartCount = computed(() => store.cartCount.value);
+const cartQuantityTotal = computed(() => store.cartQuantityTotal.value);
 const amount = computed(() => store.cartAmount.value);
 const shippingFee = computed(() => calcShippingFee(amount.value));
 const total = computed(() => calcOrderTotal(amount.value));

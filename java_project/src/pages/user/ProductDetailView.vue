@@ -306,7 +306,7 @@
             </RouterLink>
             <div class="pd-related-card__body">
               <RouterLink :to="`/product/${item.id}`" class="pd-related-card__name">{{ item.name }}</RouterLink>
-              <p class="pd-related-card__price">{{ formatPrice(item.price) }}đ</p>
+              <p class="pd-related-card__price">{{ formatPrice(displayProductPrice(item)) }}đ</p>
             </div>
           </article>
         </div>
@@ -318,12 +318,12 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
-import MainLayout from "../layouts/MainLayout.vue";
-import FavoriteButton from "../components/user/FavoriteButton.vue";
-import ProductImage from "../components/user/ProductImage.vue";
-import SizeAdvisorModal from "../components/user/SizeAdvisorModal.vue";
-import { fetchProductByIdApi, fetchProductCommentsApi, fetchProfileApi, postProductCommentApi } from "../services/api";
-import { useAppStore, useToast } from "../stores/appStore";
+import MainLayout from "../../layouts/MainLayout.vue";
+import FavoriteButton from "../../components/user/FavoriteButton.vue";
+import ProductImage from "../../components/user/ProductImage.vue";
+import SizeAdvisorModal from "../../components/user/SizeAdvisorModal.vue";
+import { fetchProductByIdApi, fetchProductCommentsApi, fetchProfileApi, postProductCommentApi } from "../../services/api.js";
+import { useAppStore, useToast } from "../../stores/appStore.js";
 import {
   colorsForSize,
   findVariant,
@@ -334,8 +334,9 @@ import {
   sizesForColor,
   uniqueColors,
   validateVariantSelection,
-} from "../utils/variantSelection";
-import { firstError, getApiError, runValidation as validateFields } from "../utils/validators";
+} from "../../utils/variantSelection.js";
+import { displayProductPrice } from "../../utils/productImage.js";
+import { firstError, getApiError, runValidation as validateFields } from "../../utils/validators.js";
 
 const route = useRoute();
 const router = useRouter();

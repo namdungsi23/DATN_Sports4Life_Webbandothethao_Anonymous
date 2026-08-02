@@ -1,7 +1,5 @@
 package poly.edu.ASSM.api.admin;
 
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,6 +8,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import poly.edu.ASSM.Services.core.AdminReportService;
+import poly.edu.ASSM.dto.response.ReportInvoicesByUserResponse;
+import poly.edu.ASSM.dto.response.ReportPageResponse;
+import poly.edu.ASSM.dto.response.ReportSeriesResponse;
+import poly.edu.ASSM.dto.response.ReportStatusBreakdownResponse;
+import poly.edu.ASSM.dto.response.ReportSummaryResponse;
 
 @RestController
 @RequestMapping("/api/admin/reports")
@@ -20,14 +23,14 @@ public class AdminReportApiController {
     private AdminReportService adminReportService;
 
     @GetMapping("/summary")
-    public Map<String, Object> summary(
+    public ReportSummaryResponse summary(
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to) {
         return adminReportService.getSummary(from, to);
     }
 
     @GetMapping("/revenue")
-    public Map<String, Object> revenue(
+    public ReportSeriesResponse revenue(
             @RequestParam(defaultValue = "month") String period,
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to) {
@@ -35,14 +38,14 @@ public class AdminReportApiController {
     }
 
     @GetMapping("/status-breakdown")
-    public Map<String, Object> statusBreakdown(
+    public ReportStatusBreakdownResponse statusBreakdown(
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to) {
         return adminReportService.getStatusBreakdown(from, to);
     }
 
     @GetMapping("/invoices")
-    public Map<String, Object> invoices(
+    public ReportPageResponse invoices(
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to,
             @RequestParam(defaultValue = "0") int page,
@@ -51,7 +54,7 @@ public class AdminReportApiController {
     }
 
     @GetMapping("/by-user")
-    public Map<String, Object> byUser(
+    public ReportInvoicesByUserResponse byUser(
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to) {
         return adminReportService.getInvoicesByUser(from, to);

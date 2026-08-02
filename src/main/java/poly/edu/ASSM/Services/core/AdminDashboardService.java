@@ -1,9 +1,20 @@
 package poly.edu.ASSM.Services.core;
 
-import java.util.Map;
+
+
+import poly.edu.ASSM.dto.response.DashboardChartsResponse;
+
+import poly.edu.ASSM.dto.response.DashboardResponse;
+
+
 
 public interface AdminDashboardService {
-    Map<String, Object> getDashboard(int months);
 
-    Map<String, Object> getCharts(int months);
+    DashboardResponse getDashboard(int months);
+
+
+
+    DashboardChartsResponse getCharts(int months);
+
 }
+

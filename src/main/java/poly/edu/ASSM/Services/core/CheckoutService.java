@@ -1,16 +1,18 @@
 package poly.edu.ASSM.Services.core;
 
 import java.util.List;
-import java.util.Map;
 
 import poly.edu.ASSM.dto.request.CheckoutConfirmRequest;
 import poly.edu.ASSM.dto.request.VoucherApplyRequest;
+import poly.edu.ASSM.dto.response.CarrierResponse;
+import poly.edu.ASSM.dto.response.CheckoutConfirmResponse;
+import poly.edu.ASSM.dto.response.VoucherPreviewResponse;
 
 public interface CheckoutService {
 
-    Map<String, Object> confirmCheckout(String username, CheckoutConfirmRequest request);
+    CheckoutConfirmResponse confirmCheckout(String username, CheckoutConfirmRequest request);
 
-    Map<String, Object> previewVoucher(String username, VoucherApplyRequest request);
+    VoucherPreviewResponse previewVoucher(String username, VoucherApplyRequest request);
 
-    List<Map<String, Object>> listActiveCarriers();
+    List<CarrierResponse> listActiveCarriers();
 }

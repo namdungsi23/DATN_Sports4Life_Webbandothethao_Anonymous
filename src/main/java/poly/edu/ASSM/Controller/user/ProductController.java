@@ -1,4 +1,4 @@
-package poly.edu.ASSM.Controller;
+package poly.edu.ASSM.Controller.user;
 
 
 import org.springframework.beans.factory.annotation.Autowired;

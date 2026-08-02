@@ -217,3 +217,53 @@ export function validateVariantSelection({
 
   return { ok: Object.keys(errors).length === 0, errors, variant: variant || null };
 }
+
+/** Biến thể mặc định để thêm nhanh từ trang chủ / danh sách. */
+export function pickDefaultVariant(variants) {
+  if (!Array.isArray(variants) || !variants.length) return null;
+
+  const inStock = variants.filter(isVariantInStock);
+  const pool = inStock.length ? inStock : variants;
+
+  return (
+    pool.find((v) => v.isDefault && isVariantInStock(v)) ||
+    pool.find((v) => v.isDefault) ||
+    pool.find((v) => isVariantInStock(v)) ||
+    pool[0] ||
+    null
+  );
+}
+
+/**
+ * Chuẩn hóa sản phẩm trước khi addToCart — gắn variantId, size, color, giá, tồn kho.
+ */
+export function buildCartLineFromProduct(product) {
+  if (!product?.id) return product;
+
+  const variants = product.variants;
+  let variant = null;
+
+  if (product.variantId != null && Array.isArray(variants)) {
+    variant = variants.find((v) => String(v.id) === String(product.variantId)) || null;
+  }
+  if (!variant) {
+    variant = pickDefaultVariant(variants);
+  }
+  if (!variant) return product;
+
+  const images = Array.isArray(variant.images)
+    ? variant.images
+        .map((img) => (typeof img === "string" ? img : img?.imageUrl || img?.url))
+        .filter(Boolean)
+    : [];
+
+  return {
+    ...product,
+    price: variant.price ?? product.price ?? product.minPrice ?? 0,
+    variantId: variant.id ?? product.variantId ?? null,
+    size: normalizeAttr(variant.size) || product.size || "",
+    color: normalizeAttr(variant.color) || product.color || "",
+    stock: variant.stock ?? variant.quantity ?? product.stock,
+    image: images[0] || variant.image || product.image,
+  };
+}

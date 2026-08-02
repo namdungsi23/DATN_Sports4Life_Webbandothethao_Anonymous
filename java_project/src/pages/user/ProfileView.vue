@@ -60,7 +60,7 @@
           </div>
           <div class="profile-stat">
             <strong>{{ cartCount }}</strong>
-            <span>Sản phẩm trong giỏ</span>
+            <span>Mặt hàng trong giỏ</span>
           </div>
           <div class="profile-stat">
             <strong>{{ memberSince }}</strong>
@@ -429,7 +429,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
-import MainLayout from "../layouts/MainLayout.vue";
+import MainLayout from "../../layouts/MainLayout.vue";
 import {
   cancelMyOrderApi,
   changePasswordApi,
@@ -438,16 +438,16 @@ import {
   fetchProfileApi,
   updateProfileApi,
   uploadProfileAvatarApi,
-} from "../services/api";
-import { useAppStore, useToast } from "../stores/appStore";
-import { firstError, getApiError, normalizePhone, runValidation } from "../utils/validators";
+} from "../../services/api.js";
+import { useAppStore, useToast } from "../../stores/appStore.js";
+import { firstError, getApiError, normalizePhone, runValidation } from "../../utils/validators.js";
 import {
   ORDER_STATUS_LABELS,
   PAYMENT_STATUS_LABELS,
   SHIPPING_STATUS_LABELS,
   userCanAccessPanel,
-} from "../utils/adminAccess";
-import { formatRankDiscount, rankVisual } from "../utils/rankStyle";
+} from "../../utils/adminAccess.js";
+import { formatRankDiscount, rankVisual } from "../../utils/rankStyle.js";
 
 const route = useRoute();
 const router = useRouter();

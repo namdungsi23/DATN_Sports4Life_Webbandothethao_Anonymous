@@ -30,7 +30,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { useAppStore, useToast } from "../stores/appStore";
+import { useAppStore, useToast } from "../../stores/appStore.js";
 
 const props = defineProps({
   product: { type: Object, required: true },

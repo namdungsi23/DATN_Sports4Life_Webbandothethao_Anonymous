@@ -107,8 +107,8 @@
 import { computed, ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import MainLayout from "../../layouts/MainLayout.vue";
-import ProductImage from "../../components/ProductImage.vue";
-import CheckoutSteps from "../../components/CheckoutSteps.vue";
+import ProductImage from "../../components/user/ProductImage.vue";
+import CheckoutSteps from "../../components/user/CheckoutSteps.vue";
 import { useAppStore } from "../../stores/appStore";
 import { calcShippingFee, calcOrderTotal, FREE_SHIP_THRESHOLD } from "../../utils/shipping";
 
@@ -121,8 +121,8 @@ const error = ref("");
 const methods = [
   { value: "CASH", label: "Thanh toán khi nhận hàng", desc: "Kiểm tra hàng trước khi trả tiền", icon: "🚚" },
   { value: "SEPAY", label: "SePay (QR / Thẻ)", desc: "Quét mã QR ngân hàng, thẻ quốc tế", icon: "💳" },
-  { value: "MOMO", label: "Ví MoMo", desc: "Quét mã hoặc chuyển khoản nhanh", icon: "📱" },
-  { value: "TECHCOMBANK", label: "Techcombank", desc: "Chuyển khoản ngân hàng", icon: "🏦" },
+  { value: "MOMO", label: "Ví MoMo", desc: "Chuyển khoản thủ công — xác nhận sau khi thanh toán", icon: "📱" },
+  { value: "TECHCOMBANK", label: "Techcombank", desc: "Chuyển khoản thủ công — xác nhận sau khi thanh toán", icon: "🏦" },
 ];
 
 const amount = computed(() => store.cartAmount.value);

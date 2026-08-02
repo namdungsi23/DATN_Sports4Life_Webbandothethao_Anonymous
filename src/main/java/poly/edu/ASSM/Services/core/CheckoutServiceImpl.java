@@ -3,9 +3,7 @@ package poly.edu.ASSM.Services.core;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -36,7 +34,13 @@ import poly.edu.ASSM.dto.request.CheckoutConfirmRequest;
 import poly.edu.ASSM.dto.request.VoucherApplyRequest;
 import poly.edu.ASSM.dto.request.CustomerAddressRequest;
 import poly.edu.ASSM.dto.request.OrderShippingRequest;
+import poly.edu.ASSM.dto.response.CarrierResponse;
+import poly.edu.ASSM.dto.response.CheckoutConfirmResponse;
 import poly.edu.ASSM.dto.response.CustomerAddressResponse;
+import poly.edu.ASSM.dto.response.SePayCheckoutFormResponse;
+import poly.edu.ASSM.dto.response.VoucherPreviewResponse;
+import poly.edu.ASSM.mapper.CarrierMapper;
+import poly.edu.ASSM.mapper.CheckoutMapper;
 import poly.edu.ASSM.mapper.CustomerAddressMapper;
 import poly.edu.ASSM.mapper.OrderAddressMapper;
 
@@ -78,22 +82,21 @@ public class CheckoutServiceImpl implements CheckoutService {
     @Autowired
     private AdminNotificationService notificationService;
 
+    @Autowired
+    private CarrierMapper carrierMapper;
+
+    @Autowired
+    private CheckoutMapper checkoutMapper;
+
     @Override
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> listActiveCarriers() {
-        List<Map<String, Object>> list = new ArrayList<>();
-        for (Carriers carrier : carrierRepository.findByActiveTrueOrderByNameAsc()) {
-            Map<String, Object> m = new HashMap<>();
-            m.put("id", carrier.getId());
-            m.put("name", carrier.getName());
-            m.put("code", carrier.getCode());
-            list.add(m);
-        }
-        return list;
+    public List<CarrierResponse> listActiveCarriers() {
+        return carrierMapper.toResponseList(carrierRepository.findByActiveTrueOrderByNameAsc());
     }
+
     @Override
     @Transactional
-    public Map<String, Object> confirmCheckout(String username, CheckoutConfirmRequest request) {
+    public CheckoutConfirmResponse confirmCheckout(String username, CheckoutConfirmRequest request) {
         Accounts account = requireAccount(username);
         Users user = customerAddressService.requireUser(account);
         ShippingSnapshot snapshot = resolveShippingSnapshot(account, user, request);
@@ -162,31 +165,39 @@ public class CheckoutServiceImpl implements CheckoutService {
             savedAddressBook = customerAddressService.saveFromCheckout(account, user, bookRequest, setDefault);
         }
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("message", "Đặt hàng thành công");
-        body.put("orderId", savedOrder.getId());
-        body.put("subTotal", subTotal);
-        body.put("discountAmount", discountAmount);
-        body.put("shippingFee", finalShippingFee);
-        body.put("totalAmount", totalAmount);
-        if (voucherResult.voucher() != null) {
-            body.put("voucherCode", voucherResult.voucher().getCode());
-            body.put("discountType", voucherResult.discountType());
-        }
-        body.put("orderAddress", orderAddressMapper.toResponse(savedSnapshot));
-        if (savedAddressBook != null) {
-            body.put("savedAddress", savedAddressBook);
-        }
-
+        String voucherCode = voucherResult.voucher() != null ? voucherResult.voucher().getCode() : null;
+        String discountType = voucherResult.voucher() != null ? voucherResult.discountType() : null;
+        SePayCheckoutFormResponse sepayForm = null;
+        String paymentMethod = null;
+        Boolean paymentPending = null;
         if (isSePayMethod(request.getPaymentMethod())) {
-            body.put("paymentMethod", "SEPAY");
-            body.put("paymentPending", true);
-            body.put("sepay", sePayService.buildCheckoutForm(savedOrder, account.getUsername()));
+            paymentMethod = "SEPAY";
+            paymentPending = true;
+            sepayForm = sePayService.buildCheckoutForm(
+                    savedOrder, account.getUsername(), request.getReturnBaseUrl());
         }
 
         notifyNewOrder(username, savedOrder.getId(), totalAmount, request.getPaymentMethod());
 
-        return body;
+        String paymentCompletionToken = isSePayMethod(request.getPaymentMethod())
+                ? sePayService.createPaymentCompletionToken(savedOrder.getId())
+                : null;
+
+        return checkoutMapper.toConfirmResponse(
+                "Đặt hàng thành công",
+                savedOrder.getId(),
+                subTotal,
+                discountAmount,
+                finalShippingFee,
+                totalAmount,
+                voucherCode,
+                discountType,
+                orderAddressMapper.toResponse(savedSnapshot),
+                savedAddressBook,
+                paymentMethod,
+                paymentPending,
+                sepayForm,
+                paymentCompletionToken);
     }
 
     /** Chuông admin + khách sau khi đặt hàng; lỗi notify không làm fail đơn. */
@@ -217,7 +228,7 @@ public class CheckoutServiceImpl implements CheckoutService {
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> previewVoucher(String username, VoucherApplyRequest request) {
+    public VoucherPreviewResponse previewVoucher(String username, VoucherApplyRequest request) {
         requireAccount(username);
         BigDecimal subTotal = voucherService.calculateSubTotal(request.getItems());
         BigDecimal shippingFee = ShippingFeePolicy.calculate(subTotal);
@@ -225,18 +236,16 @@ public class CheckoutServiceImpl implements CheckoutService {
         BigDecimal finalShippingFee = shippingFee.subtract(result.shippingDiscount()).max(BigDecimal.ZERO);
         BigDecimal totalAmount = subTotal.subtract(result.subtotalDiscount()).add(finalShippingFee).max(BigDecimal.ONE);
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("valid", true);
-        body.put("voucherCode", result.voucher().getCode());
-        body.put("voucherName", result.voucher().getName());
-        body.put("discountType", result.discountType());
-        body.put("subTotal", subTotal);
-        body.put("discountAmount", result.totalDiscount());
-        body.put("subtotalDiscount", result.subtotalDiscount());
-        body.put("shippingDiscount", result.shippingDiscount());
-        body.put("shippingFee", finalShippingFee);
-        body.put("totalAmount", totalAmount);
-        return body;
+        return checkoutMapper.toVoucherPreviewResponse(
+                result.voucher().getCode(),
+                result.voucher().getName(),
+                result.discountType(),
+                subTotal,
+                result.totalDiscount(),
+                result.subtotalDiscount(),
+                result.shippingDiscount(),
+                finalShippingFee,
+                totalAmount);
     }
 
     private BigDecimal calculateSubTotal(List<CheckoutCartItemRequest> items) {
