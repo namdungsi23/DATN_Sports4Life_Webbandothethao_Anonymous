@@ -277,10 +277,10 @@ import {
   fetchUserUnreadCountApi,
   markAllUserNotificationsReadApi,
   markUserNotificationReadApi,
-} from "../services/api";
-import { useToast } from "../stores/appStore";
-import { KEYWORD_MAX, validateProductFilters } from "../utils/productFilter";
-import { BRAND } from "../utils/brand";
+} from "../../services/api.js";
+import { useToast } from "../../stores/appStore.js";
+import { KEYWORD_MAX, validateProductFilters } from "../../utils/productFilter.js";
+import { BRAND } from "../../utils/brand.js";
 
 const props = defineProps({
   user: { type: Object, default: null },

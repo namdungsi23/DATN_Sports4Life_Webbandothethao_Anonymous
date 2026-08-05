@@ -6,7 +6,7 @@ function getAccessToken() {
   const { state } = useAppStore();
   if (state.accessToken) return state.accessToken;
   try {
-    return sessionStorage.getItem(STORAGE_KEYS.accessToken);
+    return localStorage.getItem(STORAGE_KEYS.accessToken);
   } catch {
     return null;
   }

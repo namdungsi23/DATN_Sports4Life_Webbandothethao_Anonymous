@@ -42,7 +42,7 @@
             <RouterLink :to="`/product/${product.id}`" class="bestseller-card__name">
               <h3>{{ product.name }}</h3>
             </RouterLink>
-            <p class="bestseller-card__price">{{ formatPrice(product.price) }}đ</p>
+            <p class="bestseller-card__price">{{ formatPrice(displayProductPrice(product)) }}đ</p>
             <button
               type="button"
               class="bestseller-card__btn"
@@ -76,14 +76,15 @@
 <script setup>
 import { onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
-import { fetchProductsApi } from "../services/api";
-import { useAppStore } from "../stores/appStore";
+import { fetchProductsApi } from "../../services/api.js";
+import { useAppStore, useToast } from "../../stores/appStore.js";
+import { displayProductPrice, normalizeProduct } from "../../utils/productImage.js";
 import FavoriteButton from "./FavoriteButton.vue";
 import ProductCardMedia from "./ProductCardMedia.vue";
 import QuickViewModal from "./QuickViewModal.vue";
-import { normalizeProduct } from "../utils/productImage";
 
-const { addToCart, state } = useAppStore();
+const { addToCartAsync, state } = useAppStore();
+const toast = useToast();
 const trackRef = ref(null);
 const products = ref([]);
 const loading = ref(true);
@@ -100,15 +101,25 @@ const scrollBy = (offset) => {
   trackRef.value?.scrollBy({ left: offset, behavior: "smooth" });
 };
 
-const onAddToCart = (product) => {
+const onAddToCart = async (product) => {
   if (!state.user) {
-    error.value = "Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.";
-    setTimeout(() => {
-      error.value = "";
-    }, 2500);
+    toast.warning("Vui lòng đăng nhập để thêm vào giỏ hàng.");
     return;
   }
-  addToCart(product, 1);
+  const result = await addToCartAsync(product, 1);
+  if (!result?.success) {
+    toast.error(
+      result?.reason === "out_of_stock"
+        ? "Sản phẩm đã hết hàng."
+        : result?.reason === "stock_limit"
+          ? `Chỉ còn tối đa ${result.stock} sản phẩm.`
+          : result?.reason === "no_price"
+            ? "Không xác định được giá sản phẩm."
+            : "Không thể thêm vào giỏ hàng."
+    );
+    return;
+  }
+  toast.success(`Đã thêm "${product.name}" vào giỏ.`);
 };
 
 onMounted(async () => {

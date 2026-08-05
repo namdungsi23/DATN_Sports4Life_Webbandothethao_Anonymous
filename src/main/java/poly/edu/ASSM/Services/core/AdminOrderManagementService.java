@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import poly.edu.ASSM.dto.request.AdminOrderUpdateRequest;
+import poly.edu.ASSM.dto.response.CarrierResponse;
 
 public interface AdminOrderManagementService {
 
@@ -15,7 +16,7 @@ public interface AdminOrderManagementService {
 
     Map<String, Object> getPendingAlerts();
 
-    List<Map<String, Object>> listCarriers();
+    List<CarrierResponse> listCarriers();
 
     Map<String, Object> updateOrder(AdminOrderUpdateRequest request);
 

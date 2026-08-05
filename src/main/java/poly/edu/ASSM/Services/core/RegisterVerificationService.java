@@ -30,6 +30,8 @@ import poly.edu.ASSM.security.OtpService;
 import poly.edu.ASSM.security.PasswordPolicy;
 import poly.edu.ASSM.Services.util.CloudinaryService;
 import poly.edu.ASSM.Services.util.SmsService;
+import poly.edu.ASSM.dto.response.ApiMessageResponse;
+import poly.edu.ASSM.mapper.ApiMessageMapper;
 
 /**
  * Đăng ký + xác minh danh tính qua Gmail (SMTP) hoặc SMS (OTP).
@@ -89,6 +91,9 @@ public class RegisterVerificationService {
 	@Autowired
 	private SmsService smsService;
 
+	@Autowired
+	private ApiMessageMapper apiMessageMapper;
+
 	@Value("${app.mail.from:noreply@sports4life.local}")
 	private String mailFrom;
 
@@ -96,7 +101,7 @@ public class RegisterVerificationService {
 	private boolean devExposeOtp;
 
 	@Transactional
-	public Map<String, Object> register(PublicRegisterRequest request) {
+	public ApiMessageResponse register(PublicRegisterRequest request) {
 		return register(request, null);
 	}
 
@@ -104,7 +109,7 @@ public class RegisterVerificationService {
 	 * Không bọc SMTP/SMS trong @Transactional — tránh giữ connection DB khi chờ mail
 	 * (Hikari hết pool → mọi request đăng ký sau bị timeout).
 	 */
-	public Map<String, Object> register(PublicRegisterRequest request, MultipartFile photo) {
+	public ApiMessageResponse register(PublicRegisterRequest request, MultipartFile photo) {
 		String pwdError = PasswordPolicy.validate(request.getPassword());
 		if (pwdError != null) {
 			throw InvalidInputException.of("password", pwdError);
@@ -187,7 +192,7 @@ public class RegisterVerificationService {
 		}
 	}
 
-	public Map<String, Object> resendOtp(String username, String channelRaw, String email, String phone) {
+	public ApiMessageResponse resendOtp(String username, String channelRaw, String email, String phone) {
 		Channel channel = Channel.from(channelRaw);
 		Accounts acc = requirePendingAccount(username);
 		String mail = email != null && !email.isBlank() ? email.trim() : acc.getEmail();
@@ -204,7 +209,7 @@ public class RegisterVerificationService {
 		return sendRegisterOtp(acc.getUsername(), mail, normalizedPhone, channel);
 	}
 
-	public Map<String, Object> verifyOtp(RegisterVerifyOtpRequest request) {
+	public ApiMessageResponse verifyOtp(RegisterVerifyOtpRequest request) {
 		Channel channel = Channel.from(request.getVerifyChannel());
 		Accounts acc = requirePendingAccount(request.getUsername());
 
@@ -256,7 +261,7 @@ public class RegisterVerificationService {
 		body.put("ok", true);
 		body.put("message", "Xác minh thành công. Bạn có thể đăng nhập.");
 		body.put("username", acc.getUsername());
-		return body;
+		return apiMessageMapper.fromMap(body);
 	}
 
 	private void activatePendingAccount(Accounts acc, Channel channel, String destination) {
@@ -269,7 +274,7 @@ public class RegisterVerificationService {
 		}
 	}
 
-	private Map<String, Object> sendRegisterOtp(String username, String email, String phone, Channel channel) {
+	private ApiMessageResponse sendRegisterOtp(String username, String email, String phone, Channel channel) {
 		String destination = channel == Channel.SMS ? phone : email;
 		String otpKey = otpKey(channel, destination);
 		String otp = otpService.generateAndStore(otpKey);
@@ -314,7 +319,7 @@ public class RegisterVerificationService {
 							? "SpeedSMS cần Brandname đã duyệt trên connect.speedsms.vn, rồi điền app.sms.brand-name=TÊN_BRAND. Tạm dùng OTP demo."
 							: "Chưa cấu hình app.sms — dùng OTP demo."));
 		}
-		return body;
+		return apiMessageMapper.fromMap(body);
 	}
 
 	private Accounts requirePendingAccount(String username) {

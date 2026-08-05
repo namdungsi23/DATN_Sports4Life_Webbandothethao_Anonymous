@@ -24,7 +24,9 @@ import poly.edu.ASSM.Entity.Users;
 import poly.edu.ASSM.Entity.Voucher;
 import poly.edu.ASSM.Repository.AccountRepository;
 import poly.edu.ASSM.Repository.UsersRepository;
+import poly.edu.ASSM.dto.response.ApiMessageResponse;
 import poly.edu.ASSM.exception.InvalidInputException;
+import poly.edu.ASSM.mapper.ApiMessageMapper;
 
 @Service
 public class NewsletterService {
@@ -49,8 +51,11 @@ public class NewsletterService {
     @Value("${app.frontend.url:http://localhost:5173}")
     private String frontendUrl;
 
+    @Autowired
+    private ApiMessageMapper apiMessageMapper;
+
     @Transactional
-    public Map<String, Object> subscribe(String emailRaw) {
+    public ApiMessageResponse subscribe(String emailRaw) {
         String email = emailRaw == null ? "" : emailRaw.trim();
         if (email.isBlank()) {
             throw InvalidInputException.of("email", "Email không được để trống.");
@@ -88,7 +93,7 @@ public class NewsletterService {
                 already
                         ? "Gmail này đã đăng ký nhận mã voucher."
                         : "Đăng ký thành công! Kiểm tra Gmail để nhận mã voucher khi có khuyến mãi.");
-        return body;
+        return apiMessageMapper.fromMap(body);
     }
 
     /** Gửi mail mã voucher mới tới user đã opt-in (không chặn tạo voucher). */

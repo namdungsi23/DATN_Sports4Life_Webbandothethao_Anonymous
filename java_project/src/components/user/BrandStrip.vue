@@ -41,8 +41,8 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { RouterLink } from "vue-router";
-import { fetchBrandsApi } from "../services/api";
-import { DEFAULT_BRAND_NAMES, mergeBrandNames, resolveBrandLogo } from "../utils/brandLogos";
+import { fetchBrandsApi } from "../../services/api.js";
+import { DEFAULT_BRAND_NAMES, mergeBrandNames, resolveBrandLogo } from "../../utils/brandLogos.js";
 
 defineProps({
   showAllLink: { type: Boolean, default: true },

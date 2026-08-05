@@ -17,7 +17,8 @@ import poly.edu.ASSM.domain.CartItem;
 
 @Service
 @SessionScope
-public class ShoppingCartServiceImpl implements ShoppingCartService {
+public class
+ShoppingCartServiceImpl implements ShoppingCartService {
     private final Map<Integer, CartItem> map = new HashMap<>();
 
     @Autowired

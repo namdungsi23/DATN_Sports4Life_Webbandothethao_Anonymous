@@ -192,17 +192,17 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import MainLayout from "../layouts/MainLayout.vue";
-import ProductList from "../components/user/ProductList.vue";
-import BrandStrip from "../components/user/BrandStrip.vue";
-import { fetchProductsApi } from "../services/api";
-import { useAppStore, useToast } from "../stores/appStore";
+import MainLayout from "../../layouts/MainLayout.vue";
+import ProductList from "../../components/user/ProductList.vue";
+import BrandStrip from "../../components/user/BrandStrip.vue";
+import { fetchProductsApi } from "../../services/api.js";
+import { useAppStore, useToast } from "../../stores/appStore.js";
 import {
   applyRouteQueryToFilters,
   buildProductQueryParams,
   filtersToRouteQuery,
   validateProductFilters,
-} from "../utils/productFilter";
+} from "../../utils/productFilter.js";
 
 const categoryIcons = {
   "Giày chạy bộ": "👟",
@@ -387,7 +387,7 @@ const changePage = (page) => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
-const addToCart = (id) => {
+const addToCart = async (id) => {
   const user = store.state.user;
   if (!user) {
     message.value = "Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.";
@@ -400,14 +400,16 @@ const addToCart = (id) => {
 
   const product = products.value.content.find((item) => item.id === id);
   if (!product) return;
-  const result = store.addToCart(product, 1);
+  const result = await store.addToCartAsync(product, 1);
   if (!result?.success) {
     const msg =
       result?.reason === "out_of_stock"
         ? "Sản phẩm đã hết hàng."
         : result?.reason === "stock_limit"
           ? `Chỉ còn tối đa ${result.stock} sản phẩm trong kho.`
-          : "Không thể thêm vào giỏ hàng.";
+          : result?.reason === "no_price"
+            ? "Không xác định được giá sản phẩm."
+            : "Không thể thêm vào giỏ hàng.";
     message.value = msg;
     toast.error(msg);
     return;

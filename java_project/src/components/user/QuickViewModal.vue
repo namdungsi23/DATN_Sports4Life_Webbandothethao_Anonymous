@@ -1,10 +1,10 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
-import { fetchProductByIdApi } from "../services/api";
-import { useAppStore, useToast } from "../stores/appStore";
+import { fetchProductByIdApi } from "../../services/api.js";
+import { useAppStore, useToast } from "../../stores/appStore.js";
 import FavoriteButton from "./FavoriteButton.vue";
-import { resolveProductImage } from "../utils/productImage";
+import { resolveProductImage, displayProductPrice } from "../../utils/productImage.js";
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -109,7 +109,7 @@ const next = () => {
   activeIndex.value = (activeIndex.value + 1) % len;
 };
 
-const onAddToCart = () => {
+const onAddToCart = async () => {
   const p = displayProduct.value;
   if (!p?.inStock) return;
 
@@ -120,7 +120,7 @@ const onAddToCart = () => {
 
   adding.value = true;
   try {
-    const result = store.addToCart(p, 1);
+    const result = await store.addToCartAsync(p, 1);
     if (!result?.success) {
       toast.error(result?.reason === "out_of_stock" ? "Sản phẩm đã hết hàng." : "Không thể thêm vào giỏ.");
       return;
@@ -195,7 +195,7 @@ const close = () => emit("close");
                   {{ displayProduct.categoryName }}
                 </p>
                 <h2 class="qv__title">{{ displayProduct.name }}</h2>
-                <p class="qv__price">{{ formatPrice(displayProduct.price) }}đ</p>
+                <p class="qv__price">{{ formatPrice(displayProductPrice(displayProduct)) }}đ</p>
 
                 <p v-if="displayProduct.description" class="qv__desc">
                   {{ displayProduct.description }}

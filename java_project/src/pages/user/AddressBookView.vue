@@ -88,17 +88,17 @@
 <script setup>
 import { onMounted, reactive, ref } from "vue";
 import { RouterLink } from "vue-router";
-import MainLayout from "../layouts/MainLayout.vue";
-import AddressFormFields from "../components/user/AddressFormFields.vue";
-import { firstError, runValidation } from "../utils/validators";
-import { useToast } from "../stores/appStore";
+import MainLayout from "../../layouts/MainLayout.vue";
+import AddressFormFields from "../../components/user/AddressFormFields.vue";
+import { firstError, runValidation } from "../../utils/validators.js";
+import { useToast } from "../../stores/appStore.js";
 import {
   createAddressApi,
   deleteAddressApi,
   fetchAddressesApi,
   setDefaultAddressApi,
   updateAddressApi,
-} from "../services/api";
+} from "../../services/api.js";
 
 const addresses = ref([]);
 const accountFullName = ref("");

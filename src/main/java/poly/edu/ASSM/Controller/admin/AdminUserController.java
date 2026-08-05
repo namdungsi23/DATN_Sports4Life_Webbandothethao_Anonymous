@@ -1,4 +1,4 @@
-package poly.edu.ASSM.Controller;
+package poly.edu.ASSM.Controller.admin;
 
 import java.util.List;
 

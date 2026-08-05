@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import poly.edu.ASSM.Services.core.CustomerOrderService;
+import poly.edu.ASSM.dto.response.CustomerOrderDetailResponse;
+import poly.edu.ASSM.dto.response.CustomerOrderSummaryResponse;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -21,12 +23,12 @@ public class CustomerOrderApiController {
     private CustomerOrderService customerOrderService;
 
     @GetMapping
-    public List<Map<String, Object>> list(Principal principal) {
+    public List<CustomerOrderSummaryResponse> list(Principal principal) {
         return customerOrderService.listMyOrders(principal.getName());
     }
 
     @GetMapping("/{id}")
-    public Map<String, Object> detail(Principal principal, @PathVariable int id) {
+    public CustomerOrderDetailResponse detail(Principal principal, @PathVariable int id) {
         return customerOrderService.getMyOrderDetail(principal.getName(), id);
     }
 

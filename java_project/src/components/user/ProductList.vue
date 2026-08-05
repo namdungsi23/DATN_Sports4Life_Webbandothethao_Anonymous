@@ -50,7 +50,7 @@
         <RouterLink :to="`/product/${p.id}`" class="product-item__name">
           <h4>{{ p.name }}</h4>
         </RouterLink>
-        <p class="product-item__price">{{ formatPrice(p.price) }}đ</p>
+        <p class="product-item__price">{{ formatPrice(displayProductPrice(p)) }}đ</p>
 
         <div class="product-item__actions">
           <FavoriteButton :product="p" variant="pill" />
@@ -159,6 +159,7 @@ import { RouterLink } from "vue-router";
 import FavoriteButton from "./FavoriteButton.vue";
 import ProductCardMedia from "./ProductCardMedia.vue";
 import QuickViewModal from "./QuickViewModal.vue";
+import { displayProductPrice } from "../../utils/productImage.js";
 
 const props = defineProps({
   products: {

@@ -1,7 +1,5 @@
 package poly.edu.ASSM.api;
 
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +12,7 @@ import poly.edu.ASSM.Services.core.PasswordResetService;
 import poly.edu.ASSM.dto.request.ForgotPasswordRequest;
 import poly.edu.ASSM.dto.request.ResetPasswordRequest;
 import poly.edu.ASSM.dto.request.VerifyOtpRequest;
+import poly.edu.ASSM.dto.response.ApiMessageResponse;
 
 @RestController
 @RequestMapping("/api/public")
@@ -23,7 +22,7 @@ public class PasswordResetApiController {
 	private PasswordResetService passwordResetService;
 
 	@PostMapping("/forgot-password")
-	public ResponseEntity<Map<String, Object>> forgot(@Valid @RequestBody ForgotPasswordRequest request) {
+	public ResponseEntity<ApiMessageResponse> forgot(@Valid @RequestBody ForgotPasswordRequest request) {
 		return ResponseEntity.ok(passwordResetService.requestReset(
 				request.getVerifyChannel(),
 				request.getEmail(),
@@ -31,7 +30,7 @@ public class PasswordResetApiController {
 	}
 
 	@PostMapping("/verify-otp")
-	public ResponseEntity<Map<String, Object>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+	public ResponseEntity<ApiMessageResponse> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
 		return ResponseEntity.ok(passwordResetService.verifyOtp(
 				request.getVerifyChannel(),
 				request.getEmail(),
@@ -40,7 +39,7 @@ public class PasswordResetApiController {
 	}
 
 	@PostMapping("/reset-password")
-	public ResponseEntity<Map<String, Object>> reset(@Valid @RequestBody ResetPasswordRequest request) {
+	public ResponseEntity<ApiMessageResponse> reset(@Valid @RequestBody ResetPasswordRequest request) {
 		return ResponseEntity.ok(passwordResetService.resetPassword(
 				request.getToken(),
 				request.getNewPassword(),

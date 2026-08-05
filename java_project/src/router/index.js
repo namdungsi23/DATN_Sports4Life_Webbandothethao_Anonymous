@@ -1,23 +1,24 @@
 import { createRouter, createWebHistory } from "vue-router";
-import IndexView from "../pages/IndexView.vue";
-import ProductView from "../pages/ProductView.vue";
-import ProductDetailView from "../pages/ProductDetailView.vue";
+import IndexView from "../pages/user/IndexView.vue";
+import ProductView from "../pages/user/ProductView.vue";
+import ProductDetailView from "../pages/user/ProductDetailView.vue";
 
-import LoginView from "../pages/LoginView.vue";
-import RegisterView from "../pages/RegisterView.vue";
-import ForgotPasswordView from "../pages/ForgotPasswordView.vue";
-import ResetPasswordView from "../pages/ResetPasswordView.vue";
-import ProfileView from "../pages/ProfileView.vue";
-import FavoritesView from "../pages/FavoritesView.vue";
-import ContactView from "../pages/ContactView.vue";
-import MoreView from "../pages/MoreView.vue";
-import BrandsView from "../pages/BrandsView.vue";
-import FeaturedView from "../pages/FeaturedView.vue";
+import LoginView from "../pages/user/LoginView.vue";
+import RegisterView from "../pages/user/RegisterView.vue";
+import ForgotPasswordView from "../pages/user/ForgotPasswordView.vue";
+import ResetPasswordView from "../pages/user/ResetPasswordView.vue";
+import ProfileView from "../pages/user/ProfileView.vue";
+import FavoritesView from "../pages/user/FavoritesView.vue";
+import ContactView from "../pages/user/ContactView.vue";
+import MoreView from "../pages/user/MoreView.vue";
+import BrandsView from "../pages/user/BrandsView.vue";
+import FeaturedView from "../pages/user/FeaturedView.vue";
 import CartView from "../pages/cart/CartView.vue";
 import CheckoutView from "../pages/cart/CheckoutView.vue";
 import PaymentView from "../pages/cart/PaymentView.vue";
 import PaymentResultView from "../pages/cart/PaymentResultView.vue";
-import AddressBookView from "../pages/AddressBookView.vue";
+import SePayWaitingView from "../pages/cart/SePayWaitingView.vue";
+import AddressBookView from "../pages/user/AddressBookView.vue";
 import AdminProductView from "../pages/admin/AdminProductView.vue";
 import AdminCategoryView from "../pages/admin/AdminCategoryView.vue";
 import AdminUserView from "../pages/admin/AdminUserView.vue";
@@ -57,7 +58,8 @@ const routes = [
   { path: "/cart", component: CartView },
   { path: "/cart/checkout", component: CheckoutView, meta: { requiresAuth: true } },
   { path: "/cart/payment", component: PaymentView, meta: { requiresAuth: true } },
-  { path: "/cart/payment/success", component: PaymentResultView, meta: { requiresAuth: true } },
+  { path: "/cart/payment/sepay", component: SePayWaitingView, meta: { requiresAuth: true } },
+  { path: "/cart/payment/success", component: SePayWaitingView, meta: { requiresAuth: true } },
   { path: "/cart/payment/error", component: PaymentResultView, meta: { requiresAuth: true } },
   { path: "/cart/payment/cancel", component: PaymentResultView, meta: { requiresAuth: true } },
   { path: "/admin", redirect: "/admin/dashboard" },
@@ -128,15 +130,29 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const rawUser = localStorage.getItem(STORAGE_KEYS.user);
   const user = rawUser ? JSON.parse(rawUser) : null;
-  const accessToken = sessionStorage.getItem(STORAGE_KEYS.accessToken);
+  let accessToken = localStorage.getItem(STORAGE_KEYS.accessToken);
 
   const needsUser = Boolean(to.meta.requiresAuth || to.meta.requiresPanel || to.meta.permission);
+  const isPaymentRoute = to.path.startsWith("/cart/payment");
 
-  // Lớp 1: yêu cầu cả profile + access token (không tin localStorage roles một mình)
-  if (needsUser && (!user || !accessToken)) {
+  if (needsUser && !accessToken && user && isPaymentRoute) {
+    try {
+      const { ensureAuthSession } = await import("../services/api.js");
+      await ensureAuthSession({ forceRefresh: true });
+      accessToken = localStorage.getItem(STORAGE_KEYS.accessToken);
+    } catch {
+      /* cho phép trang thanh toán dùng API public */
+    }
+  }
+
+  if (needsUser && !user) {
+    return { path: "/login", query: { redirect: to.fullPath } };
+  }
+
+  if (needsUser && !accessToken && !isPaymentRoute) {
     return { path: "/login", query: { redirect: to.fullPath } };
   }
 

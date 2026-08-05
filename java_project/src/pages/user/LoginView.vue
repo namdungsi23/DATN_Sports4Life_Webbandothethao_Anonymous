@@ -64,11 +64,11 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
-import AuthLayout from "../layouts/AuthLayout.vue";
-import { fetchProfileApi, loginApi } from "../services/api";
-import { useAppStore, useToast } from "../stores/appStore";
-import { resolveDefaultAdminRoute, userCanAccessPanel } from "../utils/adminAccess";
-import { firstError, getApiError, runValidation } from "../utils/validators";
+import AuthLayout from "../../layouts/AuthLayout.vue";
+import { fetchProfileApi, loginApi } from "../../services/api.js";
+import { useAppStore, useToast } from "../../stores/appStore.js";
+import { resolveDefaultAdminRoute, userCanAccessPanel } from "../../utils/adminAccess.js";
+import { firstError, getApiError, runValidation } from "../../utils/validators.js";
 
 const router = useRouter();
 const route = useRoute();

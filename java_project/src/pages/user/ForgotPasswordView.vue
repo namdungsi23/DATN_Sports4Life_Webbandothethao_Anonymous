@@ -137,10 +137,10 @@
 <script setup>
 import { computed, onUnmounted, reactive, ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
-import AuthLayout from "../layouts/AuthLayout.vue";
-import { forgotPasswordApi, resetPasswordApi, verifyOtpApi } from "../services/api";
-import { useToast } from "../stores/appStore";
-import { firstError, getApiError, runValidation } from "../utils/validators";
+import AuthLayout from "../../layouts/AuthLayout.vue";
+import { forgotPasswordApi, resetPasswordApi, verifyOtpApi } from "../../services/api.js";
+import { useToast } from "../../stores/appStore.js";
+import { firstError, getApiError, runValidation } from "../../utils/validators.js";
 
 const router = useRouter();
 const toast = useToast();

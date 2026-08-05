@@ -1,7 +1,6 @@
 package poly.edu.ASSM.api.admin;
 
 import java.security.Principal;
-import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -11,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import poly.edu.ASSM.Services.core.AdminSearchService;
+import poly.edu.ASSM.dto.response.AdminSearchResponse;
 
 @RestController
 @RequestMapping("/api/admin/search")
@@ -21,7 +21,7 @@ public class AdminSearchApiController {
 	private AdminSearchService adminSearchService;
 
 	@GetMapping
-	public Map<String, Object> search(Principal principal, @RequestParam(required = false) String q) {
+	public AdminSearchResponse search(Principal principal, @RequestParam(required = false) String q) {
 		String username = principal != null ? principal.getName() : null;
 		return adminSearchService.search(username, q);
 	}

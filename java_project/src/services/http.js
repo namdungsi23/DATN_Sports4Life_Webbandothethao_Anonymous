@@ -16,10 +16,14 @@ function getAccessToken() {
     /* store not ready */
   }
   try {
-    return sessionStorage.getItem(STORAGE_KEYS.accessToken);
+    return localStorage.getItem(STORAGE_KEYS.accessToken);
   } catch {
     return null;
   }
+}
+
+function isPaymentFetchPath(path = "") {
+  return /checkout\/sepay|sepay\/gateway-complete|cart\/payment/i.test(path);
 }
 
 export async function apiFetch(path, opts = {}) {
@@ -43,10 +47,12 @@ export async function apiFetch(path, opts = {}) {
   });
 
   if (res.status === 401) {
-    try {
-      useAppStore().logout();
-    } catch {
-      /* ignore */
+    if (!isPaymentFetchPath(path)) {
+      try {
+        useAppStore().logout();
+      } catch {
+        /* ignore */
+      }
     }
     throw Object.assign(new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."), {
       status: 401,

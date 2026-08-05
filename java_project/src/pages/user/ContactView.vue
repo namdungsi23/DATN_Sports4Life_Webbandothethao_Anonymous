@@ -96,11 +96,11 @@
 
 <script setup>
 import { reactive, ref } from "vue";
-import MainLayout from "../layouts/MainLayout.vue";
-import { sendContactApi } from "../services/api";
-import { useToast } from "../stores/appStore";
-import { firstError, getApiError, normalizePhone, runValidation } from "../utils/validators";
-import { BRAND } from "../utils/brand";
+import MainLayout from "../../layouts/MainLayout.vue";
+import { sendContactApi } from "../../services/api.js";
+import { useToast } from "../../stores/appStore.js";
+import { firstError, getApiError, normalizePhone, runValidation } from "../../utils/validators.js";
+import { BRAND } from "../../utils/brand.js";
 
 const toast = useToast();
 const loading = ref(false);

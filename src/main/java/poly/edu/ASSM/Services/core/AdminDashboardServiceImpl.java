@@ -22,6 +22,9 @@ import poly.edu.ASSM.Repository.OrderDetailsRepository;
 import poly.edu.ASSM.Repository.OrdersRepository;
 import poly.edu.ASSM.Repository.ProductRepository;
 import poly.edu.ASSM.domain.OrderStatus;
+import poly.edu.ASSM.dto.response.DashboardChartsResponse;
+import poly.edu.ASSM.dto.response.DashboardResponse;
+import poly.edu.ASSM.mapper.AdminDashboardMapper;
 
 @Service
 public class AdminDashboardServiceImpl implements AdminDashboardService {
@@ -46,27 +49,29 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
     @Autowired
     private OrdersService ordersService;
 
+    @Autowired
+    private AdminDashboardMapper adminDashboardMapper;
+
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> getDashboard(int months) {
+    public DashboardResponse getDashboard(int months) {
         int safeMonths = clampMonths(months);
         LocalDate today = LocalDate.now(ZONE);
         Instant weekAgo = today.minusDays(7).atStartOfDay(ZONE).toInstant();
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("totalUsers", accountRepository.count());
-        body.put("totalProducts", productRepository.count());
-        body.put("totalOrders", ordersRepository.count());
-        body.put("todayOrders", ordersService.countTodayOrders());
-        body.put("newProducts", productRepository.countNewProducts(weekAgo));
-        body.put("months", safeMonths);
-        body.put("charts", getCharts(safeMonths));
-        return body;
+        return adminDashboardMapper.toDashboardResponse(
+                accountRepository.count(),
+                productRepository.count(),
+                ordersRepository.count(),
+                ordersService.countTodayOrders(),
+                productRepository.countNewProducts(weekAgo),
+                safeMonths,
+                getCharts(safeMonths));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> getCharts(int months) {
+    public DashboardChartsResponse getCharts(int months) {
         int safeMonths = clampMonths(months);
         Instant start = YearMonth.now(ZONE).minusMonths(safeMonths - 1L)
                 .atDay(1)
@@ -84,7 +89,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                 ordersRepository.countGroupByOrderStatusSince(start)));
         charts.put("topCustomers", toCustomerMaps(
                 ordersRepository.topCustomersSince(start, OrderStatus.CANCELLED.name())));
-        return charts;
+        return adminDashboardMapper.toChartsResponse(charts);
     }
 
     private List<Map<String, Object>> buildRevenueByMonth(Instant start, int months) {

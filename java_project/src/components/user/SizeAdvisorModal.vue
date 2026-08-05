@@ -5,7 +5,7 @@ import {
   HEIGHT_OPTIONS,
   WEIGHT_OPTIONS,
   adviseSize,
-} from "../utils/sizeAdvisor";
+} from "../../utils/sizeAdvisor.js";
 
 const props = defineProps({
   open: { type: Boolean, default: false },

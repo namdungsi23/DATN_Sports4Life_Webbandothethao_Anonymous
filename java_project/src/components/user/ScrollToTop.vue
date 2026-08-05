@@ -1,8 +1,8 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute } from "vue-router";
-import { useAppStore } from "../stores/appStore";
-import { userCanAccessPanel } from "../utils/adminAccess";
+import { useAppStore } from "../../stores/appStore.js";
+import { userCanAccessPanel } from "../../utils/adminAccess.js";
 
 const route = useRoute();
 const store = useAppStore();

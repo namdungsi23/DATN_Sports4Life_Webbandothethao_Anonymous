@@ -1,4 +1,4 @@
-package poly.edu.ASSM.Controller;
+package poly.edu.ASSM.Controller.admin;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

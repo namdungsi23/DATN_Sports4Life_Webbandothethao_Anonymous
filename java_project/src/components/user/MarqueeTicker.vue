@@ -27,7 +27,7 @@ defineProps({
       "ĐỔI TRẢ MIỄN PHÍ trong 7 ngày",
       "HOTLINE hỗ trợ 24/7: 0336 694 988",
       "SẢN PHẨM CHÍNH HÃNG 100%",
-      "THANH TOÁN COD — VNPAY — MOMO",
+      "THANH TOÁN COD — SEPAY — MOMO",
     ],
   },
 });

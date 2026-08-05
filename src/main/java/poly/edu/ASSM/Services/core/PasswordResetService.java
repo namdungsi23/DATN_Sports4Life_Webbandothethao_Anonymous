@@ -25,6 +25,8 @@ import poly.edu.ASSM.Repository.AccountRepository;
 import poly.edu.ASSM.Repository.UsersRepository;
 import poly.edu.ASSM.Services.util.JwtService;
 import poly.edu.ASSM.Services.util.SmsService;
+import poly.edu.ASSM.dto.response.ApiMessageResponse;
+import poly.edu.ASSM.mapper.ApiMessageMapper;
 import poly.edu.ASSM.security.OtpService;
 import poly.edu.ASSM.security.PasswordPolicy;
 
@@ -74,6 +76,9 @@ public class PasswordResetService {
 	@Autowired
 	private SmsService smsService;
 
+	@Autowired
+	private ApiMessageMapper apiMessageMapper;
+
 	@Value("${app.mail.from:noreply@sports4life.local}")
 	private String mailFrom;
 
@@ -83,7 +88,7 @@ public class PasswordResetService {
 	/**
 	 * Gửi OTP qua Gmail hoặc SMS. Message chung — không lộ tài khoản có tồn tại hay không.
 	 */
-	public Map<String, Object> requestReset(String channelRaw, String email, String phone) {
+	public ApiMessageResponse requestReset(String channelRaw, String email, String phone) {
 		Channel channel = Channel.from(channelRaw);
 		Map<String, Object> body = new LinkedHashMap<>();
 		body.put("ok", true);
@@ -100,7 +105,7 @@ public class PasswordResetService {
 
 			Accounts account = accountRepository.findFirstByEmailIgnoreCase(normalized);
 			if (account == null || !Boolean.TRUE.equals(account.getIsActive())) {
-				return body;
+				return apiMessageMapper.fromMap(body);
 			}
 
 			String otpKey = otpKey(channel, normalized);
@@ -113,7 +118,7 @@ public class PasswordResetService {
 					body.put("devNote", "SMTP chưa gửi được — dùng OTP này để demo.");
 				}
 			}
-			return body;
+			return apiMessageMapper.fromMap(body);
 		}
 
 		// SMS
@@ -129,7 +134,7 @@ public class PasswordResetService {
 
 		Accounts account = findActiveAccountByPhone(normalizedPhone);
 		if (account == null) {
-			return body;
+			return apiMessageMapper.fromMap(body);
 		}
 
 		String otpKey = otpKey(channel, normalizedPhone);
@@ -142,11 +147,11 @@ public class PasswordResetService {
 				body.put("devNote", "SMS gateway chưa cấu hình — dùng OTP này để demo.");
 			}
 		}
-		return body;
+		return apiMessageMapper.fromMap(body);
 	}
 
 	/** Xác minh OTP → cấp resetToken (JWT typ=reset). */
-	public Map<String, Object> verifyOtp(String channelRaw, String email, String phone, String otp) {
+	public ApiMessageResponse verifyOtp(String channelRaw, String email, String phone, String otp) {
 		Channel channel = Channel.from(channelRaw);
 		Accounts account;
 		String destination;
@@ -190,11 +195,11 @@ public class PasswordResetService {
 		body.put("resetToken", resetToken);
 		body.put("username", account.getUsername());
 		body.put("verifyChannel", channel.name());
-		return body;
+		return apiMessageMapper.fromMap(body);
 	}
 
 	@Transactional
-	public Map<String, Object> resetPassword(String token, String newPassword, String confirmPassword) {
+	public ApiMessageResponse resetPassword(String token, String newPassword, String confirmPassword) {
 		if (newPassword == null || !newPassword.equals(confirmPassword)) {
 			throw InvalidInputException.of("confirmPassword", "Mật khẩu xác nhận không khớp.");
 		}
@@ -226,7 +231,7 @@ public class PasswordResetService {
 		Map<String, Object> body = new LinkedHashMap<>();
 		body.put("ok", true);
 		body.put("message", "Đặt lại mật khẩu thành công. Vui lòng đăng nhập.");
-		return body;
+		return apiMessageMapper.fromMap(body);
 	}
 
 	private Accounts findActiveAccountByPhone(String phone) {

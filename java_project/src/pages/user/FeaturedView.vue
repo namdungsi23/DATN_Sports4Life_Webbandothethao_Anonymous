@@ -43,7 +43,7 @@
             <RouterLink :to="`/product/${product.id}`" class="featured-editorial__name">
               <h3>{{ product.name }}</h3>
             </RouterLink>
-            <p class="featured-editorial__price">{{ formatPrice(product.price) }}đ</p>
+            <p class="featured-editorial__price">{{ formatPrice(displayProductPrice(product)) }}đ</p>
             <button
               type="button"
               class="featured-editorial__btn"
@@ -72,13 +72,14 @@
 <script setup>
 import { onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
-import MainLayout from "../layouts/MainLayout.vue";
-import BestSellerSection from "../components/user/BestSellerSection.vue";
-import FavoriteButton from "../components/user/FavoriteButton.vue";
-import ProductCardMedia from "../components/user/ProductCardMedia.vue";
-import QuickViewModal from "../components/user/QuickViewModal.vue";
-import { fetchProductsApi } from "../services/api";
-import { useAppStore, useToast } from "../stores/appStore";
+import MainLayout from "../../layouts/MainLayout.vue";
+import BestSellerSection from "../../components/user/BestSellerSection.vue";
+import FavoriteButton from "../../components/user/FavoriteButton.vue";
+import ProductCardMedia from "../../components/user/ProductCardMedia.vue";
+import QuickViewModal from "../../components/user/QuickViewModal.vue";
+import { fetchProductsApi } from "../../services/api.js";
+import { useAppStore, useToast } from "../../stores/appStore.js";
+import { displayProductPrice } from "../../utils/productImage.js";
 
 const store = useAppStore();
 const toast = useToast();
@@ -92,19 +93,21 @@ const openQuickView = (product) => {
 
 const formatPrice = (price) => Number(price || 0).toLocaleString("vi-VN");
 
-const onAddToCart = (product) => {
+const onAddToCart = async (product) => {
   if (!store.state.user) {
     toast.warning("Vui lòng đăng nhập để thêm vào giỏ hàng.");
     return;
   }
-  const result = store.addToCart(product, 1);
+  const result = await store.addToCartAsync(product, 1);
   if (!result?.success) {
     toast.error(
       result?.reason === "out_of_stock"
         ? "Sản phẩm đã hết hàng."
         : result?.reason === "stock_limit"
           ? `Chỉ còn tối đa ${result.stock} sản phẩm.`
-          : "Không thể thêm vào giỏ hàng."
+          : result?.reason === "no_price"
+            ? "Không xác định được giá sản phẩm."
+            : "Không thể thêm vào giỏ hàng."
     );
     return;
   }

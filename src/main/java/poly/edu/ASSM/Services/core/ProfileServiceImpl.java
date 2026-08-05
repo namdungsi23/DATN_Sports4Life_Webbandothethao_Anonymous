@@ -1,7 +1,6 @@
 package poly.edu.ASSM.Services.core;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +19,9 @@ import poly.edu.ASSM.Repository.UsersRepository;
 import poly.edu.ASSM.Services.util.CloudinaryService;
 import poly.edu.ASSM.dto.request.ChangePasswordRequest;
 import poly.edu.ASSM.dto.request.ProfileUpdateRequest;
+import poly.edu.ASSM.dto.response.ProfileResponse;
 import poly.edu.ASSM.exception.InvalidInputException;
+import poly.edu.ASSM.mapper.ProfileMapper;
 import poly.edu.ASSM.security.PasswordPolicy;
 
 @Service
@@ -41,10 +42,13 @@ public class ProfileServiceImpl implements ProfileService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private ProfileMapper profileMapper;
+
     @Override
     public Map<String, Object> getProfile(String username) {
         Accounts account = requireAccount(username);
-        return Map.of("profile", toProfileMap(account));
+        return Map.of("profile", toProfile(account));
     }
 
     @Override
@@ -71,7 +75,7 @@ public class ProfileServiceImpl implements ProfileService {
         accountRepository.save(account);
         usersRepository.save(users);
 
-        return Map.of("profile", toProfileMap(account), "message", "Cập nhật hồ sơ thành công");
+        return Map.of("profile", toProfile(account), "message", "Cập nhật hồ sơ thành công");
     }
 
     @Override
@@ -92,7 +96,7 @@ public class ProfileServiceImpl implements ProfileService {
         deleteOldAvatarIfReplaced(oldUrl, url);
 
         return Map.of(
-                "profile", toProfileMap(account),
+                "profile", toProfile(account),
                 "photo", url,
                 "message", "Cập nhật ảnh đại diện thành công");
     }
@@ -184,32 +188,8 @@ public class ProfileServiceImpl implements ProfileService {
                 .orElseThrow(() -> new IllegalStateException("Default rank not found"));
     }
 
-    private Map<String, Object> toProfileMap(Accounts account) {
-        Map<String, Object> profile = new HashMap<>();
-        profile.put("username", account.getUsername());
-        profile.put("email", account.getEmail());
-        profile.put("createdAt", account.getCreatedAt());
-
-        usersRepository.findByAccount_Id(account.getId()).ifPresent(users -> {
-            profile.put("fullname", users.getFullName());
-            profile.put("photo", users.getAvatar());
-            profile.put("avatar", users.getAvatar());
-            profile.put("phone", users.getPhone());
-            profile.put("createDate", users.getCreatedAt());
-            profile.put("totalPoint", users.getTotalPoint() != null ? users.getTotalPoint() : 0);
-            if (users.getRank() != null) {
-                profile.put("rankId", users.getRank().getId());
-                profile.put("rankName", users.getRank().getRankName());
-                profile.put("rankDiscountPercent", users.getRank().getDiscountPercent());
-                profile.put("rankMinPoint", users.getRank().getMinPoint());
-            } else {
-                profile.put("rankId", null);
-                profile.put("rankName", null);
-                profile.put("rankDiscountPercent", null);
-                profile.put("rankMinPoint", null);
-            }
-        });
-
-        return profile;
+    private ProfileResponse toProfile(Accounts account) {
+        Users users = usersRepository.findByAccount_Id(account.getId()).orElse(null);
+        return profileMapper.toResponse(account, users);
     }
 }

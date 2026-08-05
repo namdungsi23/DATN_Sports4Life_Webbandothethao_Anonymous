@@ -1,6 +1,7 @@
 import { computed, reactive, watch } from "vue";
 import { resolveProductImage } from "../utils/productImage";
-import { addWishlistApi, fetchWishlistApi, removeWishlistApi } from "../services/api";
+import { buildCartLineFromProduct } from "../utils/variantSelection.js";
+import { addWishlistApi, fetchWishlistApi, fetchProductByIdApi, removeWishlistApi } from "../services/api";
 
 export const STORAGE_KEYS = {
   cart: "sport-store-cart",
@@ -19,12 +20,41 @@ const safeParse = (raw, fallback) => {
 
 const readStoredUser = () => safeParse(localStorage.getItem(STORAGE_KEYS.user), null);
 
+const readStoredToken = (key) => {
+  try {
+    const fromLocal = localStorage.getItem(key);
+    if (fromLocal) return fromLocal;
+    const fromSession = sessionStorage.getItem(key);
+    if (fromSession) {
+      localStorage.setItem(key, fromSession);
+      sessionStorage.removeItem(key);
+      return fromSession;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+};
+
+const writeStoredToken = (key, value) => {
+  try {
+    if (value) {
+      localStorage.setItem(key, value);
+    } else {
+      localStorage.removeItem(key);
+    }
+    sessionStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+};
+
 const initialUser = readStoredUser();
 
 const state = reactive({
   cartItems: safeParse(localStorage.getItem(STORAGE_KEYS.cart), []),
   user: initialUser,
-  accessToken: sessionStorage.getItem(STORAGE_KEYS.accessToken) || null,
+  accessToken: readStoredToken(STORAGE_KEYS.accessToken),
   favorites: [],
   favoritesLoading: false,
   toasts: [],
@@ -51,11 +81,7 @@ watch(
 watch(
   () => state.accessToken,
   (value) => {
-    if (value) {
-      sessionStorage.setItem(STORAGE_KEYS.accessToken, value);
-    } else {
-      sessionStorage.removeItem(STORAGE_KEYS.accessToken);
-    }
+    writeStoredToken(STORAGE_KEYS.accessToken, value);
   }
 );
 
@@ -100,11 +126,16 @@ const resolveStock = (product) => {
  * @returns {{ success: boolean, reason?: string, added?: number, stock?: number }}
  */
 const addToCart = (product, quantity = 1) => {
-  if (!product?.id) return { success: false, reason: "invalid" };
+  const line = buildCartLineFromProduct(product);
+  if (!line?.id) return { success: false, reason: "invalid" };
 
-  const stock = resolveStock(product);
+  if (Number(line.price || 0) <= 0) {
+    return { success: false, reason: "no_price" };
+  }
+
+  const stock = resolveStock(line);
   const requested = normalizeQty(quantity);
-  const variantId = product.variantId ?? null;
+  const variantId = line.variantId ?? null;
 
   if (stock != null && stock <= 0) {
     return { success: false, reason: "out_of_stock", stock: 0 };
@@ -112,7 +143,7 @@ const addToCart = (product, quantity = 1) => {
 
   const existing = state.cartItems.find(
     (it) =>
-      it.productId === product.id &&
+      it.productId === line.id &&
       (it.variantId ?? null) === variantId
   );
   const currentQty = existing ? existing.quantity : 0;
@@ -130,24 +161,46 @@ const addToCart = (product, quantity = 1) => {
   if (existing) {
     existing.quantity = target;
     if (stock != null) existing.stock = stock;
-    existing.price = Number(product.price || existing.price || 0);
-    existing.size = product.size || existing.size || "";
-    existing.color = product.color || existing.color || "";
+    existing.price = Number(line.price || existing.price || 0);
+    existing.size = line.size || existing.size || "";
+    existing.color = line.color || existing.color || "";
     return { success: true, added, stock };
   }
 
   state.cartItems.push({
-    productId: product.id,
+    productId: line.id,
     variantId,
-    name: product.name || "Sản phẩm",
-    price: Number(product.price || 0),
+    name: line.name || "Sản phẩm",
+    price: Number(line.price || 0),
     quantity: target,
     stock: stock ?? undefined,
-    image: resolveProductImage(product),
-    size: product.size || "",
-    color: product.color || "",
+    image: resolveProductImage(line),
+    size: line.size || "",
+    color: line.color || "",
   });
   return { success: true, added, stock };
+};
+
+/** Thêm giỏ — tải chi tiết SP nếu danh sách chưa có biến thể. */
+const addToCartAsync = async (product, quantity = 1) => {
+  let prepared = buildCartLineFromProduct(product);
+  const needsDetail =
+    product?.id &&
+    prepared.variantId == null &&
+    (!Array.isArray(product.variants) || !product.variants.length);
+
+  if (needsDetail) {
+    try {
+      const data = await fetchProductByIdApi(product.id);
+      if (data?.product) {
+        prepared = buildCartLineFromProduct({ ...product, ...data.product });
+      }
+    } catch {
+      /* dùng dữ liệu hiện có */
+    }
+  }
+
+  return addToCart(prepared, quantity);
 };
 
 const removeFromCart = (productId, variantId = null) => {
@@ -188,7 +241,9 @@ const clearCart = () => {
   state.cartItems = [];
 };
 
-const isLoggedIn = () => Boolean(state.user && state.accessToken);
+const isLoggedIn = () => Boolean(state.user);
+
+const hasValidSession = () => Boolean(state.user && state.accessToken);
 
 const toProductId = (value) => {
   const n = Number(value);
@@ -295,8 +350,8 @@ const login = (payload) => {
     state.user = null;
     state.accessToken = null;
     state.favorites = [];
-    sessionStorage.removeItem(STORAGE_KEYS.refreshToken);
-    sessionStorage.removeItem(STORAGE_KEYS.accessToken);
+    writeStoredToken(STORAGE_KEYS.refreshToken, null);
+    writeStoredToken(STORAGE_KEYS.accessToken, null);
     return;
   }
 
@@ -315,19 +370,8 @@ const login = (payload) => {
   state.accessToken = accessToken || null;
   state.favorites = [];
 
-  if (accessToken) {
-    try {
-      sessionStorage.setItem(STORAGE_KEYS.accessToken, accessToken);
-    } catch {
-      /* ignore */
-    }
-  }
-
-  if (refreshToken) {
-    sessionStorage.setItem(STORAGE_KEYS.refreshToken, refreshToken);
-  } else {
-    sessionStorage.removeItem(STORAGE_KEYS.refreshToken);
-  }
+  writeStoredToken(STORAGE_KEYS.accessToken, accessToken || null);
+  writeStoredToken(STORAGE_KEYS.refreshToken, refreshToken || null);
 };
 
 const logout = () => {
@@ -335,8 +379,8 @@ const logout = () => {
   state.favorites = [];
   state.user = null;
   state.accessToken = null;
-  sessionStorage.removeItem(STORAGE_KEYS.refreshToken);
-  sessionStorage.removeItem(STORAGE_KEYS.accessToken);
+  writeStoredToken(STORAGE_KEYS.refreshToken, null);
+  writeStoredToken(STORAGE_KEYS.accessToken, null);
   localStorage.removeItem(STORAGE_KEYS.user);
 };
 
@@ -358,9 +402,22 @@ const syncPanelAccess = (data) => {
   };
 };
 
-const getRefreshToken = () => sessionStorage.getItem(STORAGE_KEYS.refreshToken);
+const getRefreshToken = () => readStoredToken(STORAGE_KEYS.refreshToken);
 
-const cartCount = computed(() =>
+/** Gia hạn JWT sau khi quay lại từ cổng thanh toán — không xóa giỏ/favorites. */
+const renewSessionTokens = (accessToken, refreshToken) => {
+  if (accessToken) {
+    state.accessToken = accessToken;
+    writeStoredToken(STORAGE_KEYS.accessToken, accessToken);
+  }
+  if (refreshToken) {
+    writeStoredToken(STORAGE_KEYS.refreshToken, refreshToken);
+  }
+};
+
+const cartCount = computed(() => state.cartItems.length);
+
+const cartQuantityTotal = computed(() =>
   state.cartItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
 );
 
@@ -397,10 +454,13 @@ const toast = {
 export const useAppStore = () => ({
   state,
   cartCount,
+  cartQuantityTotal,
   cartAmount,
   favoriteCount,
   isLoggedIn,
+  hasValidSession,
   addToCart,
+  addToCartAsync,
   removeFromCart,
   updateCartQuantity,
   clearCart,
@@ -413,6 +473,7 @@ export const useAppStore = () => ({
   updateUserProfile,
   syncPanelAccess,
   getRefreshToken,
+  renewSessionTokens,
   pushToast,
   removeToast,
   toast,

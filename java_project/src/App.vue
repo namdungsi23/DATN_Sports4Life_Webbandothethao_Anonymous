@@ -3,10 +3,10 @@ import { computed } from "vue";
 import { RouterView, useRoute } from "vue-router";
 import FloatingChatWidget from "./components/chat/FloatingChatWidget.vue";
 import AdminChatPresence from "./components/chat/AdminChatPresence.vue";
-import ScrollToTop from "./components/ScrollToTop.vue";
+import ScrollToTop from "./components/user/ScrollToTop.vue";
 import { useAppStore } from "./stores/appStore";
 import { userCanAccessPanel } from "./utils/adminAccess";
-import ToastContainer from "./components/ToastContainer.vue";
+import ToastContainer from "./components/user/ToastContainer.vue";
 
 const route = useRoute();
 const store = useAppStore();
