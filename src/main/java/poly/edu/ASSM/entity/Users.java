@@ -51,11 +51,6 @@ public class Users {
     @Column(name = "TotalSpending", nullable = false, precision = 18, scale = 2)
     private BigDecimal totalSpending;
 
-    /** Đăng ký nhận mã voucher / khuyến mãi qua Gmail */
-    @ColumnDefault("0")
-    @Column(name = "NewsletterOptIn", nullable = false)
-    private Boolean newsletterOptIn;
-
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt", nullable = false)
     private Instant createdAt;
@@ -94,9 +89,6 @@ public class Users {
         }
         if (totalSpending == null) {
             totalSpending = BigDecimal.ZERO;
-        }
-        if (newsletterOptIn == null) {
-            newsletterOptIn = false;
         }
         if (createdAt == null) {
             createdAt = Instant.now();

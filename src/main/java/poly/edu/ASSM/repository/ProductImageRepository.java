@@ -11,6 +11,4 @@ public interface ProductImageRepository extends JpaRepository<ProductImages, Lon
     List<ProductImages> findByVariant_IdOrderBySortOrderAscIdAsc(Long variantId);
 
     int countByVariant_Id(Long variantId);
-
-    long countByImageUrl(String imageUrl);
 }
